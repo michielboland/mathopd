@@ -377,6 +377,8 @@ static int get_path_info(struct request *r)
 		if (cp != end)
 			*cp = 0;
 		rv = stat(p, s);
+		if (debug)
+			log_d("get_path_info: stat(\"%s\") = %d", p, rv);
 		if (cp != end)
 			*cp = '/';
 		if (rv != -1) {
@@ -463,6 +465,7 @@ static int append_indexes(struct request *r)
 {
 	char *p, *q;
 	struct simple_list *i;
+	int rv;
 
 	p = r->path_translated;
 	q = p + strlen(p);
@@ -470,7 +473,10 @@ static int append_indexes(struct request *r)
 	i = r->c->index_names;
 	while (i) {
 		strcpy(q, i->name);
-		if (stat(p, &r->finfo) != -1)
+		rv = stat(p, &r->finfo);
+		if (debug)
+			log_d("append_indexes: stat(\"%s\") = %d", p, rv);
+		if (rv != -1)
 			break;
 		i = i->next;
 	}
@@ -525,6 +531,8 @@ static int process_fd(struct request *r)
 	if (r->method == M_POST)
 		return 405;
 	fd = open(r->path_translated, O_RDONLY | O_NONBLOCK);
+	if (debug)
+		log_d("process_fd: open(\"%s\") = %d", r->path_translated, fd);
 	if (fd == -1) {
 		log_d("cannot open %s", r->path_translated);
 		lerror("open");
@@ -569,6 +577,8 @@ static int add_fd(struct request *r, const char *filename)
 	if (r->class != CLASS_FILE)
 		return -1;
 	fd = open(filename, O_RDONLY | O_NONBLOCK);
+	if (debug)
+		log_d("add_fd: open(\"%s\") = %d", filename, fd);
 	if (fd == -1)
 		return -1;
 	if (fstat(fd, &s) == -1) {
