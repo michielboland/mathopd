@@ -117,7 +117,6 @@ static const char c_server[] =		"Server";
 static const char c_specials[] =	"Specials";
 static const char c_status[] =		"Status";
 static const char c_stayroot[] =	"StayRoot";
-static const char c_symlinks[] =	"Symlinks";
 static const char c_timeout[] =		"Timeout";
 static const char c_tuning[] =		"Tuning";
 static const char c_types[] =		"Types";
@@ -575,7 +574,6 @@ static const char *config_control(struct control **as)
 		a->index_names = b->index_names;
 		a->accesses = b->accesses;
 		a->mimes = b->mimes;
-		a->symlinksok = b->symlinksok;
 		a->path_args_ok = b->path_args_ok;
 		a->admin = b->admin;
 		a->refresh = b->refresh;
@@ -594,7 +592,6 @@ static const char *config_control(struct control **as)
 		a->index_names = 0;
 		a->accesses = 0;
 		a->mimes = 0;
-		a->symlinksok = 0;
 		a->path_args_ok = 0;
 		a->admin = 0;
 		a->refresh = 0;
@@ -631,9 +628,7 @@ static const char *config_control(struct control **as)
 			GETSTRING();
 			chopslash(tokbuf);
 			COPY(a->alias, tokbuf);
-		} else if (!strcasecmp(tokbuf, c_symlinks))
-			t = config_flag(&a->symlinksok);
-		else if (!strcasecmp(tokbuf, c_path_args))
+		} else if (!strcasecmp(tokbuf, c_path_args))
 			t = config_flag(&a->path_args_ok);
 		else if (!strcasecmp(tokbuf, c_index_names))
 			t = config_list(&a->index_names);

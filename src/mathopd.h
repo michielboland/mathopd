@@ -162,7 +162,6 @@ struct simple_list {
 
 struct control {
 	char *alias;
-	int symlinksok;
 	int path_args_ok;
 	int exact_match;
 	struct simple_list *index_names;

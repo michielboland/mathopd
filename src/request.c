@@ -408,41 +408,6 @@ static int check_path(struct request *r)
 		}
 }
 
-static int check_symlinks(struct request *r)
-{
-	char *p, *s, *t, b[PATHLEN];
-	struct control *c;
-	struct stat buf;
-	int flag, rv;
-
-	p = r->path_translated;
-	c = r->c;
-	if (c->symlinksok)
-		return 0;
-	strcpy(b, p);
-	t = b + (c->locations->name ? strlen(c->locations->name) : 0);
-	s = b + strlen(b);
-	flag = 1;
-	while (--s > t) {
-		if (*s == '/') {
-			*s = 0;
-			flag = 1;
-		} else if (flag) {
-			flag = 0;
-			rv = lstat(b, &buf);
-			if (rv == -1) {
-				lerror("lstat");
-				return -1;
-			}
-			if (S_ISLNK(buf.st_mode)) {
-				log_d("%s is a symbolic link", b);
-					return -1;
-			}
-		}
-	}
-	return 0;
-}
-
 static int makedir(struct request *r)
 {
 	char *buf, *e;
@@ -708,10 +673,6 @@ static int process_path(struct request *r)
 	}
 	if (!S_ISREG(r->finfo.st_mode)) {
 		log_d("%s is not a regular file", r->path_translated);
-		r->error_file = r->c->error_404_file;
-		return 404;
-	}
-	if (check_symlinks(r) == -1) {
 		r->error_file = r->c->error_404_file;
 		return 404;
 	}
