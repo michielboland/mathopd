@@ -818,6 +818,8 @@ static int process_path(struct request *r)
 			return makedir(r);
 		if (append_indexes(r) == -1) {
 			if (r->c->auto_index_command && *r->c->auto_index_command == '/') {
+				if (r->method == M_POST)
+					return 405;
 				r->content_type = r->c->auto_index_command;
 				r->class = CLASS_EXTERNAL;
 				return fork_request(r, exec_cgi);
