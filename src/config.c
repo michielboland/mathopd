@@ -575,11 +575,7 @@ static const char *fill_servernames(void)
 	while (s) {
 		if (s->port == 0)
 			s->port = DEFAULT_PORT;
-		if (s->name == 0) {
-			if (fqdn == 0)
-				return e_unknown_host;
-			s->name = fqdn;
-		}
+		s->name = fqdn;
 		v = s->children;
 		while (v) {
 			name = v->host ? v->host : s->name;
