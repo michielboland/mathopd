@@ -552,7 +552,7 @@ void httpd_main(void)
 		if (gotsighup) {
 			gotsighup = 0;
 			if (init_logs() == -1)
-				gotsigusr2 = 1;
+				break;
 			if (first) {
 				first = 0;
 				log_d("*** %s starting", server_version);
