@@ -131,7 +131,7 @@ static const char t_string[] =		"unexpected string";
 static const char t_too_long[] =	"token too long";
 static const char t_word[] =		"unexpected word";
 
-#define DEFAULT_LOG_COLUMNS 11
+#define DEFAULT_LOG_COLUMNS 13
 
 static int default_log_column[] = {
         ML_CTIME,
@@ -144,7 +144,9 @@ static int default_log_column[] = {
         ML_STATUS,
         ML_CONTENT_LENGTH,
         ML_REFERER,
-        ML_USER_AGENT
+        ML_USER_AGENT,
+	ML_BYTES_READ,
+	ML_BYTES_WRITTEN
 };
 
 #define ALLOC(x) if (((x) = malloc(sizeof *(x))) == 0) return e_memory
