@@ -10,11 +10,15 @@ IPv6 support has been added. It is not clear yet how the Access
 and Clients functionality should be ported. Therefore Access and
 Clients has been temporarily disabled, as well as Error403File.
 
+The server can now fork multiple copies of itself, via the
+NumProcesses keyword.
+
 The following keywords have been added:
 
 	ExpireInterval
 	Family
 	Options
+	NumProcesses
 
 The following keywords have been removed:
 
