@@ -319,6 +319,13 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 		memcpy(pp->obuf + len, buf, l);
 		len += l;
 	}
+	if (pp->cn->r->protocol_minor && pp->cn->keepalive == 0) {
+		l = sprintf(buf, "Connection: close\r\n");
+		if (len + l > pp->osize)
+			return no_room();
+		memcpy(pp->obuf + len, buf, l);
+		len += l;
+	}
 	for (i = 0; i < nheaders; i++) {
 		if (havestatus == 0 || i != status) {
 			if (len + cgi_headers[i].len + 2 > pp->osize)
