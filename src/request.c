@@ -62,7 +62,7 @@ static time_t timerfc(char *s)
 	};
 	unsigned sec, min, hour, day, mon, year;
 	char month[3];
-	char c;
+	int c;
 	unsigned n;
 	char flag;
 	char state;
