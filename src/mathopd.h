@@ -1,7 +1,7 @@
 /*
  * mathopd.h - header file for Mathopd
  *
- * Copyright 1996, Michiel Boland
+ * Copyright 1996, 1997, Michiel Boland
  */
 
 /* In der Halle des Bergk"onigs */
@@ -187,6 +187,7 @@ struct control {
 	struct control *next;
 	struct simple_list *locations;
 	struct access *clients;
+	char *admin;
 };
 
 struct virtual {
@@ -338,9 +339,6 @@ extern int process_imap(struct request *);
 extern int process_cgi(struct request *);
 
 #ifdef NEED_STRERROR
-/*
- * normal strerror is not const, but ours is :)
- */
 extern const char *strerror(int);
 #endif
 
@@ -349,10 +347,6 @@ extern char *strdup(const char *);
 #endif
 
 #ifdef NEED_PROTOTYPES
-/*
- * Compatible with solaris / should work on systems for which
- * these are intended
- */
 int accept(int, struct sockaddr *, int *);
 int bind(int, struct sockaddr *, int);
 void bzero(char *, int);
@@ -374,9 +368,6 @@ int setrlimit(int, const struct rlimit *);
 #endif
 
 #ifdef SUNOS
-/*
- * From K&R unless sunos tells otherwise
- */
 int _filbuf(FILE *);
 int fclose(FILE *);
 int fprintf(FILE *, const char *, ...);
@@ -390,6 +381,6 @@ char *vfprintf(FILE *, const char *, va_list);
 char *vsprintf(char *, const char *, va_list);
 #endif
 
-#endif /* NEED_PROTOTYPES */
+#endif
 
-#endif /* _mathopd_h */
+#endif
