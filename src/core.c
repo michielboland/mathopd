@@ -76,7 +76,6 @@ static struct connection_list reading_connections;
 static struct connection_list writing_connections;
 static struct connection_list forked_connections;
 static struct connection_list reinit_connections;
-static struct connection_list closing_connections;
 
 static void c_unlink(struct connection *c, struct connection_list *l)
 {
@@ -144,9 +143,6 @@ void set_connection_state(struct connection *c, enum connection_state state)
 	case HC_REINIT:
 		o = &reinit_connections;
 		break;
-	case HC_CLOSING:
-		o = &closing_connections;
-		break;
 	default:
 		log_d("set_connection_state: unknown state: %d", state);
 		abort();
@@ -172,9 +168,6 @@ void set_connection_state(struct connection *c, enum connection_state state)
 		break;
 	case HC_REINIT:
 		n = &reinit_connections;
-		break;
-	case HC_CLOSING:
-		n = &closing_connections;
 		break;
 	default:
 		log_d("set_connection_state: unknown state: %d", state);
@@ -231,7 +224,7 @@ static void reinit_connection(struct connection *cn)
 	set_connection_state(cn, HC_WAITING);
 }
 
-static void close_connection(struct connection *cn)
+void close_connection(struct connection *cn)
 {
 	if (cn->nread || cn->nwritten || cn->logged == 0) {
 		++nrequests;
@@ -395,7 +388,7 @@ static void write_connection(struct connection *cn)
 				if (n == 0 && cn->keepalive)
 					reinit_connection(cn);
 				else
-					set_connection_state(cn, HC_CLOSING);
+					close_connection(cn);
 				return;
 			}
 		}
@@ -410,7 +403,7 @@ static void write_connection(struct connection *cn)
 				lerror("send");
 			case ECONNRESET:
 			case EPIPE:
-				set_connection_state(cn, HC_CLOSING);
+				close_connection(cn);
 			case EAGAIN:
 				return;
 			}
@@ -433,7 +426,7 @@ static void read_connection(struct connection *cn)
 	i = p->ceiling - p->end;
 	if (i == 0) {
 		log_d("input buffer full");
-		set_connection_state(cn, HC_CLOSING);
+		close_connection(cn);
 		return;
 	}
 	nr = recv(fd, p->end, i, MSG_PEEK);
@@ -446,13 +439,13 @@ static void read_connection(struct connection *cn)
 			lerror("recv");
 		case ECONNRESET:
 		case EPIPE:
-			set_connection_state(cn, HC_CLOSING);
+			close_connection(cn);
 		case EAGAIN:
 			return;
 		}
 	}
 	if (nr == 0) {
-		set_connection_state(cn, HC_CLOSING);
+		close_connection(cn);
 		return;
 	}
 	i = 0;
@@ -460,7 +453,7 @@ static void read_connection(struct connection *cn)
 		c = p->end[i++];
 		if (c == 0) {
 			log_d("read_connection: NUL in headers");
-			set_connection_state(cn, HC_CLOSING);
+			close_connection(cn);
 			return;
 		}
 		switch (state) {
@@ -592,7 +585,7 @@ static void read_connection(struct connection *cn)
 			cn->nread += nr;
 			log_d("read_connection: %d != %d!", nr, i);
 		}
-		set_connection_state(cn, HC_CLOSING);
+		close_connection(cn);
 		return;
 	}
 	cn->nread += nr;
@@ -602,12 +595,12 @@ static void read_connection(struct connection *cn)
 	if (state == 8) {
 		if (process_request(cn->r) == -1) {
 			if (cn->connection_state != HC_FORKED)
-				set_connection_state(cn, HC_CLOSING);
+				close_connection(cn);
 			return;
 		}
 		cn->left = cn->r->content_length;
 		if (fill_connection(cn) == -1) {
-			set_connection_state(cn, HC_CLOSING);
+			close_connection(cn);
 			return;
 		}
 		set_connection_state(cn, HC_WRITING);
@@ -706,7 +699,7 @@ static void run_rconnection(struct connection *cn)
 	r = pollfds[n].revents;
 	if (r & POLLERR) {
 		log_connection_error(cn);
-		set_connection_state(cn, HC_CLOSING);
+		close_connection(cn);
 		return;
 	}
 	if (r & POLLIN) {
@@ -729,7 +722,7 @@ static void run_wconnection(struct connection *cn)
 	r = pollfds[n].revents;
 	if (r & POLLERR) {
 		log_connection_error(cn);
-		set_connection_state(cn, HC_CLOSING);
+		close_connection(cn);
 		return;
 	}
 	if (r & POLLOUT)
@@ -782,12 +775,6 @@ static void cleanup_connections(void)
 	while (c) {
 		n = c->next;
 		reinit_connection(c);
-		c = n;
-	}
-	c = closing_connections.head;
-	while (c) {
-		n = c->next;
-		close_connection(c);
 		c = n;
 	}
 	timeout_connections(waiting_connections.head, tuning.timeout);
