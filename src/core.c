@@ -64,9 +64,7 @@ int nconnections;
 int maxconnections;
 time_t startuptime;
 time_t current_time;
-
 struct pollfd *pollfds;
-
 unsigned long nrequests;
 struct connection *connection_array;
 
@@ -171,18 +169,6 @@ void set_connection_state(struct connection *c, enum connection_state state)
 	c->connection_state = state;
 	if (n)
 		c_link(c, n);
-	if (o) {
-		if (o->head && o->tail == 0)
-			abort();
-		if (o->tail && o->head == 0)
-			abort();
-	}
-	if (n) {
-		if (n->head && n->tail == 0)
-			abort();
-		if (n->tail && n->head == 0)
-			abort();
-	}
 }
 
 static void init_connection(struct connection *cn)
@@ -233,8 +219,10 @@ static void close_servers(void)
 
 	s = servers;
 	while (s) {
-		close(s->fd);
-		s->fd = -1;
+		if (s->fd != -1) {
+			close(s->fd);
+			s->fd = -1;
+		}
 		s = s->next;
 	}
 }
@@ -464,11 +452,10 @@ static void read_connection(struct connection *cn)
 				state = 2;
 				break;
 			}
-			if (state)
-				if (cn->connection_state == HC_WAITING) {
-					gettimeofday(&cn->itv, 0);
-					set_connection_state(cn, HC_READING);
-				}
+			if (state) {
+				gettimeofday(&cn->itv, 0);
+				set_connection_state(cn, HC_READING);
+			}
 			break;
 		case 1:
 			switch (c) {
