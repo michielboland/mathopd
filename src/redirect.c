@@ -68,7 +68,7 @@ int process_redirect(struct request *r)
 		b = buf2;
 	} else
 		b = buf;
-	escape_url(b, r->path_args);
-	r->location = r->path_args;
+	escape_url(b, r->newloc);
+	r->location = r->newloc;
 	return 302;
 }

@@ -462,9 +462,9 @@ static int makedir(struct request *r)
 {
 	char *buf, *e;
 
-	buf = r->path_args;
+	buf = r->newloc;
 	construct_url(buf, r->url, r);
-	e = buf+strlen(buf);
+	e = buf + strlen(buf);
 	*e++ = '/';
 	*e = '\0';
 	r->location = buf;
@@ -681,8 +681,8 @@ static int process_path(struct request *r)
 	}
 	log(L_DEBUG, " redirect check,");
 	if (r->path_translated[0] != '/') {
-		escape_url(r->path_translated, r->path_args);
-		r->location = r->path_args;
+		escape_url(r->path_translated, r->newloc);
+		r->location = r->newloc;
 		return 302;
 	}
 	log(L_DEBUG, " evaluate_access,");

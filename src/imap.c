@@ -264,8 +264,8 @@ int process_imap(struct request *r)
 			construct_url(tmp, url, r);
 		else
 			strcpy(tmp, url);
-		escape_url(tmp, r->path_args);
-		r->location = r->path_args;
+		escape_url(tmp, r->newloc);
+		r->location = r->newloc;
 		return 302;
 	}
 	return 204;
