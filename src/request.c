@@ -998,6 +998,8 @@ static int process_headers(struct request *r)
 	if (strlen(s) > STRLEN)
 		return 400;
 	if (*s != '/') {
+		if (r->cn->assbackwards)
+			return 400;
 		u = strchr(s, '/');
 		if (u == 0 || u[1] != '/' || u[2] == 0 || u[2] == '/')
 			return 400;
