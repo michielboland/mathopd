@@ -77,7 +77,6 @@ control-item:
 	"Error404File" string
 	"EncryptedUserFile" flag
 	"ChildLog" string
-	"DNSLookups" flag
 	"Export" string-block
 	"ExactMatch" flag
 	"ScriptUser" string

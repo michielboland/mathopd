@@ -221,25 +221,6 @@ Keyword: Ctime
 Where:   LogFormat
 Desc:    The current time in 'C' format (e.g. Sun Mar 30 21:44:52 2003.)
 
-Keyword: DNSLookups
-Where:   Control
-Type:    Flag
-Default: On
-Desc:    By default, when processing CGI scripts and external programs,
-         mathopd will do a reverse DNS lookup to retrieve the fully
-         qualified domain name of the client. That name, if found, is
-         then passed to child processes via the REMOTE_HOST environment
-         variable. If this behaviour is not wanted, you can turn it off
-         by doing somehing like this at the start of the config file.
-
-           Control {
-             DNSLookups Off
-           }
-
-         Note the Mathopd does not do any DNS lookups when processing
-         requests themselves. You need to manually resolve IP addresses
-         from the log files if you are interested in names of clients.
-
 Keyword: Deny
 Where:   Access
 Type:    Network
