@@ -268,9 +268,6 @@ static void read_connection(struct connection *cn)
 			log_d("error peeking from %s", cn->ip);
 			lerror("recv");
 		case ECONNRESET:
-		case ENETUNREACH:
-		case EHOSTUNREACH:
-		case EPIPE:
 			cn->action = HC_CLOSING;
 		case EAGAIN:
 			return;
