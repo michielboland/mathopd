@@ -73,7 +73,7 @@ void log_request(struct request *r)
 			l = 24;
 			break;
 		case ML_USERNAME:
-			s = r->user;
+			s = r->user[0] ? r->user : 0;
 			break;
 		case ML_ADDRESS:
 			s = r->cn->ip;
@@ -114,7 +114,12 @@ void log_request(struct request *r)
 			s = 0;
 			break;
 		}
-		if (s) {
+		if (s == 0 || *s == 0) {
+			if (left) {
+				*b++ = '-';
+				--left;
+			}
+		} else {
 			n = strlen(s);
 			if (n > l)
 				n = l;
