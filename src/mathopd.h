@@ -48,7 +48,6 @@
 #define IMAP_MAGIC_TYPE "Imagemap"
 #define REDIRECT_MAGIC_TYPE "Redirect"
 #define DUMMY_MAGIC_TYPE "Dummy"
-#define DUMP_MAGIC_TYPE "Dump"
 
 #define DEFAULT_BUF_SIZE 12288
 #define INPUT_BUF_SIZE 2048
@@ -346,10 +345,6 @@ extern int process_imap(struct request *);
 /* cgi */
 
 extern int process_cgi(struct request *);
-
-/* dump */
-
-extern int process_dump(struct request *);
 
 /* base64 */
 
