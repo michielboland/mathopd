@@ -74,7 +74,7 @@ files rather than mathopd.h.
 
 Added REMOTE_USER CGI variable.
 
-Modified get_path_info to not search path the beginning
+Modified get_path_info to not search past the beginning
 of the assigned server directory.
 
 A new keyword, AllowDotfiles, has been added.
