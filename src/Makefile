@@ -28,11 +28,12 @@ DEPENDS = mathopd.h Makefile
 # Unomment the following if your system has a working vfork() function
 # CPPFLAGS += -DHAVE_VFORK
 
-# Uncomment the following to enable sendfile() support
-# SENDFILE must be 2 for Linux or Solaris (not tested yet)
-# or 3 for FreeBSD
-#
-# CPPFLAGS += -DSENDFILE
+# Currently, sendfile support is available in two flavours: Linux and FreeBSD
+# Uncomment one of the following two to enable sendfile() support
+# CPPFLAGS += -DLINUX_SENDFILE
+# CPPFLAGS += -DFREEBSD_SENDFILE
+# If you define any of the SENDFILE conditionals, make sure to uncomment
+# the next line as well.
 # OBJS += sendfile.o
 
 all: $(BIN)
