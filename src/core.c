@@ -343,7 +343,8 @@ static void init_log(char *name, int *fdp)
 	if (name) {
 		if (*fdp != -1)
 			close(*fdp);
-		*fdp = open(name, O_WRONLY | O_CREAT | O_APPEND, 0666);
+		*fdp = open(name, O_WRONLY | O_CREAT | O_APPEND,
+			    DEFAULT_FILEMODE);
 		if (*fdp != -1)
 			fcntl(*fdp, F_SETFD, FD_CLOEXEC);
 	}
