@@ -251,7 +251,6 @@ struct request {
 	char *ius_s;
 	time_t ius;
 	char rhost[STRLEN];
-	int forked;
 	char *in_transfer_encoding;
 	size_t in_mblen;
 };
