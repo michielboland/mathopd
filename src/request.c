@@ -503,28 +503,26 @@ static int process_fd(struct request *r)
 		return 404;
 	}
 	o = r->c->allowed_owners;
-	if (o) {
-		while (o) {
-			if (o->type == FO_USER) {
-				if (debug)
-					log_d("st_uid=%d user=%d", r->finfo.st_uid, o->user);
-				if (r->finfo.st_uid == o->user)
-					break;
-			} else if (o->type == FO_GROUP) {
-				if (debug)
-					log_d("st_gid=%d group=%d", r->finfo.st_gid, o->group);
-				if (r->finfo.st_gid == o->group)
-					break;
-			} else if (o->type == FO_WORLD)
+	while (o) {
+		if (o->type == FO_USER) {
+			if (debug)
+				log_d("st_uid=%d user=%d", r->finfo.st_uid, o->user);
+			if (r->finfo.st_uid == o->user)
 				break;
-			o = o->next;
-		}
-		if (o == 0) {
-			log_d("process_fd: invalid owner: uid=%d gid=%d file=%s", r->finfo.st_uid, r->finfo.st_gid, r->path_translated);
-			close(fd);
-			r->error_file = r->c->error_404_file;
-			return 404;
-		}
+		} else if (o->type == FO_GROUP) {
+			if (debug)
+				log_d("st_gid=%d group=%d", r->finfo.st_gid, o->group);
+			if (r->finfo.st_gid == o->group)
+				break;
+		} else if (o->type == FO_WORLD)
+			break;
+		o = o->next;
+	}
+	if (o == 0) {
+		log_d("process_fd: invalid owner: uid=%d gid=%d file=%s", r->finfo.st_uid, r->finfo.st_gid, r->path_translated);
+		close(fd);
+		r->error_file = r->c->error_404_file;
+		return 404;
 	}
 	r->content_length = r->finfo.st_size;
 	r->last_modified = r->finfo.st_mtime;
