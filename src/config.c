@@ -575,34 +575,54 @@ static const char *config_control(struct control **as)
 	return 0;
 }
 
-static const char *config_virtual(struct virtual **vs, struct server *parent)
+static const char *config_vhost(struct virtual **vs, struct vserver *s, const char *host)
 {
-	const char *t = 0;
 	struct virtual *v;
 
 	ALLOC(v);
-	v->host = 0;
+	if (host == 0)
+		v->host = 0;
+	else {
+		s->nameless = 0;
+		COPY(v->host, host);
+	}
 	v->fullname = 0;
-	v->parent = parent;
-	v->controls = parent->controls;
+	v->parent = s->server;
+	v->controls = 0; /* filled in later */
 	v->nrequests = 0;
 	v->nread = 0;
 	v->nwritten = 0;
+	v->vserver = s;
+	v->next = *vs;
+	*vs = v;
+	return 0;
+}
+
+static const char *config_virtual(struct vserver **vs, struct server *parent)
+{
+	const char *t = 0;
+	struct vserver *v;
+
+	ALLOC(v);
+	v->server = parent;
+	v->controls = parent->controls;
+	v->nameless = 1;
 	v->next = *vs;
 	*vs = v;
 	GETOPEN();
 	while (NOTCLOSE()) {
 		REQWORD();
-		if (!strcasecmp(tokbuf, c_host))
-			t = config_string(&v->host);
-		else if (!strcasecmp(tokbuf, c_control))
+		if (!strcasecmp(tokbuf, c_host)) {
+			GETSTRING();
+			t = config_vhost(&parent->children, v, tokbuf);
+		} else if (!strcasecmp(tokbuf, c_control))
 			t = config_control(&v->controls);
 		else
 			t = e_keyword;
 		if (t)
 			return t;
 	}
-	return 0;
+	return v->nameless ? config_vhost(&parent->children, v, 0) : 0;
 }
 
 static const char *config_server(struct server **ss)
@@ -616,6 +636,7 @@ static const char *config_server(struct server **ss)
 	s->addr.s_addr = 0;
 	s->s_name = 0;
 	s->children = 0;
+	s->vservers= 0;
 	s->controls = controls;
 	s->next = *ss;
 	s->naccepts = 0;
@@ -631,7 +652,7 @@ static const char *config_server(struct server **ss)
 		else if (!strcasecmp(tokbuf, c_address))
 			t = config_address(&s->s_name, &s->addr);
 		else if (!strcasecmp(tokbuf, c_virtual))
-			t = config_virtual(&s->children, s);
+			t = config_virtual(&s->vservers, s);
 		else if (!strcasecmp(tokbuf, c_control))
 			t = config_control(&s->controls);
 		else
@@ -660,6 +681,7 @@ static const char *fill_servernames(void)
 		}
 		v = s->children;
 		while (v) {
+			v->controls = v->vserver->controls;
 			name = v->host ? v->host : s->s_name;
 			if (s->port == DEFAULT_PORT)
 				v->fullname = name;
