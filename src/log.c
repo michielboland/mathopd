@@ -189,6 +189,7 @@ static int init_log_d(char *name, int *fdp)
 	if (name) {
 		n = name;
 		if (strchr(name, '%')) {
+			current_time = time(0);
 			tp = localtime(&current_time);
 			if (tp) {
 				if (strftime(converted_name, PATHLEN - 1, name, tp))
