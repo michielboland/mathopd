@@ -101,7 +101,6 @@ static const char c_deny[] =			"Deny";
 static const char c_encrypted_user_file[] =	"EncryptedUserFile";
 static const char c_error_log[] =		"ErrorLog";
 static const char c_error_401_file[] =		"Error401File";
-static const char c_error_403_file[] =		"Error403File";
 static const char c_error_404_file[] =		"Error404File";
 static const char c_exact_match[] =		"ExactMatch";
 static const char c_export[] =			"Export";
@@ -528,7 +527,6 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->realm = b->realm;
 		a->userfile = b->userfile;
 		a->error_401_file = b->error_401_file;
-		a->error_403_file = b->error_403_file;
 		a->error_404_file = b->error_404_file;
 		a->do_crypt = b->do_crypt;
 		a->child_filename = b->child_filename;
@@ -549,7 +547,6 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->realm = 0;
 		a->userfile = 0;
 		a->error_401_file = 0;
-		a->error_403_file = 0;
 		a->error_404_file = 0;
 		a->do_crypt = 0;
 		a->child_filename = 0;
@@ -611,8 +608,6 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_string(p, &a->userfile);
 		else if (!strcasecmp(p->tokbuf, c_error_401_file))
 			t = config_string(p, &a->error_401_file);
-		else if (!strcasecmp(p->tokbuf, c_error_403_file))
-			t = config_string(p, &a->error_403_file);
 		else if (!strcasecmp(p->tokbuf, c_error_404_file))
 			t = config_string(p, &a->error_404_file);
 		else if (!strcasecmp(p->tokbuf, c_encrypted_user_file))

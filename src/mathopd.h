@@ -153,7 +153,6 @@ struct control {
 	char *realm;
 	char *userfile;
 	char *error_401_file;
-	char *error_403_file;
 	char *error_404_file;
 	int do_crypt;
 	char *child_filename;
