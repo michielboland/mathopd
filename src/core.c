@@ -574,5 +574,5 @@ void httpd_main(void)
 			cleanup_connections();
 		}
 	}
-	log_d("*** shutting down", my_pid);
+	log_d("*** shutting down");
 }
