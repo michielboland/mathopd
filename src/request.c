@@ -485,6 +485,12 @@ static int append_indexes(struct request *r)
 	r->isindex = 1;
 	i = r->c->index_names;
 	while (i) {
+		if (*i->name == '/') {
+			*q = 0;
+			r->content_type = i->name;
+			r->class = CLASS_EXTERNAL;
+			return fork_request(r, exec_cgi);
+		}
 		strcpy(q, i->name);
 		rv = stat(p, &r->finfo);
 		if (rv != -1)
