@@ -67,7 +67,6 @@ time_t current_time;
 
 struct pollfd *pollfds;
 
-int available_connections;
 unsigned long nrequests;
 struct connection *connection_array;
 
@@ -78,6 +77,7 @@ static struct connection_list writing_connections;
 static struct connection_list forked_connections;
 static struct connection_list reinit_connections;
 static struct connection_list closing_connections;
+static struct connection_list new_connections;
 
 static void c_unlink(struct connection *c, struct connection_list *l)
 {
@@ -148,6 +148,9 @@ void set_connection_state(struct connection *c, enum connection_state state)
 	case HC_CLOSING:
 		o = &closing_connections;
 		break;
+	case HC_NEW:
+		o = &new_connections;
+		break;
 	default:
 		log_d("set_connection_state: unknown state: %d", state);
 		abort();
@@ -176,6 +179,9 @@ void set_connection_state(struct connection *c, enum connection_state state)
 		break;
 	case HC_CLOSING:
 		n = &closing_connections;
+		break;
+	case HC_NEW:
+		n = &new_connections;
 		break;
 	default:
 		log_d("set_connection_state: unknown state: %d", state);
@@ -230,7 +236,6 @@ static void reinit_connection(struct connection *cn)
 	}
 	init_connection(cn);
 	set_connection_state(cn, HC_WAITING);
-	++available_connections;
 }
 
 static void close_connection(struct connection *cn)
@@ -247,8 +252,6 @@ static void close_connection(struct connection *cn)
 		close(cn->rfd);
 		cn->rfd = -1;
 	}
-	if (cn->connection_state != HC_WAITING)
-		++available_connections;
 	set_connection_state(cn, HC_FREE);
 }
 
@@ -311,7 +314,7 @@ static int accept_connection(struct server *s)
 	struct connection *cn;
 
 	do {
-		if (available_connections == 0)
+		if (free_connections.head == 0 && waiting_connections.head == 0)
 			return 0;
 		l = sizeof sa_remote;
 		fd = accept(s->fd, (struct sockaddr *) &sa_remote, &l);
@@ -350,7 +353,7 @@ static int accept_connection(struct server *s)
 				maxconnections = nconnections;
 			init_connection(cn);
 			cn->logged = 0;
-			set_connection_state(cn, HC_WAITING);
+			set_connection_state(cn, HC_NEW);
 		}
 	} while (tuning.accept_multi);
 	return 0;
@@ -480,7 +483,6 @@ static void read_connection(struct connection *cn)
 				if (cn->connection_state == HC_WAITING) {
 					gettimeofday(&cn->itv, 0);
 					set_connection_state(cn, HC_READING);
-					--available_connections;
 				}
 			break;
 		case 1:
@@ -767,6 +769,12 @@ static void cleanup_connections(void)
 		close_connection(c);
 		c = n;
 	}
+	c = new_connections.head;
+	while (c) {
+		n = c->next;
+		set_connection_state(c, HC_WAITING);
+		c = n;
+	}
 	timeout_connections(waiting_connections.head, tuning.timeout);
 	timeout_connections(reading_connections.head, tuning.timeout);
 	timeout_connections(writing_connections.head, tuning.timeout);
@@ -812,7 +820,6 @@ void httpd_main(void)
 	time_t last_time;
 
 	accepting = 1;
-	available_connections = tuning.num_connections;
 	last_time = current_time = startuptime = time(0);
 	hours = current_time / 3600;
 	log_d("*** %s starting", server_version);
@@ -847,7 +854,7 @@ void httpd_main(void)
 				log_d("debugging turned off");
 		}
 		n = 0;
-		if (accepting && available_connections)
+		if (accepting && (free_connections.head || waiting_connections.head))
 			n = setup_server_pollfds(n);
 		n = setup_connection_pollfds(n);
 		n = setup_child_pollfds(n);
@@ -877,7 +884,7 @@ void httpd_main(void)
 			}
 		}
 		if (rv) {
-			if (accepting && available_connections && run_servers() == -1)
+			if (accepting && run_servers() == -1)
 				accepting = 0;
 			run_connections();
 			run_children();
