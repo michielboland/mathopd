@@ -51,7 +51,7 @@ static const char rcsid[] = "$Id$";
 #include <fcntl.h>
 #include "mathopd.h"
 
-static void dump_connections(FILE *f, struct connection *currcon)
+static void dump_connections(FILE *f)
 {
 	int i, n_reading, n_writing, n_waiting, n_forked;
 	size_t n;
@@ -69,39 +69,36 @@ static void dump_connections(FILE *f, struct connection *currcon)
 			putc('\n', f);
 			i = 0;
 		}
-		if (cn == currcon)
-			putc('*', f);
-		else
-			switch (cn->connection_state) {
-			case HC_FREE:
-				putc('.', f);
-				break;
-			case HC_READING:
-				putc('r', f);
-				++n_reading;
-				break;
-			case HC_WRITING:
-				putc('W', f);
-				++n_writing;
-				break;
-			case HC_WAITING:
-				putc('-', f);
-				++n_waiting;
-				break;
-			case HC_FORKED:
-				putc('F', f);
-				++n_forked;
-				break;
-			default:
-				putc('?', f);
-				break;
-			}
+		switch (cn->connection_state) {
+		case HC_FREE:
+			putc('.', f);
+			break;
+		case HC_READING:
+			putc('r', f);
+			++n_reading;
+			break;
+		case HC_WRITING:
+			putc('W', f);
+			++n_writing;
+			break;
+		case HC_WAITING:
+			putc('-', f);
+			++n_waiting;
+			break;
+		case HC_FORKED:
+			putc('F', f);
+			++n_forked;
+			break;
+		default:
+			putc('?', f);
+			break;
+		}
 		cn = cn->next;
 	}
 	fprintf(f, "\nReading: %d, Writing: %d, Waiting: %d, Forked: %d\n", n_reading, n_writing, n_waiting, n_forked);
 }
 
-static void fdump(FILE *f, struct request *r)
+static void fdump(FILE *f)
 {
 	struct rusage ru;
 
@@ -117,7 +114,7 @@ static void fdump(FILE *f, struct request *r)
 	getrusage(RUSAGE_CHILDREN, &ru);
 	fprintf(f, "                     children: %8ld.%02ld user %8ld.%02ld system\n\n", ru.ru_utime.tv_sec, ru.ru_utime.tv_usec / 10000, ru.ru_stime.tv_sec, ru.ru_stime.tv_usec / 10000);
 	stats.maxconnections = stats.nconnections;
-	dump_connections(f, r ? r->cn : 0);
+	dump_connections(f);
 	fprintf(f, "*** End of dump\n");
 }
 
@@ -166,7 +163,7 @@ int process_dump(struct request *r)
 		r->status = 500;
 		return 0;
 	}
-	fdump(f, r);
+	fdump(f);
 	if (fclose(f) == EOF) {
 		lerror("fclose");
 		close(fd2);
@@ -208,6 +205,6 @@ void internal_dump(void)
 	}
 	gettimeofday(&tv, 0);
 	fprintf(f, "*** Dump performed at %ld.%06ld\n", tv.tv_sec, tv.tv_usec);
-	fdump(f, 0);
+	fdump(f);
 	fclose(f);
 }
