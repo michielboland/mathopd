@@ -518,6 +518,8 @@ static int process_special(struct request *r)
 		return process_imap(r);
 	if (!strcasecmp(ct, REDIRECT_MAGIC_TYPE))
 		return process_redirect(r);
+	if (!strcasecmp(ct, DUMMY_MAGIC_TYPE))
+		return process_dummy(r);
 	r->error = se_no_specialty;
 	return 500;
 }

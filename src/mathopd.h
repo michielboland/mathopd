@@ -40,6 +40,7 @@
 #define CGI_MAGIC_TYPE "CGI"
 #define IMAP_MAGIC_TYPE "Imagemap"
 #define REDIRECT_MAGIC_TYPE "Redirect"
+#define DUMMY_MAGIC_TYPE "Dummy"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -324,5 +325,9 @@ extern int process_redirect(struct request *);
 extern void escape_url(const char *, char *);
 extern int unescape_url(const char *, char *);
 extern int unescape_url_n(const char *, char *, size_t);
+
+/* dummy */
+
+extern int process_dummy(struct request *);
 
 #endif
