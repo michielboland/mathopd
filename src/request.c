@@ -268,8 +268,6 @@ static int output_headers(struct pool *p, struct request *r)
 	char tmp_outbuf[2048], gbuf[40], *b;
 	struct simple_list *h;
 
-	if (r->cn->assbackwards)
-		return 0;
 	b = tmp_outbuf;
 	b += sprintf(b, "HTTP/1.1 %s\r\n"
 		"Server: %s\r\n"
@@ -967,23 +965,17 @@ static int process_headers(struct request *r)
 		if (l == 0)
 			return -1;
 	} while (*l == 0);
+	r->method_s = l;
 	u = strchr(l, ' ');
 	if (u == 0)
 		return -1;
-	r->method_s = l;
 	*u++ = 0;
-	if (r->cn->assbackwards)
-		r->protocol_minor = 9;
-	else {
-		s = strrchr(u, 'H');
-		if (s == 0 || s == u || s[-1] != ' ') {
-			log_d("no HTTP-Version in Request-Line");
-			return -1;
-		}
-		r->version = s;
-		s[-1] = 0;
-	}
 	r->url = u;
+	s = strrchr(u, 'H');
+	if (s == 0 || s == u || s[-1] != ' ')
+		return -1;
+	r->version = s;
+	s[-1] = 0;
 	s = strchr(u, '?');
 	if (s) {
 		r->args = s + 1;
@@ -1040,8 +1032,6 @@ static int process_headers(struct request *r)
 	if (strcmp(s, m_get) == 0)
 		r->method = M_GET;
 	else {
-		if (r->cn->assbackwards)
-			return 501;
 		if (strcmp(s, m_head) == 0)
 			r->method = M_HEAD;
 		else if (strcmp(s, m_post) == 0)
@@ -1053,8 +1043,6 @@ static int process_headers(struct request *r)
 	if (strlen(s) > STRLEN)
 		return 414;
 	if (*s != '/') {
-		if (r->cn->assbackwards)
-			return 400;
 		u = strchr(s, '/');
 		if (u == 0 || u[1] != '/' || u[2] == 0 || u[2] == '/')
 			return 400;
