@@ -189,6 +189,7 @@ static void write_connection(struct connection *cn)
 				log(L_ERROR, "error sending to %s", cn->ip);
 				lerror("send");
 				cn->action = HC_CLOSING;
+			case EPIPE:
 			case M_AGAIN:
 				return;
 			}
