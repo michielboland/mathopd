@@ -1044,6 +1044,13 @@ static int process_headers(struct request *r)
 			r->in_content_length = 0;
 		}
 	}
+	s = r->in_content_length;
+	if (s) {
+		if (*s == '-' || (n = strtoul(s, &u, 10), u == s || *u)) {
+			log_d("bad Content-Length from client: \"%s\"", s);
+			return 400;
+		}
+	}
 	if (r->method == M_GET) {
 		s = r->ims_s;
 		if (s) {
@@ -1072,6 +1079,9 @@ static int process_headers(struct request *r)
 					log_d("ignoring Range header \"%s\"", s);
 			}
 		}
+	} else if (r->method == M_POST) {
+		if (r->in_content_length == 0)
+			return 411;
 	}
 	return 0;
 }
@@ -1120,6 +1130,9 @@ int prepare_reply(struct request *r)
 	case 405:
 		r->status_line = "405 Method Not Allowed";
 		r->allowedmethods = "GET, HEAD";
+		break;
+	case 411:
+		r->status_line = "411 Length Required";
 		break;
 	case 412:
 		r->status_line = "412 Precondition Failed";
