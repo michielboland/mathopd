@@ -188,6 +188,7 @@ struct server {
 	unsigned long naccepts;
 	unsigned long nhandled;
 	struct vserver *vservers;
+	char *protocol;
 };
 
 struct request {

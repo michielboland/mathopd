@@ -779,6 +779,7 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	s->next = *ss;
 	s->naccepts = 0;
 	s->nhandled = 0;
+	s->protocol = 0;
 	*ss = s;
 	if ((t = gettoken(p)) != t_open)
 		return t;
