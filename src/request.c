@@ -671,10 +671,6 @@ static int find_vs(struct request *r)
 		v = d;
 	}
 	r->vs = v;
-	if (v->host)
-		r->servername = v->host;
-	else
-		r->servername = r->cn->s->s_name;
 	return 0;
 }
 
@@ -1207,7 +1203,6 @@ void init_request(struct request *r)
 	r->c = 0;
 	r->error_file = 0;
 	r->user[0] = 0;
-	r->servername = 0;
 	r->allowedmethods = 0;
 	r->location_length = 0;
 	r->nheaders = 0;
