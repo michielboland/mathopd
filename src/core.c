@@ -63,14 +63,10 @@ static void init_connection(struct connection *cn)
 
 static void reinit_connection(struct connection *cn)
 {
-	int rv;
-
 	log_request(cn->r);
 	cn->logged = 1;
 	if (cn->rfd != -1) {
-		rv = close(cn->rfd);
-		if (debug)
-			log_d("reinit_connection: close(%d) = %d", cn->rfd, rv);
+		close(cn->rfd);
 		cn->rfd = -1;
 	}
 	init_connection(cn);
@@ -79,18 +75,12 @@ static void reinit_connection(struct connection *cn)
 
 static void close_connection(struct connection *cn)
 {
-	int rv;
-
 	if (cn->nread || cn->nwritten || cn->logged == 0)
 		log_request(cn->r);
 	--nconnections;
-	rv = close(cn->fd);
-	if (debug)
-		log_d("close_connection: close(%d) = %d", cn->fd, rv);
+	close(cn->fd);
 	if (cn->rfd != -1) {
-		rv = close(cn->rfd);
-		if (debug)
-			log_d("close_connection: close(%d) = %d (rfd)", cn->rfd, rv);
+		close(cn->rfd);
 		cn->rfd = -1;
 	}
 	cn->state = HC_FREE;
@@ -99,13 +89,10 @@ static void close_connection(struct connection *cn)
 static void nuke_servers(void)
 {
 	struct server *s;
-	int rv;
 
 	s = servers;
 	while (s) {
-		rv = close(s->fd);
-		if (debug)
-			log_d("nuke_servers: close(%d) = %d", s->fd, rv);
+		close(s->fd);
 		s->fd = -1;
 		s = s->next;
 	}
@@ -126,31 +113,20 @@ static void nuke_connections(void)
 static void accept_connection(struct server *s)
 {
 	struct sockaddr_in sa;
-	int lsa, fd, rv;
+	int lsa, fd;
 	struct connection *cn, *cw;
 
 	do {
 		lsa = sizeof sa;
 		fd = accept(s->fd, (struct sockaddr *) &sa, &lsa);
-		if (debug) {
-			if (fd == -1)
-				log_d("accept_connection: accept(%d) = %d", s->fd, fd);
-			else
-				log_d("accept_connection: accept(%d) = %d; addr=[%s], port=%d",
-					s->fd, fd, inet_ntoa(sa.sin_addr), htons(sa.sin_port));
-		}
 		if (fd == -1) {
 			if (errno != EAGAIN)
 				lerror("accept");
 			break;
 		}
 		s->naccepts++;
-		rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
-		if (debug)
-			log_d("accept_connection: fcntl(%d, F_SETFD, FD_CLOEXEC) = %d", fd, rv);
-		rv = fcntl(fd, F_SETFL, O_NONBLOCK);
-		if (debug)
-			log_d("accept_connection: fcntl(%d, F_SETFL, O_NONBLOCK) = %d", fd, rv);
+		fcntl(fd, F_SETFD, FD_CLOEXEC);
+		fcntl(fd, F_SETFL, O_NONBLOCK);
 		cn = connections;
 		cw = 0;
 		while (cn) {
@@ -166,9 +142,7 @@ static void accept_connection(struct server *s)
 		}
 		if (cn == 0) {
 			log_d("connection to %s dropped", inet_ntoa(sa.sin_addr));
-			rv = close(fd);
-			if (debug)
-				log_d("accept_connection: close(%d) = %d", fd, rv);
+			close(fd);
 		} else {
 			s->nhandled++;
 			cn->state = HC_ACTIVE;
@@ -204,8 +178,6 @@ static int fill_connection(struct connection *cn)
 		return 0;
 	cn->left -= n;
 	m = read(cn->rfd, p->end, n);
-	if (debug)
-		log_d("fill_connection: read(%d, %p, %d) = %d", cn->rfd, p->end, n, m);
 	if (m != n) {
 		if (m == -1)
 			lerror("read");
@@ -238,8 +210,6 @@ static void write_connection(struct connection *cn)
 		}
 		cn->t = current_time;
 		m = send(cn->fd, p->start, n, 0);
-		if (debug)
-			log_d("write_connection: send(%d, %p, %d, 0) = %d", cn->fd, p->start, n, m);
 		if (m == -1) {
 			switch (errno) {
 			default:
@@ -276,8 +246,6 @@ static void read_connection(struct connection *cn)
 		return;
 	}
 	nr = recv(fd, p->end, i, MSG_PEEK);
-	if (debug)
-		log_d("read_connection: recv(%d, %p, %d, MSG_PEEK) = %d", fd, p->end, i, nr);
 	if (nr == -1) {
 		switch (errno) {
 		default:
@@ -393,8 +361,6 @@ static void read_connection(struct connection *cn)
 		}
 	}
 	nr = recv(fd, p->end, i, 0);
-	if (debug)
-		log_d("read_connection: recv(%d, %p, %d, 0) = %d", fd, p->end, i, nr);
 	if (nr != i) {
 		if (nr == -1) {
 			log_d("error reading from %s", cn->ip);
@@ -429,8 +395,7 @@ static void cleanup_connections(void)
 	while (cn) {
 		if (cn->state == HC_ACTIVE) {
 			if (current_time - cn->t >= tuning.timeout) {
-				if (debug)
-					log_d("timeout to %s", cn->ip);
+				log_d("timeout to %s", cn->ip);
 				cn->action = HC_CLOSING;
 			}
 			if (cn->action == HC_CLOSING)
@@ -500,7 +465,7 @@ static int init_logs(void)
 void log_d(const char *fmt, ...)
 {
 	va_list ap;
-	char log_line[200];
+	char log_line[1000];
 	int l, m, n, saved_errno;
 	char *ti;
 
@@ -527,9 +492,9 @@ void lerror(const char *s)
 	saved_errno = errno;
 	errmsg = strerror(errno);
 	if (s && *s)
-		log_d("%.80s: %.80s", s, errmsg ? errmsg : "???");
+		log_d("%s: %s", s, errmsg ? errmsg : "???");
 	else
-		log_d("%.80s", errmsg ? errmsg : "???");
+		log_d("%s", errmsg ? errmsg : "???");
 	errno = saved_errno;
 }
 
@@ -657,22 +622,11 @@ void httpd_main(void)
 		}
 #endif
 #ifdef POLL
-		if (debug)
-			log_d("httpd_main: poll(%d) ...", n);
 		rv = poll(pollfds, n, INFTIM);
 #else
-		if (debug)
-			log_d("httpd_main: select(%d) ...", m + 1);
 		rv = select(m + 1, &rfds, &wfds, 0, 0);
 #endif
 		current_time = time(0);
-#ifdef POLL
-		if (debug)
-			log_d("httpd_main: poll() = %d", rv);
-#else
-		if (debug)
-			log_d("httpd_main: select() = %d", rv);
-#endif
 		if (rv == -1) {
 			if (errno != EINTR) {
 #ifdef POLL

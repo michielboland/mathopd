@@ -39,10 +39,10 @@
 static int dump_children(int fd, struct virtual *v)
 {
 	int l;
-	char buf[80];
+	char buf[256];
 
 	while (v) {
-		l = sprintf(buf, "VHB %s %lu %lu\n", v->fullname, v->nrequests, v->nwritten);
+		l = sprintf(buf, "VHB %.200s %lu %lu\n", v->fullname, v->nrequests, v->nwritten);
 		if (write(fd, buf, l) == -1) {
 			lerror("write");
 			return -1;
@@ -55,7 +55,7 @@ static int dump_children(int fd, struct virtual *v)
 static int dump_servers(int fd, struct server *s)
 {
 	int l;
-	char buf[80];
+	char buf[200];
 
 	while (s) {
 		l = sprintf(buf, "SAH %s:%d %lu %lu\n", inet_ntoa(s->addr), s->port, s->naccepts, s->nhandled);
@@ -101,16 +101,12 @@ static int do_dump(int fd, const char *name, struct request *r)
 	int rv;
 
 	rv = remove(name);
-	if (debug)
-		log_d("do_dump: remove(\"%s\") = %d", name, rv);
 	if (rv == -1) {
 		log_d("do_dump: cannot remove temporary file %s", name);
 		lerror("remove");
 		return -1;
 	}
 	rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
-	if (debug)
-		log_d("do_dump: fcntl(%d, F_SETFD, FD_CLOEXEC = %d", fd, rv);
 	if (rv == -1) {
 		log_d("do_dump: failed to set FD_CLOEXEC flag !?!?!?");
 		lerror("fcntl");
@@ -121,8 +117,6 @@ static int do_dump(int fd, const char *name, struct request *r)
 		return -1;
 	}
 	rv = fstat(fd, &r->finfo);
-	if (debug)
-		log_d("do_dump: fstat(%d, ...) = %d", fd, rv);
 	if (rv == -1) {
 		lerror("fstat");
 		return -1;
@@ -152,21 +146,15 @@ int process_dump(struct request *r)
 		log_d("process_dump: mkstemp(\"%s\") = %d", tmpbuf, fd);
 	if (do_dump(fd, tmpbuf, r) == -1) {
 		rv = close(fd);
-		if (debug)
-			log_d("process_dump: close(%d) = %d", fd, rv);
 		return 500;
 	}
 	r->content_length = r->finfo.st_size;
 	r->last_modified = r->finfo.st_mtime;
 	if (r->method == M_GET) {
 		rv = lseek(fd, 0, SEEK_SET);
-		if (debug)
-			log_d("process_dump: lseek(%d, 0, SEEK_SET) = %d", fd, rv);
 		r->cn->rfd = fd;
 	} else {
 		rv = close(fd);
-		if (debug)
-			log_d("process_dump: close(%d) = %d", fd, rv);
 	}
 	r->content_type = "text/plain";
 	r->num_content = 0;
