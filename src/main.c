@@ -319,5 +319,5 @@ int fork_request(struct request *r, int (*f)(struct request *))
 			log_d("fork_request: child process %d created", pid);
 		r->forked = 1;
 	}
-	return -1;
+	return 0;
 }

@@ -416,7 +416,7 @@ static void read_connection(struct connection *cn)
 	p->state = state;
 	cn->t = current_time;
 	if (state == 8) {
-		if (process_request(cn->r) == -1) {
+		if (process_request(cn->r) == -1 || cn->r->forked) {
 			cn->action = HC_CLOSING;
 			return;
 		}

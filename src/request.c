@@ -1266,5 +1266,5 @@ int process_request(struct request *r)
 		log_d("cannot prepare reply for client");
 		return -1;
 	}
-	return r->status > 0 ? 0 : -1;
+	return r->status >= 0 ? 0 : -1;
 }
