@@ -447,13 +447,14 @@ static void reap_children(void)
 		if (pid <= 0)
 			break;
 		++numchildren;
-		if (WIFEXITED(status)) {
-			if (debug)
+		if (debug) {
+			if (WIFEXITED(status))
 				log_d("child process %d exited with status %d", pid, WEXITSTATUS(status));
-		} else if (WIFSIGNALED(status))
-			log_d("child process %d killed by signal %d", pid, WTERMSIG(status));
-		else if (WIFSTOPPED(status))
-			log_d("child process %d stopped by signal %d", pid, WSTOPSIG(status));
+			else if (WIFSIGNALED(status))
+				log_d("child process %d killed by signal %d", pid, WTERMSIG(status));
+			else if (WIFSTOPPED(status))
+				log_d("child process %d stopped by signal %d", pid, WSTOPSIG(status));
+		}
 	}
 	if (pid < 0 && errno != ECHILD)
 		lerror("waitpid");
