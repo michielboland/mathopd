@@ -79,7 +79,6 @@ void log_request(struct request *r)
 	int left;
 	char *b;
 	static int l1, l2;
-	int rok;
 	struct tm *tp;
 
 	if (log_file == -1)
@@ -100,7 +99,6 @@ void log_request(struct request *r)
 		return;
 	}
 	b = log_buffer;
-	rok = r->processed;
 	for (i = 0; i < log_columns; i++) {
 		l = log_buffer_size;
 		s = 0;
@@ -114,8 +112,7 @@ void log_request(struct request *r)
 			l = 24;
 			break;
 		case ML_USERNAME:
-			if (rok && r->user[0])
-				s = r->user;
+			s = r->user;
 			break;
 		case ML_ADDRESS:
 			sprintf(tmp, "%s", inet_ntoa(r->cn->peer.sin_addr));
@@ -126,45 +123,36 @@ void log_request(struct request *r)
 			s = tmp;
 			break;
 		case ML_SERVERNAME:
-			if (rok && r->vs)
+			if (r->vs)
 				s = r->vs->fullname;
 			break;
 		case ML_METHOD:
-			if (rok)
-				s = r->method_s;
+			s = r->method_s;
 			break;
 		case ML_URI:
-			if (rok)
-				s = r->url;
+			s = r->url;
 			break;
 		case ML_VERSION:
-			if (rok)
-				s = r->version;
+			s = r->version;
 			break;
 		case ML_STATUS:
-			if (rok) {
-				s = r->status_line;
-				l = 3;
-			}
+			s = r->status_line;
+			l = 3;
 			break;
 		case ML_CONTENT_LENGTH:
-			if (rok) {
-				cl = r->num_content;
-				if (cl >= 0)
-					cl = r->content_length;
-				if (cl < 0)
-					cl = 0;
-				sprintf(tmp, "%ld", cl);
-				s = tmp;
-			}
+			cl = r->num_content;
+			if (cl >= 0)
+				cl = r->content_length;
+			if (cl < 0)
+				cl = 0;
+			sprintf(tmp, "%ld", cl);
+			s = tmp;
 			break;
 		case ML_REFERER:
-			if (rok)
-				s = r->referer;
+			s = r->referer;
 			break;
 		case ML_USER_AGENT:
-			if (rok)
-				s = r->user_agent;
+			s = r->user_agent;
 			break;
 		case ML_BYTES_READ:
 			sprintf(tmp, "%lu", r->cn->nread);
@@ -175,8 +163,7 @@ void log_request(struct request *r)
 			s = tmp;
 			break;
 		case ML_QUERY_STRING:
-			if (rok)
-				s = r->args;
+			s = r->args;
 			break;
 		}
 		if (s == 0 || *s == 0) {
