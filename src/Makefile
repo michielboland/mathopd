@@ -3,7 +3,7 @@ CC=gcc
 CFLAGS=-O -Wall
 CPPFLAGS=
 LDFLAGS=
-LDLIBS=
+LDLIBS=-lcrypt
 PREFIX=/usr/local
 SBINDIR=$(PREFIX)/sbin
 
