@@ -253,9 +253,9 @@ int main(int argc, char *argv[])
 			_exit(0);
 	}
 	mysignal(SIGCHLD, sigchld);
-	mysignal(SIGHUP,  sighup);
+	mysignal(SIGHUP, sighup);
 	mysignal(SIGTERM, sigterm);
-	mysignal(SIGINT,  sigterm);
+	mysignal(SIGINT, sigterm);
 	mysignal(SIGQUIT, sigquit);
 	mysignal(SIGUSR1, sigusr1);
 	mysignal(SIGUSR2, sigusr2);
