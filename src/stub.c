@@ -503,7 +503,7 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 				bytestocopy = room;
 			if (bytestocopy && p->chunkit) {
 				chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
-				if (chunkheaderlen + 2 >= bytestocopy)
+				if (chunkheaderlen + 2 >= room)
 					bytestocopy = 0;
 				else {
 					if (bytestocopy + chunkheaderlen + 2 > room) {
