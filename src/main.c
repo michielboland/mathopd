@@ -158,6 +158,7 @@ int main(int argc, char *argv[])
 	const char *message;
 	const char *config_filename;
 
+	my_pid = getpid();
 	progname = argv[0];
 	am_daemon = 1;
 	version = 0;
