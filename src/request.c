@@ -1,7 +1,5 @@
 #include "mathopd.h"
 
-extern int cern;
-
 static const char br_empty[] =			"empty request";
 static const char br_bad_method[] =		"bad method";
 static const char br_bad_url[] =		"bad or missing url";
@@ -173,18 +171,6 @@ static char *rfctime(time_t t)
 	return buf;
 }
 
-static char *cerntime(time_t t)
-{
-	static char buf[32];
-	struct tm *tp;
-
-	if ((tp = gmtime(&t)) != 0)
-		strftime(buf, 27, "%d/%b/%Y:%H:%M:%S +0000", tp);
-	else
-		buf[0] = 0;
-	return buf;
-}
-
 static char *getline(struct pool *p)
 {
 	register char *s;
@@ -308,9 +294,8 @@ static int evaluate_access(unsigned long ip, struct access *a)
 	return a ? a->type : ALLOW;
 }
 
-static int get_mime(struct request *r)
+static int get_mime(struct request *r, const char *s)
 {
-	char *s = r->path_translated;
 	struct mime *m = r->c->mimes;
 	char *saved_type = 0;
 	int saved_s = 0;
@@ -321,7 +306,8 @@ static int get_mime(struct request *r)
 	while (m) {
 		if (m->ext) {
 			le = strlen(m->ext);
-			if (le > lm && le <= l && !strcasecmp(s + l - le, m->ext)) {
+			if (le > lm && le <= l &&
+				!strcasecmp(s + l - le, m->ext)) {
 				lm = le;
 				saved_type = m->name;
 				saved_s = m->type == M_SPECIAL;
@@ -461,6 +447,7 @@ static int append_indexes(struct request *r)
 	}
 	if (i == 0) {
 		*q = '\0';
+		r->error_file = r->c->error_404_file;
 		return 404;
 	}
 	return 0;
@@ -483,8 +470,10 @@ static int process_special(struct request *r)
 static int process_fd(struct request *r)
 {
 	if (r->path_args[0] && r->c->path_args_ok == 0) {
-		if (r->path_args[1] || r->isindex == 0)
+		if (r->path_args[1] || r->isindex == 0) {
+			r->error_file = r->c->error_404_file;
 			return 404;
+		}
 	}
 	if (r->method == M_POST) {
 		r->error = fb_post_file;
@@ -503,6 +492,7 @@ static int process_fd(struct request *r)
 			switch (errno) {
 			case EACCES:
 				r->error = fb_access;
+				r->error_file = r->c->error_403_file;
 				return 403;
 			case EMFILE:
 				r->error = su_open;
@@ -515,10 +505,36 @@ static int process_fd(struct request *r)
 		}
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		r->cn->rfd = fd;
-		if (r->content_length <= 65)
-			r->cn->keepalive = 0;
 	}
 	return 200;
+}
+
+static int add_fd(struct request *r, const char *filename)
+{
+	int fd;
+	struct stat s;
+
+	log(L_DEBUG, "add_fd, filename=%s", filename ? filename : "NULL");
+
+	if (filename == 0)
+		return -1;
+	if (get_mime(r, filename) == -1)
+		return -1;
+	log(L_DEBUG, "open(\"%s\")", filename);
+	fd = open(filename, O_RDONLY);
+	if (fd == -1)
+		return -1;
+	log(L_DEBUG, "fstat(%d)", fd);
+	fstat(fd, &s);
+	if (!S_ISREG(s.st_mode)) {
+		log(L_WARNING, "non-plain file %s", filename);
+		close(fd);
+		return -1;
+	}
+	fcntl(fd, F_SETFD, FD_CLOEXEC);
+	r->cn->rfd = fd;
+	r->content_length = s.st_size;
+	return 0;
 }
 
 static int hostmatch(const char *s, const char *t)
@@ -581,7 +597,7 @@ static int check_realm(struct request *r)
 	while (isspace(*a))
 		++a;
 	log(L_DEBUG, "and now '%s'", a);
-	if (webuserok(a, r->c->userfile))
+	if (webuserok(a, r->c->userfile, r->user, sizeof r->user - 1))
 		return 0;
 	return -1;
 }
@@ -613,10 +629,12 @@ static int process_path(struct request *r)
 	if (evaluate_access(r->cn->peer.sin_addr.s_addr, r->c->accesses)
 		== DENY) {
 		r->error = fb_active;
+		r->error_file = r->c->error_403_file;
 		return 403;
 	}
 	log(L_DEBUG, " check_realm");
 	if (check_realm(r) == -1) {
+		r->error_file = r->c->error_401_file;
 		return 401;
 	}
 	log(L_DEBUG, " check_path,");
@@ -632,6 +650,7 @@ static int process_path(struct request *r)
 	log(L_DEBUG, " sanity check,");
 	if (r->c->locations == 0) {
 		log(L_ERROR, "raah... no locations found");
+		r->error_file = r->c->error_404_file;
 		return 404;
 	}
 	log(L_DEBUG, " ISDIR check,");
@@ -646,15 +665,17 @@ static int process_path(struct request *r)
 	log(L_DEBUG, " ISREG check,");
 	if (S_ISREG(r->finfo.st_mode) == 0) {
 		r->error = fb_not_plain;
+		r->error_file = r->c->error_403_file;
 		return 403;
 	}
 	log(L_DEBUG, " check_symlinks,");
 	if (check_symlinks(r) == -1) {
 		r->error = fb_symlink;
+		r->error_file = r->c->error_403_file;
 		return 403;
 	}
 	log(L_DEBUG, " get_mime,");
-	if (get_mime(r) == -1) {
+	if (get_mime(r, r->path_translated) == -1) {
 		r->error = se_no_mime;
 		return 500;
 	}
@@ -784,6 +805,8 @@ static int process_headers(struct request *r)
 	r->status = 0;
 	r->isindex = 0;
 	r->c = 0;
+	r->error_file = 0;
+	r->user[0] = '\0';
 
 	if ((l = getline(r->cn->input)) == 0) {
 		r->error = br_empty; /* can this happen? */
@@ -874,6 +897,8 @@ int prepare_reply(struct request *r)
 	static char buf[PATHLEN];
 	int send_message = r->method != M_HEAD;
 
+	log(L_DEBUG, "prepare_replay, status=%d", r->status);
+
 	switch (r->status) {
 	case 200:
 		r->status_line = "200 OK";
@@ -929,6 +954,10 @@ int prepare_reply(struct request *r)
 		if (r->referer)
 			log(L_WARNING, "  ref:   %s", r->referer);
 		log(L_WARNING, "  peer:  %s\n", r->cn->ip);
+	}
+	if (r->error_file) {
+		if (add_fd(r, r->error_file) != -1)
+			send_message = 0;
 	}
 	if (send_message) {
 		char *b = buf;
@@ -1003,31 +1032,20 @@ static void log_request(struct request *r)
 	if (cl < 0)
 		cl = 0;
 
-	if (cern) {
-		ti = cerntime(current_time);
-		log(L_TRANS, "%s - - [%s] \"%s %s HTTP/%d.%d\" %.3s %ld",
-		    cn->ip,
-		    ti,
-		    r->method_s,
-		    r->path,
-		    r->protocol_major,
-		    r->protocol_minor,
-		    r->status_line,
-		    cl);
-	} else {
-		ti = ctime(&current_time);
-		log(L_TRANS, "%.24s\t-\t%s\t%hu\t%s\t%s\t%s\t%.3s\t%ld\t%.128s\t%.128s",
-			ti ? ti : "???",
-			cn->ip,
-			htons(cn->peer.sin_port),
-			r->vs->fullname,
-			r->method_s,
-			r->path,
-			r->status_line,
-			cl,
-			r->referer ? r->referer : "-",
-			r->user_agent ? r->user_agent : "-");
-	}
+	ti = ctime(&current_time);
+	log(L_TRANS,
+		"%.24s\t%.15s\t%s\t%hu\t%s\t%s\t%s\t%.3s\t%ld\t%.128s\t%.128s",
+		ti ? ti : "???",
+		r->user[0] ? r->user : "-",
+		cn->ip,
+		htons(cn->peer.sin_port),
+		r->vs->fullname,
+		r->method_s,
+		r->path,
+		r->status_line,
+		cl,
+		r->referer ? r->referer : "-",
+		r->user_agent ? r->user_agent : "-");
 }
 
 int process_request(struct request *r)
