@@ -40,6 +40,7 @@ static const char rcsid[] = "$Id$";
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <netdb.h>
 #include <pwd.h>
 #include <stdio.h>
@@ -756,6 +757,13 @@ static const char *config_sockopts(struct configuration *p, struct server_sockop
 		if (!strcasecmp(p->tokbuf, "v6only")) {
 			l = IPPROTO_IPV6;
 			n = IPV6_V6ONLY;
+			what = SO_FLAG;
+		} else
+#endif
+#ifdef TCP_NODELAY
+		if (!strcasecmp(p->tokbuf, "nodelay")) {
+			l = IPPROTO_TCP;
+			n = TCP_NODELAY;
 			what = SO_FLAG;
 		} else
 #endif
