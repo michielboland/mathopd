@@ -747,6 +747,7 @@ static const char *config_sockopts(struct configuration *p, struct server_sockop
 		op = malloc(sizeof *op);
 		if (op == 0)
 			return e_memory;
+		*op = o;
 		s->ss_level = l;
 		s->ss_optname = n;
 		s->ss_optval = op;
