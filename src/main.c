@@ -170,16 +170,12 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-#ifdef NO_GETRLIMIT
-	n = sysconf(_SC_OPEN_MAX);
-	if (n == -1)
-		die("sysconf", 0);
-#else
 	if (getrlimit(RLIMIT_NOFILE, &rl) == -1)
 		die("getrlimit", 0);
 	n = rl.rlim_cur = rl.rlim_max;
+	if (debug)
+		fprintf(stderr, "Number of fds available: %d\n", n);
 	setrlimit(RLIMIT_NOFILE, &rl);
-#endif
 
 	for (i = 0; i < n; i++) {
 		switch(i) {
