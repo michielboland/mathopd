@@ -226,7 +226,7 @@ struct request {
 	char path[PATHLEN];
 	char path_translated[PATHLEN];
 	char path_args[PATHLEN];
-	char *content_type;
+	const char *content_type;
 	int num_content;
 	int class;
 	long content_length;
