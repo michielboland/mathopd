@@ -714,7 +714,7 @@ static size_t expand_hostname(char *dest, const char *source, const char *host, 
 		switch (c) {
 		case '*':
 			if (host) {
-				dest += l = sprintf(dest, "%.*s", m - n, host);
+				dest += l = sprintf(dest, "%.*s", (int) (m - n), host);
 				n += l;
 				break;
 			}
