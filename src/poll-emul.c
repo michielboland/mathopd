@@ -1,5 +1,5 @@
 /*
- *   Copyright 2001 Michiel Boland.
+ *   Copyright 2001, 2002 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -32,6 +32,8 @@
  *   IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+/* Dave. My mind is going. I can feel it. */
 
 static const char rcsid[] = "$Id$";
 
