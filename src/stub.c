@@ -611,7 +611,7 @@ static void copylastchunk(struct pipe_params *p)
 static void pipe_run(struct pipe_params *p)
 {
 	short cevents, pevents;
-	size_t tmp;
+	size_t tmp, t2;
 
 	cevents = p->cpollno != -1 ? pollfds[p->cpollno].revents : 0;
 	pevents = p->ppollno != -1 ? pollfds[p->ppollno].revents : 0;
@@ -627,6 +627,7 @@ static void pipe_run(struct pipe_params *p)
 	}
 	cevents &= POLLIN | POLLOUT;
 	pevents &= POLLIN | POLLOUT;
+	t2 = p->ibp;
 	if (cevents & POLLIN) {
 		if (readfromclient(p) == -1)
 			return;
@@ -648,7 +649,7 @@ static void pipe_run(struct pipe_params *p)
 		if (writetoclient(p) == -1)
 			return;
 	}
-	if (pevents & POLLOUT && p->ibp > p->opp) {
+	if ((t2 == 0 || pevents & POLLOUT) && p->ibp > p->opp) {
 		if (writetochild(p) == -1)
 			return;
 	}
