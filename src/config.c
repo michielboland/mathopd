@@ -115,6 +115,8 @@ static const char c_extra_headers[] =		"ExtraHeaders";
 static const char c_host[] =			"Host";
 static const char c_index_names[] =		"IndexNames";
 static const char c_input_buf_size[] =		"InputBufSize";
+static const char c_local_address[] =		"LocalAddress";
+static const char c_local_port[] =		"LocalPort";
 static const char c_location[] =		"Location";
 static const char c_log[] =			"Log";
 static const char c_log_format[] =		"LogFormat";
@@ -182,8 +184,8 @@ static const char t_too_long[] =	"token too long";
 static int default_log_column[] = {
 	ML_CTIME,
 	ML_USERNAME,
-	ML_ADDRESS,
-	ML_PORT,
+	ML_REMOTE_ADDRESS,
+	ML_REMOTE_PORT,
 	ML_SERVERNAME,
 	ML_METHOD,
 	ML_URI,
@@ -413,9 +415,13 @@ static const char *config_log(struct configuration *p, int **colsp, int *numcols
 		else if (!strcasecmp(p->tokbuf, c_remote_user))
 			ml = ML_USERNAME;
 		else if (!strcasecmp(p->tokbuf, c_remote_address))
-			ml = ML_ADDRESS;
+			ml = ML_REMOTE_ADDRESS;
 		else if (!strcasecmp(p->tokbuf, c_remote_port))
-			ml = ML_PORT;
+			ml = ML_REMOTE_PORT;
+		else if (!strcasecmp(p->tokbuf, c_local_address))
+			ml = ML_LOCAL_ADDRESS;
+		else if (!strcasecmp(p->tokbuf, c_local_port))
+			ml = ML_LOCAL_PORT;
 		else if (!strcasecmp(p->tokbuf, c_server_name))
 			ml = ML_SERVERNAME;
 		else if (!strcasecmp(p->tokbuf, c_method))

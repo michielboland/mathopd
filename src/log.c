@@ -111,12 +111,20 @@ void log_request(struct request *r)
 		case ML_USERNAME:
 			s = r->user;
 			break;
-		case ML_ADDRESS:
+		case ML_REMOTE_ADDRESS:
 			sprintf(tmp, "%s", inet_ntoa(r->cn->peer.sin_addr));
 			s = tmp;
 			break;
-		case ML_PORT:
+		case ML_REMOTE_PORT:
 			sprintf(tmp, "%hu", ntohs(r->cn->peer.sin_port));
+			s = tmp;
+			break;
+		case ML_LOCAL_ADDRESS:
+			sprintf(tmp, "%s", inet_ntoa(r->cn->sock.sin_addr));
+			s = tmp;
+			break;
+		case ML_LOCAL_PORT:
+			sprintf(tmp, "%hu", ntohs(r->cn->sock.sin_port));
 			s = tmp;
 			break;
 		case ML_SERVERNAME:

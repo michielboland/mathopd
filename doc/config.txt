@@ -394,6 +394,14 @@ Desc:    The input buffer contains the complete set of headers sent by the
          headers. Usually the default value of 2048 is sufficient and does
          not need to be changed.
 
+Keyword: LocalAddress
+Where:   LogFormat
+Desc:    The local Internet address of the connection.
+
+Keyword: LocalPort
+Where:   LogFormat
+Desc:    The port number of the server.
+
 Keyword: Location
 Where:   Control
 Type:    String

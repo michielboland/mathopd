@@ -117,6 +117,8 @@ logformat-item:
 	"RemoteUser"
 	"RemoteAddress"
 	"RemotePort"
+	"LocalAddress"
+	"LocalPort"
 	"ServerName"
 	"Method"
 	"Uri"
