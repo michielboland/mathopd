@@ -742,14 +742,12 @@ static const char *config_vhost(struct virtual **vs, struct vserver *s, const ch
 static const char *config_virtual(struct configuration *p, struct vserver **vs, struct server *parent)
 {
 	struct vserver *v;
-	int nameless;
 	const char *t;
 
 	if ((v = malloc(sizeof *v)) == 0)
 		return e_memory;
 	v->server = parent;
 	v->controls = parent->controls;
-	nameless = 1;
 	v->next = *vs;
 	*vs = v;
 	if ((t = gettoken(p)) != t_open)
@@ -760,12 +758,10 @@ static const char *config_virtual(struct configuration *p, struct vserver **vs, 
 		if (!strcasecmp(p->tokbuf, c_host)) {
 			if ((t = gettoken(p)) != t_string)
 				return t;
-			nameless = 0;
 			t = config_vhost(&parent->children, v, p->tokbuf, 0);
-		} else if (!strcasecmp(p->tokbuf, c_no_host)) {
-			nameless = 0;
+		} else if (!strcasecmp(p->tokbuf, c_no_host))
 			t = config_vhost(&parent->children, v, 0, 0);
-		} else if (!strcasecmp(p->tokbuf, c_control))
+		else if (!strcasecmp(p->tokbuf, c_control))
 			t = config_control(p, &v->controls);
 		else if (!strcasecmp(p->tokbuf, c_any_host)) {
 			t = config_vhost(&parent->children, v, 0, 1);
