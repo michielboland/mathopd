@@ -965,8 +965,6 @@ static int process_headers(struct request *r)
 			r->authorization = s;
 		else if (!strcasecmp(l, "Host"))
 			r->host = s;
-		else if (!strcasecmp(l, "Connection"))
-			r->connection = s;
 		else if (!strcasecmp(l, "If-Modified-Since"))
 			r->ims_s = s;
 		else if (!strcasecmp(l, "If-Unmodified-Since"))
@@ -1037,11 +1035,6 @@ static int process_headers(struct request *r)
 			log_d("%s: unsupported version \"%s\"", inet_ntoa(r->cn->peer.sin_addr), s);
 			return 505;
 		}
-		s = r->connection;
-		if (r->protocol_minor)
-			r->cn->keepalive = !(s && strcasecmp(s, "Close") == 0);
-		else
-			r->cn->keepalive = s && strcasecmp(s, "Keep-Alive") == 0;
 	}
 	if (r->in_transfer_encoding) {
 		if (strcasecmp(r->in_transfer_encoding, "chunked")) {
@@ -1215,7 +1208,6 @@ void init_request(struct request *r)
 	r->host = 0;
 	r->in_content_type = 0;
 	r->in_content_length = 0;
-	r->connection = 0;
 	r->ims_s = 0;
 	r->path[0] = 0;
 	r->path_translated[0] = 0;
