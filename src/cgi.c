@@ -377,14 +377,43 @@ static int init_cgi_env(struct request *r, struct cgi_parameters *cp)
 	return 0;
 }
 
+static int set_uids(uid_t uid, gid_t gid)
+{
+	if (uid < 100) {
+		log_d("refusing to set uid to %d", uid);
+		return -1;
+	}
+	if (setgroups(0, &gid) == -1) {
+		lerror("setgroups");
+		return -1;
+	}
+	if (setgid(gid) == -1) {
+		lerror("setgid");
+		return -1;
+	}
+	if (setuid(uid) == -1) {
+		lerror("setuid");
+		return -1;
+	}
+	return 0;
+}
+
 static int become_user(const char *name)
 {
 	struct passwd *pw;
 	uid_t u;
+	gid_t g;
+	char *e;
 
 	if (name == 0) {
 		log_d("become_user: name may not be null");
 		return -1;
+	}
+	u = strtoul(name, &e, 10);
+	if (e != name && *e == '/') {
+		g = strtoul(e + 1, &e, 10);
+		if (*e == 0)
+			return set_uids(u, g);
 	}
 	pw = getpwnam(name);
 	if (pw == 0) {
@@ -405,27 +434,6 @@ static int become_user(const char *name)
 		return -1;
 	}
 	if (setuid(u) == -1) {
-		lerror("setuid");
-		return -1;
-	}
-	return 0;
-}
-
-static int set_uids(uid_t uid, gid_t gid)
-{
-	if (uid < 100) {
-		log_d("refusing to set uid to %d", uid);
-		return -1;
-	}
-	if (setgroups(0, &gid) == -1) {
-		lerror("setgroups");
-		return -1;
-	}
-	if (setgid(gid) == -1) {
-		lerror("setgid");
-		return -1;
-	}
-	if (setuid(uid) == -1) {
 		lerror("setuid");
 		return -1;
 	}
