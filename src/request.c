@@ -1244,6 +1244,18 @@ static int process_headers(struct request *r)
 			return 0;
 		}
 	}
+	if (r->send_continue) {
+		if ((r->in_content_length && r->in_mblen) || r->in_transfer_encoding) {
+			if (r->cn->header_input.end > r->cn->header_input.middle) {
+				if (debug)
+					log_d("suppressing '100 Continue' response (more input received)");
+				r->send_continue = 0;
+			}
+		} else {
+			if (debug)
+				log_d("suppressing '100 Continue' response (no body)");
+		}
+	}
 	return 1;
 }
 
