@@ -47,6 +47,7 @@ static STRING(c_admin) =		"Admin";
 static STRING(c_agent) =		"AgentLog";
 static STRING(c_alias) =		"Alias";
 static STRING(c_allow) =		"Allow";
+static STRING(c_apply) =		"Apply";
 static STRING(c_buf_size) =		"BufSize";
 static STRING(c_cern) =			"CERNStyle";
 static STRING(c_child_log) =		"ChildLog";
@@ -353,6 +354,8 @@ static const char *config_access(struct access **ls)
 			l->type = ALLOW;
 		else if (strceq(tokbuf, c_deny))
 			l->type = DENY;
+		else if (strceq(tokbuf, c_apply))
+			l->type = APPLY;
 		else
 			return e_keyword;
 		GETWORD();
