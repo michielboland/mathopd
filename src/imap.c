@@ -96,47 +96,19 @@ static int pointinpoly(point t, point a[], int n)
 	return idx;
 }
 
-struct file_buf {
-	int fb_fd;
-	char *fb_buf;
-	size_t fb_size;
-	int fb_pos;
-	int fb_len;
-	int fb_eof;
-};
-
-static int fgetline(char *s, int n, struct file_buf *p)
+static int fgetline(char *s, int n, FILE *stream)
 {
-	char c;
-	ssize_t r;
-	int i, l;
+	int c;
 
-	i = p->fb_pos;
-	l = p->fb_len;
 	do {
-		if (i >= l) {
-			if (p->fb_eof)
-				return -1;
-			r = read(p->fb_fd, p->fb_buf, p->fb_size);
-			if (r == -1) {
-				lerror("read");
-				return -1;
-			}
-			if (r == 0)
-				return -1;
-			if (r < p->fb_size)
-				p->fb_eof = 1;
-			l = p->fb_len = r;
-			i = p->fb_pos = 0;
-		}
-		c = p->fb_buf[i++];
+		if ((c = getc(stream)) == EOF)
+			return -1;
 		if (n > 1) {
 			--n;
-			*s++ = c;
+			*s++ = (char) c;
 		}
 	} while (c != '\n');
 	s[-1] = 0;
-	p->fb_pos = i;
 	return 0;
 }
 
@@ -198,23 +170,16 @@ static int separate(const char *s, struct token *t, int m)
 	}
 }
 
-static int f_process_imap(struct request *r, int fd)
+static int f_process_imap(struct request *r, FILE *fp)
 {
-	char input[STRLEN], default_url[STRLEN], buf[4096];
+	char input[STRLEN], default_url[STRLEN];
 	struct token tok[2 * MAXVERTS + 2];
 	point testpoint, pointarray[MAXVERTS];
 	long dist, mindist;
 	int i, k, l, line, sawpoint, text;
 	char *t, *u, *v, *w, *url;
 	const char *status;
-	struct file_buf fb;
 
-	fb.fb_fd = fd;
-	fb.fb_buf = buf;
-	fb.fb_size = sizeof buf;
-	fb.fb_pos = 0;
-	fb.fb_len = 0;
-	fb.fb_eof = 0;
 	testpoint.x = 0;
 	testpoint.y = 0;
 	text = 1;
@@ -233,8 +198,7 @@ static int f_process_imap(struct request *r, int fd)
 	mindist = 0;
 	status = 0;
 	url = 0;
-
-	while (fgetline(input, STRLEN, &fb) != -1) {
+	while (fgetline(input, STRLEN, fp) != -1) {
 		if (++line > MAXLINES) {
 			status = "too many lines";
 			break;
@@ -340,6 +304,7 @@ static int f_process_imap(struct request *r, int fd)
 
 int process_imap(struct request *r)
 {
+	FILE *fp;
 	int fd;
 	int retval;
 
@@ -353,8 +318,13 @@ int process_imap(struct request *r)
 		lerror("open");
 		return 500;
 	}
-	fcntl(fd, F_SETFD, FD_CLOEXEC);
-	retval = f_process_imap(r, fd);
-	close(fd);
+	fp = fdopen(fd, "r");
+	if (fp == 0) {
+		log_d("process_imap: fdopen failed");
+		close(fd);
+		return 500;
+	}
+	retval = f_process_imap(r, fp);
+	fclose(fp);
 	return retval;
 }
