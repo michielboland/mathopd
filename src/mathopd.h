@@ -9,8 +9,6 @@
 #ifndef _mathopd_h
 #define _mathopd_h
 
-#define MATHOPD_VERSION "Mathopd/1.0"
-
 /*
  * If you don't want/need any of these thingies, simply undefine
  * them.
@@ -19,7 +17,6 @@
 #define CGI_MAGIC_TYPE "CGI"
 #define IMAP_MAGIC_TYPE "Imagemap"
 #define DUMP_MAGIC_TYPE "Dump"
-#define REDIRECT_MAGIC_TYPE "Redirect"
 
 #if defined SOLARIS
 
@@ -30,6 +27,7 @@
 #define NEED_PROTOTYPES
 #define NEED_STRERROR
 #define NEED_MEMORY_H
+#define BROKEN_SPRINTF
 
 #elif defined ULTRIX
 
@@ -62,16 +60,16 @@
 #include <time.h>
 #include <unistd.h>
 #include <signal.h>
-#include <pwd.h>
-#include <grp.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/socket.h>
-#include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/time.h>
+#include <sys/wait.h>
+#include <pwd.h>
+#include <grp.h>
 
 #ifdef NEED_MEMORY_H
 #include <memory.h>
@@ -105,8 +103,6 @@
 #define STRLEN 400
 #define PATHLEN (2 * STRLEN)
 
-#define MAX_ARRAY 32
-
 enum {
 	ALLOW,
 	DENY
@@ -138,18 +134,18 @@ enum {
 enum {
 	L_LOG,
 	L_PANIC,
-#define L_LOGMIN L_PANIC
 	L_ERROR,
 	L_WARNING,
-	L_INFO,
-#define L_LOGMAX L_INFO
 	L_TRANS,
-	L_AGENT
+	L_AGENT,
+	L_DEBUG
 };
 
 #define streq(x,y) (strcmp(x,y) == 0)
 #define strceq(x,y) (strcasecmp(x,y) == 0)
 #define strneq(x,y,n) (strncmp(x,y,n) == 0)
+
+#define STRING(x) const char x[]
 
 struct pool {
 	char *floor;
@@ -173,17 +169,29 @@ struct mime {
 	struct mime *next;
 };
 
+struct simple_list {
+	char *name;
+	struct simple_list *next;
+};
+
 struct control {
-	char *directory;
 	char *alias;
 	int symlinksok;
-	char **index_names;
-	char **redirects;
-	int redirectno;
-	int log_level;
+	int loglevel;
+	struct simple_list *index_names;
 	struct access *accesses;
 	struct mime *mimes;
 	struct control *next;
+	struct simple_list *locations;
+};
+
+struct virtual {
+	char *host;
+	char *fullname;
+	struct server *parent;
+	struct control *controls;
+	long nrequests;
+	struct virtual *next;
 };
 
 struct server {
@@ -191,7 +199,7 @@ struct server {
 	int port;
 	struct in_addr addr;
 	char *name;
-	char *fullname;
+	struct virtual *children;
 	struct control *controls;
 	struct server *next;
 #ifdef POLL
@@ -199,11 +207,11 @@ struct server {
 #endif
 	long naccepts;
 	long nhandled;
-	long nrequests;
 };
 
 struct request {
 	struct connection *cn;
+	struct virtual *vs;
 	char *user_agent;
 	char *referer;
 	char *from;
@@ -215,19 +223,19 @@ struct request {
 	char path[PATHLEN];
 	char path_translated[PATHLEN];
 	char path_args[PATHLEN];
-	char *content_type;
+	const char *content_type;
 	int num_content;
 	int special;
 	long content_length;
 	time_t last_modified;
 	time_t ims;
 	char *location;
-	char *status_line;
-	char *error;
-	char *method_s;
+	const char *status_line;
+	const char *error;
+	const char *method_s;
 	char *url;
 	char *args;
-	char *protocol;
+	const char *protocol;
 	int method;
 	int status;
 	struct control *c;
@@ -258,28 +266,28 @@ struct connection {
 
 /* main */
 
-extern char *server_version;
+extern STRING(server_version);
 extern volatile int gotsigterm;
 extern volatile int gotsighup;
 extern volatile int gotsigusr1;
-extern volatile int gotsigusr2;
 extern volatile int numchildren;
 extern time_t startuptime;
-extern void die(char *, char *, ...);
+extern int debug;
+extern void die(const char *, const char *, ...);
 extern int fork_request(struct request *, int (*)(struct request *));
 
 /* config */
 
 extern int buf_size;
 extern int input_buf_size;
-extern int log_level;
 extern int num_connections;
 extern int timeout;
-extern char **exports;
+extern struct simple_list *exports;
 extern char *pid_filename;
 extern char *log_filename;
 extern char *error_filename;
 extern char *agent_filename;
+extern char *child_filename;
 
 extern char *admin;
 extern char *coredir;
@@ -300,18 +308,17 @@ extern int nconnections;
 extern int maxconnections;
 extern time_t current_time;
 
-extern int error_file;
-extern void log(int, char *, ...);
-extern void lerror(char *);
+extern void log(int, const char *, ...);
+extern void lerror(const char *);
 extern void httpd_main(void);
 
 /* request */
 
-extern char *magic_word;
+extern STRING(magic_word);
 extern int prepare_reply(struct request *);
 extern int process_request(struct request *);
-extern struct control *faketoreal(char *, char *, struct control *);
-extern void construct_url(char *, char *, struct server *);
+extern struct control *faketoreal(char *, char *, struct request *, int);
+extern void construct_url(char *, char *, struct virtual *);
 extern void escape_url(char *);
 extern int unescape_url(char *, char *);
 
@@ -326,12 +333,12 @@ extern int process_cgi(struct request *);
 #ifdef DUMP_MAGIC_TYPE
 extern int process_dump(struct request *);
 #endif
-#ifdef REDIRECT_MAGIC_TYPE
-extern int process_redirect(struct request *);
-#endif
 
 #ifdef NEED_STRERROR
-extern char *strerror(int);
+/*
+ * normal strerror is not const, but ours is :)
+ */
+extern const char *strerror(int);
 #endif
 
 #ifdef NEED_STRDUP
@@ -370,10 +377,11 @@ int setrlimit(int, const struct rlimit *);
 int _filbuf(FILE *);
 int fclose(FILE *);
 int fprintf(FILE *, const char *, ...);
+int fwrite(const char *, size_t, size_t, FILE *);
 void perror(const char *);
-int setvbuf(FILE *, char *, int, size_t);
 int strftime(char *, size_t, const char *, const struct tm *);
 time_t time(time_t *);
+int toupper(int);
 int ungetc(int, FILE *);
 char *vfprintf(FILE *, const char *, va_list);
 char *vsprintf(char *, const char *, va_list);
