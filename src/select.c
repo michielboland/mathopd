@@ -46,20 +46,10 @@ static const char rcsid[] = "$Id$";
 
 void selectforoutput(struct connection_fd *x)
 {
-	x->events |= POLLOUT;
-}
-
-void deselectforoutput(struct connection_fd *x)
-{
-	x->events &= ~POLLOUT;
+	x->events = POLLOUT;
 }
 
 void selectforinput(struct connection_fd *x)
 {
-	x->events |= POLLIN;
-}
-
-void deselectforinput(struct connection_fd *x)
-{
-	x->events &= ~POLLIN;
+	x->events = POLLIN;
 }
