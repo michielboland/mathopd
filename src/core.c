@@ -128,7 +128,8 @@ static void nuke_connections(void)
 static void accept_connection(struct server *s)
 {
 	struct sockaddr_in sa_remote, sa_local;
-	int lsa, fd;
+	socklen_t lsa;
+	int fd;
 	struct connection *cn, *cw;
 
 	do {
