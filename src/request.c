@@ -879,7 +879,7 @@ static int process_headers(struct request *r)
 			log_d("%s: unsupported version \"%s\"", inet_ntoa(r->cn->peer.sin_addr), s);
 			return 400;
 		}
-		r->protocol_major = 0;
+		r->protocol_major = 1;
 		switch (s[7]) {
 		case '0':
 			r->protocol_minor = 0;
