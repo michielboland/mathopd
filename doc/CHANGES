@@ -33,6 +33,11 @@ cgi.c:
 	External scripts can now be called with added command-line
 	arguments.
 
+	Allow ScriptUser to be of the form "UID/GID", where UID
+	and GID are numbers. That way, password lookups are
+	voided. This feature is a HACK and might go away at any
+	time.
+
 config.c:
 
 	The following keywords have been added:-
@@ -44,6 +49,7 @@ config.c:
 		PathInfo
 		AutoIndexCommand
 		Backlog
+		TimeTaken
 
 	The "Name" keyword has been removed since it no longer
 	has any function.
@@ -69,6 +75,10 @@ core.c:
 	a lot of sense. So we now let new connections hang in the air
 	until an existing connection goes away or changes into a
 	keep-alive state.
+
+	Make a time stamp in the connection structure when a bona
+	fide request appears. This can be used to log the time taken
+	to process a request.
 
 dump.c:
 
@@ -97,6 +107,9 @@ main.c:
 
 	The second argument to the listen() call is now dynamic via
 	the Backlog keyword.
+
+	In fork_request, each child process is placed in a separate
+	process group.
 
 request.c:
 
