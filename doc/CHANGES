@@ -48,6 +48,13 @@ core.c:
 	The code that deals with reading from and writing to
 	children is still in stub.c
 
+	Do not poll server sockets or try to accept() if there is no
+	room for any new connection. Previously mathopd would accept
+	and then immediately drop a connection. That does not make
+	a lot of sense. So we now let new connections hang in the air
+	until an existing connection goes away or changes into a
+	keep-alive state.
+
 dump.c:
 
 	Adjust the formatting slightly.
