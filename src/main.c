@@ -164,7 +164,7 @@ static void sighandler(int sig)
 
 int main(int argc, char *argv[])
 {
-	int c, i, version, pid_fd, null_fd, tee;
+	int c, i, version, pid_fd, null_fd, tee, am_child;
 	struct server *s;
 	char buf[10];
 	struct rlimit rl;
@@ -278,6 +278,7 @@ int main(int argc, char *argv[])
 	dup2(null_fd, 1);
 	dup2(null_fd, 2);
 	close(null_fd);
+	am_child = 0;
 	if (am_daemon) {
 		if (fork())
 			_exit(0);
@@ -285,8 +286,10 @@ int main(int argc, char *argv[])
 		if (fork())
 			_exit(0);
 		for (i = 1; i < tuning.num_processes; i++) {
-			if (fork() <= 0)
+			if (fork() <= 0) {
+				am_child = 1;
 				break;
+			}
 		}
 	}
 	mysignal(SIGCHLD, sighandler);
@@ -300,12 +303,14 @@ int main(int argc, char *argv[])
 	mysignal(SIGWINCH, sighandler);
 	my_pid = getpid();
 	if (pid_fd != -1) {
-		ftruncate(pid_fd, 0);
-		if (tuning.num_processes > 1)
-			sprintf(buf, "-%d\n", getpgrp());
-		else
-			sprintf(buf, "%d\n", my_pid);
-		write(pid_fd, buf, strlen(buf));
+		if (am_child == 0) {
+			ftruncate(pid_fd, 0);
+			if (tuning.num_processes > 1)
+				sprintf(buf, "-%d\n", getpgrp());
+			else
+				sprintf(buf, "%d\n", my_pid);
+			write(pid_fd, buf, strlen(buf));
+		}
 		close(pid_fd);
 	}
 	if (init_buffers() == -1)
