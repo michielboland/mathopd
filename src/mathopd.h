@@ -372,7 +372,6 @@ extern struct connection *connection_array;
 extern void set_connection_state(struct connection *, enum connection_state);
 extern int reinit_connection(struct connection *);
 extern void close_connection(struct connection *);
-extern void log_socket_error(int, const char *);
 extern void httpd_main(void);
 extern int init_pollfds(size_t);
 extern int init_connections(size_t);
