@@ -541,7 +541,7 @@ void httpd_main(void)
 				cn->pollno = -1;
 			cn = cn->next;
 		}
-		if (n == 0) {
+		if (n == 0 && accepting) {
 			log_d("no more sockets to poll from");
 			break;
 		}
