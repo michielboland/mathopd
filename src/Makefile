@@ -5,8 +5,8 @@ CPPFLAGS=
 LDFLAGS=
 LDLIBS=
 
-OBJS=	base64.o cgi.o config.o core.o dump.o imap.o \
-	main.o redirect.o request.o util.o dummy.o
+OBJS=	base64.o cgi.o config.o core.o dummy.o dump.o imap.o log.o main.o \
+	redirect.o request.o util.o
 DEPENDS=mathopd.h Makefile
 
 $(BIN): $(OBJS)
