@@ -246,6 +246,8 @@ struct request {
 	unsigned long range_ceiling;
 	unsigned long range_suffix;
 	unsigned long range_total;
+	char *ius_s;
+	time_t ius;
 };
 
 struct connection {
