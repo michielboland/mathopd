@@ -103,7 +103,11 @@ static int base64decode(const unsigned char *encoded, unsigned char *decoded)
 
 static int pwok(const char *good, const char *guess, int do_crypt)
 {
+#ifdef DANGEROUS_CRYPT
 	return strcmp(good, do_crypt ? crypt(guess, good) : guess) == 0;
+#else
+	return strcmp(good, guess) == 0;
+#endif
 }
 
 static int f_webuserok(const char *authorization, FILE *fp, char *username, int len, int do_crypt)
