@@ -44,6 +44,7 @@ static const char rcsid[] = "$Id$";
 #include <netdb.h>
 #include <pwd.h>
 #include <grp.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -324,7 +325,7 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 	return 0;
 }
 
-static int make_cgi_argv(struct request *r, char *b, struct cgi_parameters *cp)
+static int make_cgi_argv(struct request *r, struct cgi_parameters *cp)
 {
 	const char *a, *w;
 
@@ -338,7 +339,7 @@ static int make_cgi_argv(struct request *r, char *b, struct cgi_parameters *cp)
 				a = w + 1;
 		} while (w);
 	}
-	if (add_argv(b, 0, 0, cp) == -1)
+	if (add_argv(r->path_translated, 0, 0, cp) == -1)
 		return -1;
 	a = r->args;
 	if (a && strchr(a, '=') == 0)
@@ -356,79 +357,10 @@ static int make_cgi_argv(struct request *r, char *b, struct cgi_parameters *cp)
 
 static int init_cgi_env(struct request *r, struct cgi_parameters *cp)
 {
-	char *p, *b;
-
-	p = r->path_translated;
-	b = strrchr(p, '/');
-	if (b == 0)
-		return -1;
-	*b = 0;
-	if (chdir(p) == -1) {
-		log_d("failed to change directory to %s", p);
-		lerror("chdir");
-		*b = '/';
-		return -1;
-	}
-	*b = '/';
 	if (make_cgi_envp(r, cp) == -1)
 		return -1;
-	if (make_cgi_argv(r, p, cp) == -1)
+	if (make_cgi_argv(r, cp) == -1)
 		return -1;
-	return 0;
-}
-
-static int set_uids(uid_t uid, gid_t gid)
-{
-	if (uid < 100) {
-		log_d("refusing to set uid to %d", uid);
-		return -1;
-	}
-	if (setgid(gid) == -1) {
-		lerror("setgid");
-		return -1;
-	}
-	if (setuid(uid) == -1) {
-		lerror("setuid");
-		return -1;
-	}
-	return 0;
-}
-
-static int become_user(const char *name)
-{
-	struct passwd *pw;
-	uid_t u;
-	gid_t g;
-	char *e;
-
-	if (name == 0) {
-		log_d("become_user: name may not be null");
-		return -1;
-	}
-	u = strtoul(name, &e, 10);
-	if (e != name && *e == '/') {
-		g = strtoul(e + 1, &e, 10);
-		if (*e == 0)
-			return set_uids(u, g);
-	}
-	pw = getpwnam(name);
-	if (pw == 0) {
-		log_d("%s: no such user", name);
-		return -1;
-	}
-	u = pw->pw_uid;
-	if (u == 0) {
-		log_d("%s: invalid user (uid 0)", name);
-		return -1;
-	}
-	if (setgid(pw->pw_gid) == -1) {
-		lerror("setgid");
-		return -1;
-	}
-	if (setuid(u) == -1) {
-		lerror("setuid");
-		return -1;
-	}
 	return 0;
 }
 
@@ -451,45 +383,93 @@ static void destroy_parameters(struct cgi_parameters *cp)
 	free(cp);
 }
 
-int exec_cgi(struct request *r)
+int process_cgi(struct request *r)
 {
 	struct cgi_parameters *cp;
 	uid_t u;
+	gid_t g;
+	struct passwd *pw;
+	struct pipe_params *pp;
+	int p[2], efd;
+	pid_t pid;
+	char curdir[PATHLEN], *s;
 
-	u = geteuid();
-	if (setuid(0) != -1) {
-		if (r->c->script_user) {
-			if (become_user(r->c->script_user) == -1)
-				return -1;
-		} else if (r->c->run_scripts_as_owner) {
-			if (set_uids(r->finfo.st_uid, r->finfo.st_gid) == -1)
-				return -1;
-		}
-		if (geteuid() == u) {
-			log_d("cannot run scripts withouth changing identity");
-			return -1;
-		}
+	s = strrchr(r->path_translated, '/');
+	if (s == 0)
+		return 500;
+	sprintf(curdir, "%.*s", s - r->path_translated, r->path_translated);
+	if (r->cn->assbackwards)
+		return 500;
+	pp = children;
+	while (pp) {
+		if (pp->cn == 0)
+			break;
+		pp = pp->next;
 	}
-	if (getuid() == 0 || geteuid() == 0) {
-		log_d("cannot run scripts as the super-user");
-		return -1;
+	if (pp == 0)
+		return 503;
+	if (r->c->script_user) {
+		pw = getpwnam(r->c->script_user);
+		if (pw == 0) {
+			log_d("%s: user unknown", r->c->script_user);
+			return 500;
+		}
+		u = pw->pw_uid;
+		g = pw->pw_gid;
+	} else if (r->c->run_scripts_as_owner) {
+		u = r->finfo.st_uid;
+		g = r->finfo.st_gid;
+	} else {
+		u = 0;
+		g = 0;
+	}
+	if (geteuid() == u) {
+		log_d("cannot run scripts withouth changing identity");
+		return 500;
 	}
 	cp = malloc(sizeof *cp);
 	if (cp == 0) {
-		log_d("exec_cgi: out of memory");
-		return -1;
+		log_d("process_cgi: out of memory");
+		return 500;
 	}
 	cp->cgi_envc = 0;
 	cp->cgi_envp = 0;
 	cp->cgi_argc = 0;
 	cp->cgi_argv = 0;
 	if (init_cgi_env(r, cp) == -1) {
-		log_d("exec_cgi: out of memory");
+		log_d("process_cgi: out of memory");
 		destroy_parameters(cp);
-		return -1;
+		return 500;
 	}
-	execve(cp->cgi_argv[0], (char **) cp->cgi_argv, cp->cgi_envp);
-	lerror("execve");
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, p) == -1) {
+		lerror("socketpair");
+		destroy_parameters(cp);
+		return 500;
+	}
+	fcntl(p[0], F_SETFD, FD_CLOEXEC);
+	fcntl(p[1], F_SETFD, FD_CLOEXEC);
+	if (r->c->child_filename) {
+		efd = open_log(r->c->child_filename);
+		if (efd == -1) {
+			close(p[0]);
+			close(p[1]);
+			destroy_parameters(cp);
+			return 500;
+		}
+		fcntl(efd, F_SETFD, FD_CLOEXEC);
+	} else
+		efd = -1;
+	pid = spawn(cp->cgi_argv[0], (char **) cp->cgi_argv, cp->cgi_envp, p[1], efd, u, g, curdir);
+	if (efd != -1)
+		close(efd);
+	close(p[1]);
+	if (pid == -1) {
+		close(p[0]);
+		destroy_parameters(cp);
+		return 500;
+	}
+	fcntl(p[0], F_SETFL, O_NONBLOCK);
+	init_child(pp, r, p[0]);
 	destroy_parameters(cp);
 	return -1;
 }
