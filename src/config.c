@@ -49,6 +49,10 @@ static const char rcsid[] = "$Id$";
 #endif
 #include "mathopd.h"
 
+#ifndef TOKEN_LENGTH
+#define TOKEN_LENGTH 500
+#endif
+
 struct tuning tuning;
 
 char *pid_filename;
@@ -927,7 +931,7 @@ const char *config(const char *config_filename)
 	p = malloc(sizeof *p);
 	if (p == 0)
 		return e_memory;
-	p->size = STRLEN;
+	p->size = TOKEN_LENGTH;
 	p->tokbuf = malloc(p->size);
 	if (p->tokbuf == 0) {
 		free(p);
