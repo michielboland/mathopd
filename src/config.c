@@ -131,6 +131,7 @@ static const char c_server[] =		"Server";
 static const char c_specials[] =	"Specials";
 static const char c_status[] =		"Status";
 static const char c_stayroot[] =	"StayRoot";
+static const char c_tcp_nodelay[] =	"TCPNoDelay";
 static const char c_timeout[] =		"Timeout";
 static const char c_tuning[] =		"Tuning";
 static const char c_types[] =		"Types";
@@ -779,6 +780,7 @@ static const char *config_server(FILE *f, struct server **ss)
 	s->next = *ss;
 	s->naccepts = 0;
 	s->nhandled = 0;
+	s->tcp_nodelay = 0;
 	*ss = s;
 	GETOPEN(f);
 	while (NOTCLOSE(f)) {
@@ -793,6 +795,8 @@ static const char *config_server(FILE *f, struct server **ss)
 			t = config_virtual(f, &s->vservers, s);
 		else if (!strcasecmp(tokbuf, c_control))
 			t = config_control(f, &s->controls);
+		else if (!strcasecmp(tokbuf, c_tcp_nodelay))
+			t = config_flag(f, &s->tcp_nodelay);
 		else
 			t = e_keyword;
 		if (t)

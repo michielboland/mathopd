@@ -207,6 +207,7 @@ struct server {
 	unsigned long nhandled;
 	struct vserver *vservers;
 	char *s_fullname;
+	int tcp_nodelay;
 };
 
 struct request {
