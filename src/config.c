@@ -85,6 +85,7 @@ static const char c_export[] =		"Export";
 static const char c_external[] =	"External";
 static const char c_host[] =		"Host";
 static const char c_index_names[] =	"IndexNames";
+static const char c_input_buf_size[] =	"InputBufSize";
 static const char c_location[] =	"Location";
 static const char c_log[] =		"Log";
 static const char c_name[] =		"Name";
@@ -667,6 +668,8 @@ static const char *config_tuning(struct tuning *tp)
 			t = config_int(&tp->timeout);
 		else if (!strcasecmp(tokbuf, c_buf_size))
 			t = config_int(&tp->buf_size);
+		else if (!strcasecmp(tokbuf, c_input_buf_size))
+			t = config_int(&tp->input_buf_size);
 		else if (!strcasecmp(tokbuf, c_num_connections))
 			t = config_int(&tp->num_connections);
 		else if (!strcasecmp(tokbuf, c_accept_multi))
