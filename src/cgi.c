@@ -123,7 +123,6 @@ static int make_cgi_envp(struct request *r)
 	ADD("REQUEST_METHOD", r->method_s);
 	ADD("SCRIPT_NAME", r->path);
 	ADD("SERVER_NAME", r->servername);
-	ADD("SERVER_ADDR", r->iphost); /* non-standard */
 	ADD("SERVER_PORT", t);
 	ADD("SERVER_SOFTWARE", server_version);
 
