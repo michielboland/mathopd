@@ -380,7 +380,7 @@ Desc:    This keyword determines where the access log is stored. The
 Keyword: LogFormat
 Where:   Global
 Type:    Block
-Desc:    This keyword determined the order in which items are written into
+Desc:    This keyword determines the order in which items are written into
          the log file. Each line of the log file consists of some tab-
          separated fields. The contents of each field is determined by
          whatever is inside the LogFormat block. For example, if the
