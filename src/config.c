@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 1999 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999, 2000 Michiel Boland.
  *
  *   Redistribution and use in source and binary forms, with or
  *   without modification, are permitted provided that the following
@@ -72,10 +72,14 @@ static const char c_alias[] =		"Alias";
 static const char c_allow[] =		"Allow";
 static const char c_apply[] =		"Apply";
 static const char c_buf_size[] =	"BufSize";
+static const char c_bytes_read[] =	"BytesRead";
+static const char c_bytes_written[] =	"BytesWritten";
 static const char c_child_log[] =	"ChildLog";
 static const char c_clients[] =		"Clients";
+static const char c_content_length[] =	"ContentLength";
 static const char c_control[] =		"Control";
 static const char c_core_directory[] =	"CoreDirectory";
+static const char c_ctime[] =		"Ctime";
 static const char c_default_name[] =	"DefaultName";
 static const char c_deny[] =		"Deny";
 static const char c_dns[] =		"DNSLevel";
@@ -92,6 +96,8 @@ static const char c_index_names[] =	"IndexNames";
 static const char c_input_buf_size[] =	"InputBufSize";
 static const char c_location[] =	"Location";
 static const char c_log[] =		"Log";
+static const char c_log_format[] =	"LogFormat";
+static const char c_method[] =		"Method";
 static const char c_name[] =		"Name";
 static const char c_noapply[] =		"NoApply";
 static const char c_nohost[] =		"NoHost";
@@ -102,12 +108,14 @@ static const char c_path_args[] =	"PathArgs";
 static const char c_pid[] =		"PIDFile";
 static const char c_port[] =		"Port";
 static const char c_realm[] =		"Realm";
+static const char c_referer[] =		"Referer";
 static const char c_refresh[] =		"Refresh";
 static const char c_root_directory[] =	"RootDirectory";
 static const char c_run_scripts_as_owner[] = "RunScriptsAsOwner";
 static const char c_script_user[] =	"ScriptUser";
 static const char c_server[] =		"Server";
 static const char c_specials[] =	"Specials";
+static const char c_status[] =		"Status";
 static const char c_stayroot[] =	"StayRoot";
 static const char c_symlinks[] =	"Symlinks";
 static const char c_timeout[] =		"Timeout";
@@ -115,8 +123,11 @@ static const char c_tuning[] =		"Tuning";
 static const char c_types[] =		"Types";
 static const char c_virtual[] =		"Virtual";
 static const char c_umask[] =		"Umask";
+static const char c_uri[] =		"Uri";
 static const char c_user[] =		"User";
+static const char c_useragent[] =	"UserAgent";
 static const char c_userfile[] =	"UserFile";
+static const char c_version[] =		"Version";
 
 static const char e_addr_set[] =	"address already set";
 static const char e_bad_addr[] =	"bad address";
@@ -137,8 +148,6 @@ static const char t_open[] =		"unexpected opening brace";
 static const char t_string[] =		"unexpected string";
 static const char t_too_long[] =	"token too long";
 static const char t_word[] =		"unexpected word";
-
-#define DEFAULT_LOG_COLUMNS 13
 
 static int default_log_column[] = {
 	ML_CTIME,
@@ -354,6 +363,62 @@ static const char *config_list(struct simple_list **ls)
 		COPY(l->name, tokbuf);
 		l->next = *ls;
 		*ls = l;
+	}
+	return 0;
+}
+
+static const char *config_log(int **colsp, int *numcolsp)
+{
+	int ml;
+	int *cols;
+	int numcols;
+
+	ml = 0;
+	cols = *colsp;
+	numcols = *numcolsp;
+  	GETOPEN();
+	while (NOTCLOSE()) {
+	  	REQWORD();
+		if (!strcasecmp(tokbuf, c_ctime))
+			ml = ML_CTIME;
+		else if (!strcasecmp(tokbuf, c_user))
+			ml = ML_USERNAME;
+		else if (!strcasecmp(tokbuf, c_address))
+			ml = ML_ADDRESS;
+		else if (!strcasecmp(tokbuf, c_port))
+			ml = ML_PORT;
+		else if (!strcasecmp(tokbuf, c_server))
+			ml = ML_SERVERNAME;
+		else if (!strcasecmp(tokbuf, c_method))
+			ml = ML_METHOD;
+		else if (!strcasecmp(tokbuf, c_uri))
+			ml = ML_URI;
+		else if (!strcasecmp(tokbuf, c_version))
+			ml = ML_VERSION;
+		else if (!strcasecmp(tokbuf, c_status))
+			ml = ML_STATUS;
+		else if (!strcasecmp(tokbuf, c_content_length))
+			ml = ML_CONTENT_LENGTH;
+		else if (!strcasecmp(tokbuf, c_referer))
+			ml = ML_REFERER;
+		else if (!strcasecmp(tokbuf, c_useragent))
+			ml = ML_USER_AGENT;
+		else if (!strcasecmp(tokbuf, c_bytes_read))
+			ml = ML_BYTES_READ;
+		else if (!strcasecmp(tokbuf, c_bytes_written))
+			ml = ML_BYTES_WRITTEN;
+		else
+			return e_keyword;
+		++numcols;
+		if (cols)
+			cols = realloc(cols, sizeof *cols * numcols);
+		else
+			cols = malloc(sizeof *cols);
+		if (cols == 0)
+			return e_memory;
+		cols[numcols - 1] = ml;
+		*colsp = cols;
+		*numcolsp = numcols;
 	}
 	return 0;
 }
@@ -800,6 +865,8 @@ static const char *config_main(void)
 			t = config_control(&controls);
 		else if (!strcasecmp(tokbuf, c_server))
 			t = config_server(&servers);
+		else if (!strcasecmp(tokbuf, c_log_format))
+			t = config_log(&log_column, &log_columns);
 		else
 			t = e_keyword;
 		if (t)
@@ -838,13 +905,17 @@ const char *config(void)
 	tuning.accept_multi = 1;
 	fcm = DEFAULT_UMASK;
 	stayroot = 0;
-	log_columns = DEFAULT_LOG_COLUMNS;
-	log_column = default_log_column;
+	log_columns = 0;
+	log_column = 0;
 	line = 1;
 	s = config_main();
 	if (s) {
 		fprintf(stderr, "Error at token '%s' around line %d\n", tokbuf, line);
 		return s;
+	}
+	if (log_column == 0) {
+		log_column = default_log_column;
+		log_columns = sizeof default_log_column / sizeof default_log_column[0];
 	}
 	s = fill_servernames();
 	if (s)
