@@ -194,6 +194,12 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 					if (strncasecmp(tmpname, "Content-Length", 14) == 0)
 						addheader = 0;
 					break;
+				case 17:
+					if (strncasecmp(tmpname, "Transfer-Encoding", 17) == 0) {
+						log_d("convert_cgi_headers: script sent Transfer-Encoding!?!?");
+						return -1;
+					}
+					break;
 				}
 			if (firstline)
 				firstline = 0;
@@ -497,11 +503,11 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 				bytestocopy = room;
 			if (bytestocopy && p->chunkit) {
 				chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
-				if (chunkheaderlen >= bytestocopy)
+				if (chunkheaderlen + 2 >= bytestocopy)
 					bytestocopy = 0;
 				else {
-					if (bytestocopy + chunkheaderlen > room) {
-						bytestocopy -= chunkheaderlen;
+					if (bytestocopy + chunkheaderlen + 2 > room) {
+						bytestocopy -= chunkheaderlen + 2;
 						chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
 					}
 					memcpy(p->obuf + p->otop, chunkbuf, chunkheaderlen);
@@ -514,6 +520,10 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 				p->pstart += bytestocopy;
 				if (p->pstart == p->ipp)
 					p->pstart = p->ipp = 0;
+				if (p->chunkit) {
+					memcpy(p->obuf + p->otop, "\r\n", 2);
+					p->otop += 2;
+				}
 			}
 		}
 	}
