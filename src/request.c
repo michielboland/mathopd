@@ -1034,17 +1034,17 @@ static void log_request(struct request *r)
 		    cl);
 	} else {
 		ti = ctime(&current_time);
-		log(L_TRANS, "%.24s - %s - %s %s %s %.3s %ld",
+		log(L_TRANS, "%.24s - %s - %s %s %s %.3s %ld %.128s %.128s",
 		    ti ? ti : "???",
 		    cn->ip,
 		    r->vs->fullname,
 		    r->method_s,
 		    r->path,
 		    r->status_line,
-		    cl);
+		    cl,
+		    r->referer ? r->referer : "-",
+		    r->user_agent ? r->user_agent : "-");
 	}
-	if (r->user_agent)
-		log(L_AGENT, "%s", r->user_agent);
 }
 
 int process_request(struct request *r)
