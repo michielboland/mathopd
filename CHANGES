@@ -99,7 +99,10 @@ character would be converted to '%3f'.
 The server now emits an error message if it cannot open
 any log files.
 
-Support for select() has been removed in favour of poll().
+For systems that do not have the poll() function an attempt
+has been made to emulate this using select(). This means that
+mathopd will only run fast if you have poll(). (Which should
+be the case on any platform nowadays.)
 
 The REQUEST_URI variable is now set in CGI scripts.
 The log buffer is allocated in such a way that overflow of log file entries
@@ -111,3 +114,11 @@ file for an example. Note that Mathopd does not try to do
 any clever username-to-homedirectory caching or similar so
 if you use this feature you may see a significant performance
 drop.
+
+There is no more restriction on the length of a token in
+the configuration file.
+
+Time stamps in the log file, including the name of the logfile
+itself, can be set to GMT, rather than the local time.
+
+Mathopd will now rotate log files automatically every hour.
