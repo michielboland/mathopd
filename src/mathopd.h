@@ -88,9 +88,7 @@ enum connection_state {
 	HC_FORKED,
 	HC_READING,
 	HC_WRITING,
-	HC_WAITING,
-	HC_CLOSING,
-	HC_REINIT
+	HC_WAITING
 };
 
 enum {
