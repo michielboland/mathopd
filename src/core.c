@@ -694,24 +694,40 @@ void log_socket_error(int fd, const char *s)
 	errno = errno_save;
 }
 
-static void run_connection(struct connection *cn)
+static void log_connection_error(struct connection *cn)
+{
+	char buf[80];
+
+	sprintf(buf, "error on connection to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
+	log_socket_error(cn->fd, buf);
+}
+
+static void run_rconnection(struct connection *cn)
 {
 	short r;
-	char buf[60];
 
 	r = pollfds[cn->pollno].revents;
 	if (r & POLLERR) {
-		sprintf(buf, "error on connection to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
-		log_socket_error(cn->fd, buf);
+		log_connection_error(cn);
 		set_connection_state(cn, HC_CLOSING);
-	} else if (r & POLLIN)
-		read_connection(cn);
-	else if (r & POLLOUT)
-		write_connection(cn);
-	else if (r) {
-		log_d("poll: unexpected event %hd", r);
-		set_connection_state(cn, HC_CLOSING);
+		return;
 	}
+	if (r & POLLIN)
+		read_connection(cn);
+}
+
+static void run_wconnection(struct connection *cn)
+{
+	short r;
+
+	r = pollfds[cn->pollno].revents;
+	if (r & POLLERR) {
+		log_connection_error(cn);
+		set_connection_state(cn, HC_CLOSING);
+		return;
+	}
+	if (r & POLLOUT)
+		write_connection(cn);
 }
 
 static void run_connections(void)
@@ -721,19 +737,19 @@ static void run_connections(void)
 	c = waiting_connections.head;
 	while (c) {
 		n = c->next;
-		run_connection(c);
+		run_rconnection(c);
 		c = n;
 	}
 	c = reading_connections.head;
 	while (c) {
 		n = c->next;
-		run_connection(c);
+		run_rconnection(c);
 		c = n;
 	}
 	c = writing_connections.head;
 	while (c) {
 		n = c->next;
-		run_connection(c);
+		run_wconnection(c);
 		c = n;
 	}
 }
