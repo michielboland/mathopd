@@ -182,7 +182,6 @@ struct server {
 	int fd;
 	unsigned long port;
 	struct in_addr addr;
-	char *s_name;
 	struct virtual *children;
 	struct control *controls;
 	struct server *next;
@@ -232,7 +231,6 @@ struct request {
 	int isindex;
 	const char *error_file;
 	char user[16];
-	char *servername;
 	char newloc[PATHLEN];
 	const char *allowedmethods;
 	size_t location_length;
