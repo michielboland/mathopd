@@ -44,7 +44,6 @@ static const char rcsid[] = "$Id$";
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-#include <stdlib.h>
 #include <fcntl.h>
 #include <time.h>
 #include <unistd.h>
@@ -769,8 +768,7 @@ static int process_path(struct request *r)
 
 static int process_headers(struct request *r)
 {
-	char *l, *u, *s, *t;
-	unsigned long x, y;
+	char *l, *u, *s;
 	time_t i;
 
 	while (1) {
@@ -863,27 +861,24 @@ static int process_headers(struct request *r)
 		r->protocol_minor = 9;
 	} else {
 		s = r->version;
-		if (strncmp(s, "HTTP/", 5)) {
+		if (strncmp(s, "HTTP/1.", 7)) {
 			log_d("%s: unsupported version \"%s\"", inet_ntoa(r->cn->peer.sin_addr), s);
 			return 400;
 		}
-		t = strchr(s + 5, '.');
-		if (t == 0) {
-			log_d("%s: unsupported version \"%s\"", inet_ntoa(r->cn->peer.sin_addr), s);
-			return 400;
-		}
-		*t = 0;
-		x = atoi(s + 5);
-		y = atoi(t + 1);
-		*t = '.';
-		if (x != 1 || y > 1) {
+		r->protocol_major = 0;
+		switch (s[7]) {
+		case '0':
+			r->protocol_minor = 0;
+			break;
+		case '1':
+			r->protocol_minor = 1;
+			break;
+		default:
 			log_d("%s: unsupported version \"%s\"", inet_ntoa(r->cn->peer.sin_addr), s);
 			return 505;
 		}
-		r->protocol_major = x;
-		r->protocol_minor = y;
 		s = r->connection;
-		if (y)
+		if (r->protocol_minor)
 			r->cn->keepalive = !(s && strcasecmp(s, "Close") == 0);
 		else
 			r->cn->keepalive = s && strcasecmp(s, "Keep-Alive") == 0;
