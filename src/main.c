@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 1999 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999, 2000 Michiel Boland.
  *
  *   Redistribution and use in source and binary forms, with or
  *   without modification, are permitted provided that the following
@@ -36,7 +36,7 @@
 
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.4b2";
+const char server_version[] = "Mathopd/1.4b3";
 
 volatile int gotsigterm;
 volatile int gotsighup;
