@@ -50,6 +50,7 @@ static STRING(c_allow) =		"Allow";
 static STRING(c_buf_size) =		"BufSize";
 static STRING(c_cern) =			"CERNStyle";
 static STRING(c_child_log) =		"ChildLog";
+static STRING(c_clients) =		"Clients";
 static STRING(c_control) =		"Control";
 static STRING(c_core_directory) =	"CoreDirectory";
 static STRING(c_default_name) =		"DefaultName";
@@ -393,6 +394,7 @@ static const char *config_control(struct control **as)
 	MAKE(a, struct control);
 	a->locations = 0;
 	a->alias = 0;
+	a->clients = 0;
 	if (b) {
 		a->index_names = b->index_names;
 		a->accesses = b->accesses;
@@ -438,6 +440,8 @@ static const char *config_control(struct control **as)
 			t = config_list(&a->index_names);
 		else if (strceq(tokbuf, c_access))
 			t = config_access(&a->accesses);
+		else if (strceq(tokbuf, c_clients))
+			t = config_access(&a->clients);
 		else if (strceq(tokbuf, c_types))
 			t = config_mime(&a->mimes, M_TYPE);
 		else if (strceq(tokbuf, c_specials))
