@@ -71,9 +71,10 @@ static int add(const char *name, const char *value)
 
 #define ADD(x, y) if (add(x, y) == -1) return -1
 
-static int add_argv(const char *a)
+static int add_argv(const char *a, const char *b, int decode)
 {
 	char *tmp;
+	size_t s;
 
 	if (cgi_argc == 0)
 		cgi_argv = malloc(sizeof *cgi_argv);
@@ -81,7 +82,14 @@ static int add_argv(const char *a)
 		cgi_argv = realloc(cgi_argv, (cgi_argc + 1) * sizeof *cgi_argv);
 	if (cgi_argv == 0)
 		return -1;
-	tmp = strdup(a);
+	s = b ? b - a : strlen(a);
+	tmp = malloc(s + 1);
+	if (tmp == 0)
+		return -1;
+	memcpy(tmp, a, s);
+	tmp[s] = 0;
+	if (decode && unescape_url(tmp, tmp))
+		return -1;
 	if (tmp == 0)
 		return -1;
 	cgi_argv[cgi_argc] = tmp;
@@ -89,7 +97,7 @@ static int add_argv(const char *a)
 	return 0;
 }
 
-#define ADD_ARGV(x) if (add_argv(x) == -1) return -1
+#define ADD_ARGV(x, y, z) if (add_argv(x, y, z) == -1) return -1
 
 static int make_cgi_envp(struct request *r)
 {
@@ -153,24 +161,18 @@ static int make_cgi_argv(struct request *r, char *b)
 	cgi_argc = 0;
 	cgi_argv = 0;
 	if (r->class == CLASS_EXTERNAL)
-		ADD_ARGV(r->content_type);
-	ADD_ARGV(b);
-	if (r->args && strchr(r->args, '=') == 0) {
-		a = strdup(r->args);
-		if (a == 0)
-			return -1;
+		ADD_ARGV(r->content_type, 0, 0);
+	ADD_ARGV(b, 0, 0);
+	a = r->args;
+	if (a && strchr(a, '=') == 0) {
 		do {
 			w = strchr(a, '+');
+			ADD_ARGV(a, w, 1);
 			if (w)
-				*w++ = '\0';
-			if (unescape_url(a, a))
-				return -1;
-			ADD_ARGV(a);
-			if (w)
-				a = w;
+				a = w + 1;
 		} while (w);
 	}
-	ADD_ARGV(0);
+	ADD_ARGV(0, 0, 0);
 	return 0;
 }
 
