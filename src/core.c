@@ -425,6 +425,25 @@ static void cleanup_connections(void)
 	}
 }
 
+static void reap_children(void)
+{
+	int status, pid;
+
+	gotsigchld = 0;
+	while (1) {
+		pid = waitpid(-1, &status, WNOHANG);
+		if (pid <= 0)
+			break;
+		++numchildren;
+		if (WIFEXITED(status))
+			log(L_LOG, "child process %d exited with status %d", pid, WEXITSTATUS(status));
+		else if (WIFSIGNALED(status))
+			log(L_LOG, "child process %d killed by signal %d", pid, WTERMSIG(status));
+	}
+	if (pid < 0 && errno != ECHILD)
+		lerror("waitpid");
+}
+
 static void init_log(char *name, int *fdp)
 {
 	int fd;
@@ -549,6 +568,8 @@ void httpd_main(void)
 			gotsigwinch = 0;
 			dump();
 		}
+		if (gotsigchld)
+			reap_children();
 #ifdef POLL
 		n = 0;
 #else
