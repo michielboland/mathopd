@@ -58,10 +58,9 @@ static void dump_servers(struct server *s)
 
 void dump(void)
 {
-	ti = ctime(&current_time);
-	log(L_LOG, "*** Dump at %.24s (pid %d)", ctime(&current_time), my_pid);
+	log(L_LOG, "*** Start of dump");
 	log(L_LOG, "SCM %lu %lu %d", startuptime, current_time, maxconnections);
 	maxconnections = nconnections;
 	dump_servers(servers);
-	log(L_LOG, "*** End of dump (pid %d)", my_pid);
+	log(L_LOG, "*** End of dump");
 }
