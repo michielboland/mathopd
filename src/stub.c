@@ -345,6 +345,10 @@ static void pipe_run(struct pipe_params *p)
 
 	if (p->cpollno != -1) {
 		revents = pollfds[p->cpollno].revents;
+		if (revents & POLLHUP) {
+			p->error_condition = STUB_ERROR_CLIENT;
+			return;
+		}
 		if (revents & ~(POLLIN | POLLOUT)) {
 			log_d("pipe_run: revents=%hd", revents);
 			p->error_condition = STUB_ERROR_CLIENT;
@@ -400,6 +404,10 @@ static void pipe_run(struct pipe_params *p)
 	}
 	if (p->ppollno != -1) {
 		revents = pollfds[p->ppollno].revents;
+		if (revents & POLLHUP) {
+			p->error_condition = STUB_ERROR_PIPE;
+			return;
+		}
 		if (revents & ~(POLLIN | POLLOUT)) {
 			log_d("pipe_run: revents=%hd", revents);
 			p->error_condition = STUB_ERROR_PIPE;
