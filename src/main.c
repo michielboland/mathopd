@@ -236,8 +236,7 @@ int main(int argc, char *argv[])
 	setrlimit(RLIMIT_CORE, &rl);
 	umask(fcm);
 	if (pid_filename) {
-		pid_fd = open(pid_filename, O_WRONLY | O_CREAT,
-			      DEFAULT_FILEMODE);
+		pid_fd = open(pid_filename, O_WRONLY | O_CREAT, DEFAULT_FILEMODE);
 		if (pid_fd == -1)
 			die("open", "Cannot open PID file");
 	} else

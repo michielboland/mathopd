@@ -173,8 +173,7 @@ static int f_process_imap(struct request *r, FILE *fp)
 				status = "no point";
 				break;
 			}
-			dist = sqr(pointarray[0].x - testpoint.x) +
-				   sqr(pointarray[0].y - testpoint.y);
+			dist = sqr(pointarray[0].x - testpoint.x) + sqr(pointarray[0].y - testpoint.y);
 			if (sawpoint == 0 || dist < mindist) {
 				sawpoint=1;
 				mindist = dist;
