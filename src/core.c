@@ -342,7 +342,6 @@ static void read_connection(struct connection *cn)
 			switch (c) {
 			default:
 				cn->assbackwards = 0;
-				cn->keepalive = 1;
 				state = 4;
 			case ' ':
 			case '\t':
