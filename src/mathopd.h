@@ -335,7 +335,6 @@ extern char *rfctime(time_t, char *);
 extern void init_request(struct request *);
 extern int process_request(struct request *);
 extern struct control *faketoreal(char *, char *, struct request *, int, int);
-extern int prepare_reply(struct request *);
 
 /* imap */
 

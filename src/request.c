@@ -1091,7 +1091,7 @@ static int process_headers(struct request *r)
 	return 0;
 }
 
-int prepare_reply(struct request *r)
+static int prepare_reply(struct request *r)
 {
 	struct pool *p;
 	char *b, buf[PATHLEN];
