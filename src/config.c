@@ -840,8 +840,6 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	}
 	if (s->port == 0 || s->port > 0xffff)
 		return e_illegalport;
-	if (s->backlog > MAX_BACKLOG)
-		s->backlog = MAX_BACKLOG;
 	num_servers++;
 	s->next = *ss;
 	*ss = s;
