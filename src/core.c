@@ -840,16 +840,12 @@ void httpd_main(void)
 			break;
 		}
 		t = accepting ? (stats.nconnections ? 60000 : INFTIM) : 1000;
-		if (debug) {
-			log_d("--------");
+		if (debug)
 			dump_pollfds(n, 0);
-		}
 		rv = poll(pollfds, n, t);
 		current_time = time(0);
-		if (debug) {
+		if (debug)
 			dump_pollfds(n, 1);
-			log_d("--------");
-		}
 		if (rv == -1) {
 			if (errno != EINTR) {
 				lerror("poll");
