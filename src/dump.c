@@ -122,6 +122,8 @@ static void fdump(FILE *f)
 	fprintf(f, "Forked child processes: %lu\n", stats.forked_children);
 	fprintf(f, "Exited child processes: %lu\n", stats.exited_children);
 	fprintf(f, "Requests executed: %lu\n", stats.nrequests);
+	fprintf(f, "Accepted connections: %lu\n", stats.accepted_connections);
+	fprintf(f, "Pipelined requests: %lu\n", stats.pipelined_requests);
 	fprintf(f, "\n");
 	getrusage(RUSAGE_SELF, &ru);
 	tvadd(&ru.ru_utime, &ru.ru_stime, &t);

@@ -173,6 +173,7 @@ int reinit_connection(struct connection *cn)
 		cn->header_input.start = cn->header_input.middle = cn->header_input.end = cn->header_input.floor;
 		return 0;
 	}
+	++stats.pipelined_requests;
 	cn->header_input.start = s;
 	return scan_request(cn);
 }
@@ -267,6 +268,7 @@ static int accept_connection(struct server *s)
 			}
 			return 0;
 		}
+		++stats.accepted_connections;
 		if (debug)
 			log_d("accept_connection: %d", fd);
 		fcntl(fd, F_SETFD, FD_CLOEXEC);

@@ -328,6 +328,8 @@ struct statistics {
 	unsigned long nrequests;
 	unsigned long forked_children;
 	unsigned long exited_children;
+	unsigned long accepted_connections;
+	unsigned long pipelined_requests;
 };
 
 /* main */
