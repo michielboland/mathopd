@@ -460,8 +460,11 @@ static void pipe_run(struct pipe_params *p)
 			default:
 				p->t = current_time;
 				p->ipp += r;
-				if (p->haslen)
+				if (p->haslen) {
 					p->pmax -= r;
+					if (p->pmax == 0)
+						p->pstate = 2;
+				}
 				break;
 			}
 		}
@@ -495,13 +498,17 @@ static void pipe_run(struct pipe_params *p)
 				p->error_condition = STUB_ERROR_RESTART;
 				return;
 			}
-			if (p->haslen && p->pstart < p->ipp) {
-				if (p->ipp > p->pstart + p->pmax) {
-					log_d("extra garbage from script ignored");
-					p->ipp = p->pstart + p->pmax;
-					p->pmax = 0;
-				} else
-					p->pmax -= p->ipp - p->pstart;
+			if (p->haslen) {
+				if (p->pstart < p->ipp) {
+					if (p->ipp > p->pstart + p->pmax) {
+						log_d("extra garbage from script ignored");
+						p->ipp = p->pstart + p->pmax;
+						p->pmax = 0;
+					} else
+						p->pmax -= p->ipp - p->pstart;
+				}
+				if (p->pmax == 0)
+					p->pstate = 2;
 			}
 		} else if (p->pstart == p->psize) {
 			log_d("pipe_run: buffer full");
@@ -543,12 +550,15 @@ static void pipe_run(struct pipe_params *p)
 			}
 		}
 	}
-	if (p->pstate == 2 && p->chunkit && p->nocontent == 0) {
-		if (p->osize - p->otop >= 5) {
-			memcpy(p->obuf + p->otop, "0\r\n\r\n", 5);
-			p->otop += 5;
+	if (p->pstate == 2) {
+		if (p->chunkit && p->nocontent == 0) {
+			if (p->osize - p->otop >= 5) {
+				memcpy(p->obuf + p->otop, "0\r\n\r\n", 5);
+				p->otop += 5;
+				p->pstate = 3;
+			}
+		} else
 			p->pstate = 3;
-		}
 	}
 	if (p->otop > p->obp) {
 		r = send(p->cfd, p->obuf + p->obp, p->otop - p->obp, 0);
@@ -639,12 +649,10 @@ int setup_child_pollfds(int n)
 	p = children;
 	while (p) {
 		if (p->cn && p->error_condition == 0) {
-			if (p->haslen && p->pmax == 0)
-				p->pstate = 2;
 			e = 0;
 			if (p->istate == 1 && p->ibp < p->isize && p->imax)
 				e |= POLLIN;
-			if (p->otop > p->obp)
+			if (p->otop > p->obp || (p->state == 2 && p->pstart < p->ipp && p->otop == 0))
 				e |= POLLOUT;
 			if (e) {
 				pollfds[n].fd = p->cfd;
@@ -705,7 +713,6 @@ int run_children(void)
 void cleanup_children(void)
 {
 	struct pipe_params *p;
-	int f;
 
 	p = children;
 	while (p) {
@@ -718,19 +725,8 @@ void cleanup_children(void)
 			} else if (current_time >= p->t + (time_t) tuning.script_timeout) {
 				log_d("script timeout to %s[%hu]", inet_ntoa(p->cn->peer.sin_addr), ntohs(p->cn->peer.sin_port));
 				close_child(p, HC_CLOSING);
-			} else {
-				f = 0;
-				if (p->istate == 1 && p->ibp < p->isize && p->imax)
-					f = 1;
-				if (p->otop > p->obp)
-					f = 1;
-				if (p->pstate == 1 && p->ipp < p->psize && (p->chunkit || p->haslen == 0 || p->pmax))
-					f = 1;
-				if (p->ibp > p->opp)
-					f = 1;
-				if (f == 0)
+			} else if (p->pstate == 3)
 					close_child(p, p->cn->keepalive ? HC_REINIT : HC_CLOSING);
-			}
 		}
 		p = p->next;
 	}
