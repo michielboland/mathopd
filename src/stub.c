@@ -78,12 +78,13 @@ static int no_room(void)
 
 static int convert_cgi_headers(struct connection *pp, int *sp)
 {
-	int addheader, c, s, l;
+	int addheader, c, s;
 	size_t i, nheaders, status, location, length;
 	const char *p, *tmpname, *tmpvalue;
 	int havestatus, havelocation, firstline, havelength;
 	size_t len, tmpnamelen, tmpvaluelen;
-	char buf[50], gbuf[40], *cp, *dest;
+	char gbuf[40], *cp;
+	struct pool *po;
 	unsigned long ul;
 
 	nheaders = 0;
@@ -214,19 +215,15 @@ static int convert_cgi_headers(struct connection *pp, int *sp)
 		log_d("convert_cgi_headers: s=%d!?", s);
 		return -1;
 	}
-	dest = pp->output.floor;
+	po = &pp->output;
 	if (havelocation && havestatus == 0) {
-		if (dest + 20 > pp->output.ceiling)
-			return no_room();
 		s = 302;
-		memcpy(dest, "HTTP/1.1 302 Moved\r\n", 20);
-		dest += 20;
-	} else if (havestatus == 0) {
-		if (dest + 17 > pp->output.ceiling)
+		if (pool_print(po, "HTTP/1.1 302 Moved\r\n") == -1)
 			return no_room();
+	} else if (havestatus == 0) {
 		s = 200;
-		memcpy(dest, "HTTP/1.1 200 OK\r\n", 17);
-		dest += 17;
+		if (pool_print(po, "HTTP/1.1 200 OK\r\n") == -1)
+			return no_room();
 	} else {
 		s = atoi(cgi_headers[status].value);
 		if (s < 200 || s > 599) {
@@ -242,14 +239,8 @@ static int convert_cgi_headers(struct connection *pp, int *sp)
 			pp->pipe_params.chunkit = 0;
 		}
 		tmpvaluelen = cgi_headers[status].len - (cgi_headers[status].value - cgi_headers[status].name);
-		if (dest + tmpvaluelen + 11 > pp->output.ceiling)
+		if (pool_print(po, "HTTP/1.1 %.*s\r\n", tmpvaluelen, cgi_headers[status].value) == -1)
 			return no_room();
-		memcpy(dest, "HTTP/1.1 ", 9);
-		dest += 9;
-		memcpy(dest, cgi_headers[status].value, tmpvaluelen);
-		dest += tmpvaluelen;
-		*dest++ = '\r';
-		*dest++ = '\n';
 	}
 	if (havelength) {
 		tmpvalue = cgi_headers[length].value;
@@ -273,52 +264,25 @@ static int convert_cgi_headers(struct connection *pp, int *sp)
 		pp->r->content_length = ul;
 	} else if (pp->r->protocol_minor == 0 && pp->pipe_params.nocontent == 0)
 		pp->keepalive = 0;
-	l = sprintf(buf, "Server: %.30s\r\n", server_version);
-	if (dest + l > pp->output.ceiling)
+	if (pool_print(po, "Server: %.30s\r\n", server_version) == -1)
 		return no_room();
-	memcpy(dest, buf, l);
-	dest += l;
-	l = sprintf(buf, "Date: %s\r\n", rfctime(current_time, gbuf));
-	if (dest + l > pp->output.ceiling)
+	if (pool_print(po, "Date: %s\r\n", rfctime(current_time, gbuf)) == -1)
 		return no_room();
-	memcpy(dest, buf, l);
-	dest += l;
-	if (pp->pipe_params.chunkit) {
-		l = sprintf(buf, "Transfer-Encoding: chunked\r\n");
-		if (dest + l > pp->output.ceiling)
+	if (pp->pipe_params.chunkit)
+		if (pool_print(po, "Transfer-Encoding: chunked\r\n") == -1)
 			return no_room();
-		memcpy(dest, buf, l);
-		dest += l;
-	}
-	if (pp->r->protocol_minor == 0 && pp->keepalive) {
-		l = sprintf(buf, "Connection: keep-alive\r\n");
-		if (dest + l > pp->output.ceiling)
+	if (pp->r->protocol_minor == 0 && pp->keepalive)
+		if (pool_print(po, "Connection: keep-alive\r\n") == -1)
 			return no_room();
-		memcpy(dest, buf, l);
-		dest += l;
-	}
-	if (pp->r->protocol_minor && pp->keepalive == 0) {
-		l = sprintf(buf, "Connection: close\r\n");
-		if (dest + l > pp->output.ceiling)
+	if (pp->r->protocol_minor && pp->keepalive == 0)
+		if (pool_print(po, "Connection: close\r\n") == -1)
 			return no_room();
-		memcpy(dest, buf, l);
-		dest += l;
-	}
-	for (i = 0; i < nheaders; i++) {
-		if (havestatus == 0 || i != status) {
-			if (dest + cgi_headers[i].len + 2 > pp->output.ceiling)
+	for (i = 0; i < nheaders; i++)
+		if (havestatus == 0 || i != status)
+			if (pool_print(po, "%.*s\r\n", cgi_headers[i].len, cgi_headers[i].name) == -1)
 				return no_room();
-			memcpy(dest, cgi_headers[i].name, cgi_headers[i].len);
-			dest += cgi_headers[i].len;
-			*dest++ = '\r';
-			*dest++ = '\n';
-		}
-	}
-	if (dest + 2 > pp->output.ceiling)
+	if (pool_print(po, "\r\n") == -1)
 		return no_room();
-	*dest++ = '\r';
-	*dest++ = '\n';
-	pp->output.end = dest;
 	*sp = s;
 	return 0;
 }
