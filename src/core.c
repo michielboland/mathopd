@@ -187,6 +187,7 @@ int reinit_connection(struct connection *cn)
 		cn->request.fd = -1;
 	}
 	init_connection(cn);
+	cn->client.events = POLLIN;
 	set_connection_state(cn, HC_WAITING);
 	s = cn->header_input.middle;
 	if (s == cn->header_input.end) {
@@ -307,6 +308,7 @@ static int accept_connection(struct server *s)
 		} else {
 			cn->s = s;
 			cn->client.fd = fd;
+			cn->client.events = POLLIN;
 			cn->request.fd = -1;
 			cn->peer = sa_remote;
 			cn->sock = sa_local;
@@ -585,6 +587,7 @@ static int scan_request(struct connection *cn)
 			close_connection(cn);
 			return -1;
 		}
+		cn->client.events = POLLOUT;
 		set_connection_state(cn, HC_WRITING);
 	}
 	return 0;
@@ -614,21 +617,21 @@ static int setup_connection_pollfds(int n)
 	cn = waiting_connections.head;
 	while (cn) {
 		pollfds[n].fd = cn->client.fd;
-		pollfds[n].events = POLLIN;
+		pollfds[n].events = cn->client.events;
 		cn->client.pollindex = n++;
 		cn = cn->next;
 	}
 	cn = reading_connections.head;
 	while (cn) {
 		pollfds[n].fd = cn->client.fd;
-		pollfds[n].events = POLLIN;
+		pollfds[n].events = cn->client.events;
 		cn->client.pollindex = n++;
 		cn = cn->next;
 	}
 	cn = writing_connections.head;
 	while (cn) {
 		pollfds[n].fd = cn->client.fd;
-		pollfds[n].events = POLLOUT;
+		pollfds[n].events = cn->client.events;
 		cn->client.pollindex = n++;
 		cn = cn->next;
 	}
