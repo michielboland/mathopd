@@ -329,6 +329,7 @@ static int fill_connection(struct connection *cn)
 		return -1;
 	}
 	p->end += n;
+	cn->file_offset += n;
 	return n;
 }
 
@@ -340,6 +341,19 @@ static void write_connection(struct connection *cn)
 	p = &cn->output;
 	n = p->end - p->start;
 	if (n == 0) {
+#ifdef SENDFILE
+		if (sendfile_connection(cn) == -1) {
+			close_connection(cn);
+			return;
+		}
+		if (cn->left == 0) {
+			if (cn->keepalive)
+				reinit_connection(cn);
+			else
+				close_connection(cn);
+		}
+		return;
+#else
 		p->start = p->end = p->floor;
 		n = fill_connection(cn);
 		if (n == -1) {
@@ -353,6 +367,7 @@ static void write_connection(struct connection *cn)
 				close_connection(cn);
 			return;
 		}
+#endif
 	}
 	m = write(cn->fd, p->start, n);
 	if (debug)
