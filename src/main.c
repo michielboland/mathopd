@@ -296,8 +296,13 @@ int fork_request(struct request *r, int (*f)(struct request *))
 			efd = fd;
 		else {
 			efd = open(child_filename, O_WRONLY | O_CREAT | O_APPEND, DEFAULT_FILEMODE);
-			if (efd == -1)
+			if (debug)
+				log_d("fork_request: open(\"%s\", ...) = %d", child_filename, efd);
+			if (efd == -1) {
+				log_d("cannot open child log %s", child_filename);
+				lerror("open");
 				efd = fd;
+			}
 		}
 		rv = dup2(fd, 0);
 		if (debug)
