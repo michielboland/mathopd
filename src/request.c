@@ -800,6 +800,11 @@ static int process_path(struct request *r)
 		r->error_file = r->c->error_401_file;
 		return 401;
 	}
+	return 0;
+}
+
+static int process_path_translated(struct request *r)
+{
 	if (r->path_translated[0] == 0)
 		return 500;
 	if (r->path_translated[0] != '/') {
@@ -1299,6 +1304,8 @@ int process_request(struct request *r)
 	r->status = s = process_headers(r);
 	if (s == 0)
 		r->status = s = process_path(r);
+	if (s == 0)
+		r->status = s = process_path_translated(r);
 	if (s > 0)
 		if (prepare_reply(r) == -1) {
 			log_d("cannot prepare reply for client");
