@@ -1,4 +1,5 @@
 Running Mathopd
+--------------------------------
 
 The Mathopd is started as follows:
 
@@ -10,6 +11,7 @@ For a description of the configuration file, see syntax.txt and
 config.txt.
 
 Command-line options.
+--------------------------------
 
 There are a few command-line options for Mathopd. We have already
 seen -f. A complete summary follows.
@@ -19,13 +21,12 @@ seen -f. A complete summary follows.
       for debugging purposes.
 
   -d  If this option is supplied, Mathopd starts up in debugging
-      mode. Actually debugging mode does not do very much at
-      present, it mainly produces a bit of noise in the error log.
-      Debugging can be turned on and off while the server is
-      running; see the section on signals below.
+      mode. Debugging can be turned on and off while the server
+      is running; see the section on signals below.
 
   -t  If this option is supplied, Mathopd will write diagnostics to
-      the standard error channel as well as the error log.
+      the standard error channel as well as the error log. (The
+      option is named after the tee(1) program.)
 
   -v  If this option is supplied, Mathopd prints its version number
       and exits.
@@ -38,6 +39,7 @@ seen -f. A complete summary follows.
       there is no reason why one should not use the -f flag.
 
 Signals.
+--------------------------------
 
 While the server is running, is reacts to certain signals. If a PIDFile
 is specified in the configuration file, you can send signals to Mathopd
@@ -49,9 +51,9 @@ from the command line (assuming the PIDFile is /var/run/mathopd.pid.)
 
 A list of signals and their effects follows.
 
-  SIGHUP   If this signal is received, Mathopd will reopen its log files.
-           This is a leftover from older versions that did not have
-           automatic log rotation.
+  SIGHUP   If this signal is received, Mathopd will reopen its
+           access and error log files. See the section on
+           log files below.
 
   SIGTERM
   SIGINT   These signals have identical effects: they stop Mathopd
@@ -69,13 +71,63 @@ A list of signals and their effects follows.
            New connections can still be made after this.
 
   SIGUSR2  This signal closes the server socket(s). No more connections
-           will be received after this. Connections that are active at
+           will be received after this. Requests that are active at
            the time of the signal will be completed. After all active
-           requests are timed out or done, Mathopd will exit. (It can
-           happen sometimes that mathopd fails to exit after receiving
-           SIGUSR2, for example when all connections are stuck for some
-           reason. This can be remedied by killing off old processes by
-           hand from time to time.)
+           requests are timed out or done, Mathopd will exit.
+           Use this signal for a 'graceful exit'.
 
-Terminating the server is done by sending a SIGUSR2 signal (or a SIGTERM,
-but that is a bit too drastic in most cases.)
+Exit.
+--------------------------------
+
+Mathopd will exit voluntarily (as opposed to crash :) for a few
+reasons:
+
+  - after reception of a SIGTERM or SIGINT signal;
+
+  - when no active connections and no active servers remain;
+    this will be the case some time after delivery of SIGUSR2,
+    or (rather perversely) if Mathopd was started up with a
+    configuration file that did not contain any Server keywords;
+
+  - if it cannot open the Log, ErrorLog, or PIDFile; this can
+    only be the case when the server is started up; if Mathopd
+    fails to open a logfile while it is running, it will continue
+    to use the logfile that it already opened (see below);
+
+  - when it can not write to the access or error log;
+    for example, if the disk partition that contains the access
+    or error log gets filled up, Mathopd will die when it tries
+    to write there.
+
+Log files.
+--------------------------------
+
+Each hour Mathopd will re-open its access and error log, as if
+it had received a SIGHUP signal. For example, if you have the
+following in your configuration file
+
+  Log /var/mathopd/accesslog
+  ErrorLog /var/mathopd/errorlog
+
+and rename /var/mathopd/accesslog to /var/mathopd/accesslog.old,
+Mathopd will continue to log in accesslog.old, but will switch
+to accesslog at the start of the next hour (with one exception:
+if Mathopd cannot open a new accesslog for any reason, it will
+*still* continue to log to accesslog.old.) Something similar
+applies to the ErrorLog.
+
+The name of the Log, ErrorLog and ChildLog will be 'strftime-
+expanded'. This means that any occurrence of, say, '%Y' in the
+name will be expanded to the current (4-digit) year.
+
+For example: suppose the configuration file reads as follows
+
+  Log /var/mathopd/log.%Y%m%d
+
+In that case, Mathopd will open /var/mathopd/log.20031204 when it
+is started up on 4 Dec 2003, and will automatically close that
+file and open /var/mathopd/log.20031205 at the start of the next
+day.
+
+For more information on the % constructions, see the manual pages
+for date(1) and strftime(3).
