@@ -896,19 +896,21 @@ void httpd_main(void)
 		if (current_time != last_time) {
 			if (accepting == 0)
 				accepting = 1;
-			last_time = current_time;
 			if (current_time / 3600 != hours) {
 				hours = current_time / 3600;
 				init_logs(0);
 				if (debug)
 					log_d("logs rotated");
 			}
-			cleanup_connections();
 		}
 		if (rv) {
 			if (accepting && run_servers() == -1)
 				accepting = 0;
 			run_connections();
+		}
+		if (current_time != last_time) {
+			cleanup_connections();
+			last_time = current_time;
 		}
 	}
 	log_d("*** shutting down");
