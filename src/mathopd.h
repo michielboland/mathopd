@@ -195,7 +195,6 @@ struct vserver {
 	struct server *server;
 	struct control *controls;
 	struct vserver *next;
-	int nameless;
 };
 
 struct server {
