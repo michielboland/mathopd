@@ -40,49 +40,61 @@
 #include "mathopd.h"
 
 static char **cgi_envp;
-static const char **cgi_argv;
+static char **cgi_argv;
 static int cgi_envc;
 static int cgi_argc;
 
 static int add(const char *name, const char *value)
 {
+	char *tmp;
+
 	if (name && value == 0)
 		return 0;
 	if (cgi_envc == 0)
-		cgi_envp = malloc(sizeof (char *));
+		cgi_envp = malloc(sizeof *cgi_envp);
 	else
-		cgi_envp = realloc(cgi_envp, (cgi_envc + 1) * sizeof (char *));
+		cgi_envp = realloc(cgi_envp, (cgi_envc + 1) * sizeof *cgi_envp);
 	if (cgi_envp == 0)
 		return -1;
 	if (name == 0)
 		cgi_envp[cgi_envc] = 0;
 	else {
-		if ((cgi_envp[cgi_envc] =
-		     malloc(strlen(name) + 2 + strlen(value))) == 0)
+		tmp = malloc(strlen(name) + 2 + strlen(value));
+		if (tmp == 0)
 			return -1;
-		sprintf(cgi_envp[cgi_envc], "%s=%s", name, value);
+		sprintf(tmp, "%s=%s", name, value);
+		cgi_envp[cgi_envc] = tmp;
 	}
 	++cgi_envc;
 	return 0;
 }
 
+#define ADD(x, y) if (add(x, y) == -1) return -1
+
 static int add_argv(const char *a)
 {
+	char *tmp;
+
 	if (cgi_argc == 0)
-		cgi_argv = malloc(sizeof (char *));
+		cgi_argv = malloc(sizeof *cgi_argv);
 	else
-		cgi_argv = realloc(cgi_argv, (cgi_argc + 1) * sizeof (char *));
+		cgi_argv = realloc(cgi_argv, (cgi_argc + 1) * sizeof *cgi_argv);
 	if (cgi_argv == 0)
 		return -1;
-	cgi_argv[cgi_argc] = a;
+	tmp = strdup(a);
+	if (tmp == 0)
+		return -1;
+	cgi_argv[cgi_argc] = tmp;
 	++cgi_argc;
 	return 0;
 }
 
+#define ADD_ARGV(x) if (add_argv(x) == -1) return -1
+
 static int make_cgi_envp(struct request *r)
 {
 	char t[16];
-	struct simple_list *e = exports;
+	struct simple_list *e;
 	unsigned long ia;
 	struct hostent *hp;
 	char *addr;
@@ -90,19 +102,14 @@ static int make_cgi_envp(struct request *r)
 	char path_translated[PATHLEN];
 
 	faketoreal(r->path_args, path_translated, r, 0);
-
 	i = strlen(r->path) - strlen(r->path_args);
 	if (i >= 0)
 		r->path[i] = '\0';
-
 	cgi_envc = 0;
 	cgi_envp = 0;
 	sprintf(t, "%d", r->cn->s->port);
 	addr = r->cn->ip;
 	ia = r->cn->peer.sin_addr.s_addr;
-
-#define ADD(x, y) if (add(x, y) == -1) return -1
-
 	ADD("CONTENT_LENGTH", r->in_content_length);
 	ADD("CONTENT_TYPE", r->in_content_type);
 	ADD("HTTP_AUTHORIZATION", r->authorization);
@@ -117,23 +124,20 @@ static int make_cgi_envp(struct request *r)
 	}
 	ADD("QUERY_STRING", r->args);
 	ADD("REMOTE_ADDR", addr);
-	if ((hp = gethostbyaddr((char *) &ia, sizeof ia, AF_INET)) != 0) {
+	hp = gethostbyaddr((char *) &ia, sizeof ia, AF_INET);
+	if (hp)
 		ADD("REMOTE_HOST", hp->h_name);
-	}
 	ADD("REQUEST_METHOD", r->method_s);
 	ADD("SCRIPT_NAME", r->path);
 	ADD("SERVER_NAME", r->servername);
 	ADD("SERVER_PORT", t);
 	ADD("SERVER_SOFTWARE", server_version);
-
 	if (r->protocol_major) {
-		sprintf(t, "HTTP/%d.%d",
-			r->protocol_major,
-			r->protocol_minor);
+		sprintf(t, "HTTP/%d.%d", r->protocol_major, r->protocol_minor);
 		ADD("SERVER_PROTOCOL", t);
 	} else
 		ADD("SERVER_PROTOCOL", "HTTP/0.9");
-
+	e = exports;
 	while (e) {
 		ADD(e->name, getenv(e->name));
 		e = e->next;
@@ -142,29 +146,28 @@ static int make_cgi_envp(struct request *r)
 	return 0;
 }
 
-#define ADD_ARGV(x) if (add_argv(x) == -1) return -1
-
 static int make_cgi_argv(struct request *r, char *b)
 {
+	char *a, *w;
+
 	cgi_argc = 0;
 	cgi_argv = 0;
 	if (r->class == CLASS_EXTERNAL)
 		ADD_ARGV(r->content_type);
 	ADD_ARGV(b);
 	if (r->args && strchr(r->args, '=') == 0) {
-		char *a, *w;
-
-		if ((a = strdup(r->args)) == 0)
+		a = strdup(r->args);
+		if (a == 0)
 			return -1;
 		do {
 			w = strchr(a, '+');
 			if (w)
-				*w = '\0';
+				*w++ = '\0';
 			if (unescape_url(a, a))
 				return -1;
 			ADD_ARGV(a);
 			if (w)
-				a = w + 1;
+				a = w;
 		} while (w);
 	}
 	ADD_ARGV(0);
@@ -181,29 +184,33 @@ static int cgi_error(struct request *r, int code, const char *error)
 		write(STDOUT_FILENO, p->start, p->end - p->start);
 	return -1;
 }
-			  
-static int exec_cgi(struct request *r)
+
+static int init_cgi_env(struct request *r)
 {
 	char *dir, *base;
 
 	dir = r->path_translated;
-	if ((base = strrchr(dir, '/')) == 0)
-		return 1;
+	base = strrchr(dir, '/');
+	if (base == '\0')
+		return -1;
 	*base++ = '\0';
-	if (*dir == '\0') {
-		dir[0] = '/';
-		dir[1] = '\0';
-	}
-	if (make_cgi_envp(r) == -1 || make_cgi_argv(r, base) == -1)
-		return cgi_error(r, 500, "out of memory");
-	else if (chdir(dir) == -1) {
-		lerror("chdir");
-		return cgi_error(r, 500, "chdir failed");
-	}
-	log(L_DEBUG, "execve(\"%s\", ...)", cgi_argv[0]);
+	if (make_cgi_envp(r) == -1)
+		return -1;
+	if (make_cgi_argv(r, base) == -1)
+		return -1;
+	if (chdir(dir) == -1)
+		return -1;
+	return 0;
+}
+
+static int exec_cgi(struct request *r)
+{
+	if (init_cgi_env(r) == -1)
+		return cgi_error(r, 500, "could not initialize CGI environment");
 	if (execve(cgi_argv[0], (char **) cgi_argv, cgi_envp) == -1) {
+		log(L_ERROR, "could not execute %s", cgi_argv[0]);
 		lerror("execve");
-		return cgi_error(r, 500, "exec failed");
+		return cgi_error(r, 500, "could not execute CGI program");
 	}
 	return 0;
 }
