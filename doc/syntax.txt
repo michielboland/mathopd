@@ -131,6 +131,7 @@ logformat-item:
 	"BytesWritten"
 	"QueryString"
         "TimeTaken"
+	"MicroTime"
 
 flag:
 	"On"

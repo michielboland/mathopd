@@ -53,6 +53,7 @@ config.c:
 		TimeTaken
 		LocalAddress
 		LocalPort
+		MicroTime
 
 	The following keywords have been removed:-
 
@@ -133,6 +134,8 @@ log.c:
 	option is set, because that interferes with the ChildLog
 	for forked requests. To get the old behaviour, run Mathopd
 	with the -t ('tee') option.
+
+	Time stamps in the request log are more accurate.
 
 main.c:
 

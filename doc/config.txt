@@ -544,6 +544,12 @@ Keyword: Method
 Where:   LogFormat
 Desc:    The client's request-method, usually GET.
 
+Keyword: MicroTime
+Where:   LogFormat
+Desc:    The time, measured in microseconds since 00:00:00 UTC,
+         January 1, 1970. (Or whatever is returned by the gettimeofday()
+         system call.)
+
 Keyword: NoApply
 Where:   Clients
 Type:    Network
