@@ -750,6 +750,8 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update, int 
 						sprintf(y + l, "%.*s", maxlen - (l + 1), s);
 					break;
 				} else {
+					if (*s == '/')
+						++s;
 					t = strchr(s, '/');
 					if (t)
 						*t = 0;
