@@ -102,7 +102,6 @@ static int add_argv(const char *a, const char *b, int decode)
 
 static char *dnslookup(struct in_addr ia, int level)
 {
-	int hostok;
 	char **al;
 	struct hostent *h;
 	const char *message;
@@ -116,12 +115,13 @@ static char *dnslookup(struct in_addr ia, int level)
 	if (h == 0 || h->h_name == 0)
 		return 0;
 	tmp = strdup(h->h_name);
-	if (tmp == 0)
+	if (tmp == 0) {
+		log_d("dnslookup: strdup failed");
 		return 0;
+	}
 	if (level <= 1)
 		return tmp;
-	hostok = 0;
-	message = 0;
+	message = "name does not match address";
 	if (debug)
 		log_d("dnslookup: gethostbyname(\"%s\")", tmp);
 	h = gethostbyname(tmp);
@@ -138,14 +138,16 @@ static char *dnslookup(struct in_addr ia, int level)
 	else {
 		for (al = h->h_addr_list; *al; al++) {
 			if (memcmp(*al, &ia, sizeof ia) == 0) {
-				hostok = 1;
+				message = 0;
 				break;
 			}
 		}
 	}
-	if (hostok == 0) {
+	if (message) {
+		log_d("dnslookup: %s", message);
+		log_d("name=%s", tmp);
+		log_d("address=%s", inet_ntoa(ia));
 		free(tmp);
-		log_d("dnslookup: %s != %s%s%s", tmp, inet_ntoa(ia), message ? ": " : "", message ? message : "");
 		return 0;
 	}
 	return tmp;
