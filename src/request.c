@@ -737,11 +737,6 @@ static int process_path(struct request *r)
 		r->error = se_alias;
 		return 500;
 	}
-	if (r->c->locations == 0) {
-		log_d("raah... no locations found");
-		r->error_file = r->c->error_404_file;
-		return 404;
-	}
 	if (r->path_translated[0] == 0) {
 		r->error = se_alias;
 		return 500;
