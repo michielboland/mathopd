@@ -97,6 +97,7 @@ static const char c_input_buf_size[] =	"InputBufSize";
 static const char c_location[] =	"Location";
 static const char c_log[] =		"Log";
 static const char c_log_format[] =	"LogFormat";
+static const char c_max_age[] =		"MaxAge";
 static const char c_method[] =		"Method";
 static const char c_name[] =		"Name";
 static const char c_noapply[] =		"NoApply";
@@ -588,6 +589,7 @@ static const char *config_control(struct control **as)
 		a->exports = b->exports;
 		a->script_user = b->script_user;
 		a->run_scripts_as_owner = b->run_scripts_as_owner;
+		a->max_age = b->max_age;
 	} else {
 		a->index_names = 0;
 		a->accesses = 0;
@@ -606,6 +608,7 @@ static const char *config_control(struct control **as)
 		a->exports = 0;
 		a->script_user = 0;
 		a->run_scripts_as_owner = 0;
+		a->max_age = -1;
 	}
 	a->next = *as;
 	*as = a;
@@ -670,6 +673,8 @@ static const char *config_control(struct control **as)
 			t = config_string(&a->script_user);
 		else if (!strcasecmp(tokbuf, c_run_scripts_as_owner))
 			t = config_flag(&a->run_scripts_as_owner);
+		else if (!strcasecmp(tokbuf, c_max_age))
+			t = config_int(&a->max_age);
 		else
 			t = e_keyword;
 		if (t)
