@@ -123,7 +123,7 @@ static void nuke_connections(void)
 	cn = connections;
 	while (cn) {
 		if (cn->state != HC_FREE)
-		close_connection(cn);
+			close_connection(cn);
 		cn = cn->next;
 	}
 }
