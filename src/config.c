@@ -978,27 +978,21 @@ static const char *config_main(struct configuration *p)
 const char *config(const char *config_filename)
 {
 	const char *s;
-	struct configuration *p;
+	struct configuration c;
 
-	p = malloc(sizeof *p);
-	if (p == 0)
+	c.size = TOKEN_LENGTH_INCREMENT;
+	c.tokbuf = malloc(c.size);
+	if (c.tokbuf == 0)
 		return e_memory;
-	p->size = TOKEN_LENGTH_INCREMENT;
-	p->tokbuf = malloc(p->size);
-	if (p->tokbuf == 0) {
-		free(p);
-		return e_memory;
-	}
 	if (config_filename) {
-		p->config_file = fopen(config_filename, "r");
-		if (p->config_file == 0) {
+		c.config_file = fopen(config_filename, "r");
+		if (c.config_file == 0) {
 			fprintf(stderr, "Cannot open configuration file %s\n", config_filename);
-			free(p->tokbuf);
-			free(p);
+			free(c.tokbuf);
 			return e_noinput;
 		}
 	} else
-		p->config_file = stdin;
+		c.config_file = stdin;
 	tuning.buf_size = DEFAULT_BUF_SIZE;
 	tuning.input_buf_size = DEFAULT_INPUT_BUF_SIZE;
 	tuning.num_connections = DEFAULT_NUM_CONNECTIONS;
@@ -1012,20 +1006,18 @@ const char *config(const char *config_filename)
 	log_columns = 0;
 	log_column = 0;
 	log_gmt = 0;
-	p->line = 1;
-	s = config_main(p);
+	c.line = 1;
+	s = config_main(&c);
 	if (config_filename)
-		fclose(p->config_file);
+		fclose(c.config_file);
 	if (s) {
 		if (config_filename)
 			fprintf(stderr, "In configuration file: %s\n", config_filename);
-		fprintf(stderr, "Error at token '%s' around line %d\n", p->tokbuf, p->line);
-		free(p->tokbuf);
-		free(p);
+		fprintf(stderr, "Error at token '%s' around line %d\n", c.tokbuf, c.line);
+		free(c.tokbuf);
 		return s;
 	}
-	free(p->tokbuf);
-	free(p);
+	free(c.tokbuf);
 	if (log_column == 0) {
 		log_column = default_log_column;
 		log_columns = sizeof default_log_column / sizeof default_log_column[0];
