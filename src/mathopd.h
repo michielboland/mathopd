@@ -241,6 +241,7 @@ struct request {
 	const char *error_file;
 	char user[16];
 	char *servername;
+	char newloc[PATHLEN];
 };
 
 struct connection {
