@@ -65,13 +65,11 @@ off_t sendfile_connection(struct connection *cn)
 	if (debug)
 		log_d("sendfile_connection: %d %d %d %d", cn->rfd, cn->fd, cn->left, s);
 	if (s == -1) {
-		switch (errno) {
-		default:
-			lerror("sendfile");
-			return -1;
-		case EAGAIN:
+		if (errno == EAGAIN)
 			return 0;
-		}
+		if (debug)
+			lerror("sendfile");
+		return -1;
 	}
 	if (s) {
 		cn->left -= s;
@@ -113,14 +111,10 @@ off_t sendfile_connection(struct connection *cn)
 	rv = sendfile(cn->rfd, cn->fd, cn->file_offset, cn->left, 0, &n, 0);
 	if (debug)
 		log_d("sendfile_connection: %d %d %d %d", cn->rfd, cn->fd, cn->left, (int) n);
-	if (rv == -1) {
-		switch (errno) {
-		default:
+	if (rv == -1 && errno != EAGAIN) {
+		if (debug)
 			lerror("sendfile");
-			return -1;
-		case EAGAIN:
-			break;
-		}
+		return -1;
 	}
 	if (n) {
 		cn->left -= n;

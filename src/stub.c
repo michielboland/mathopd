@@ -304,17 +304,12 @@ static int readfromclient(struct connection *p)
 		log_d("readfromclient: %d %d %d %d", p->fd, p->client_input.end - p->client_input.floor, bytestoread, r);
 	switch (r) {
 	case -1:
-		switch (errno) {
-		default:
-			lerror("readfromclient");
-		case ECONNRESET:
-		case EPIPE:
-			close_connection(p);
-			return -1;
-		case EAGAIN:
+		if (errno == EAGAIN)
 			return 0;
-		}
-		break;
+		if (debug)
+			lerror("read");
+		close_connection(p);
+		return -1;
 	case 0:
 		log_d("readfromclient: client went away while posting data");
 		close_connection(p);
@@ -348,7 +343,8 @@ static int readfromchild(struct connection *p)
 	case -1:
 		if (errno == EAGAIN)
 			return 0;
-		lerror("readfromchild");
+		if (debug)
+			lerror("read");
 		close_connection(p);
 		return -1;
 	case 0:
@@ -393,17 +389,12 @@ static int writetoclient(struct connection *p)
 		log_d("writetoclient: %d %d %d %d", p->fd, p->output.start - p->output.floor, bytestowrite, r);
 	switch (r) {
 	case -1:
-		switch (errno) {
-		case EAGAIN:
+		if (errno == EAGAIN)
 			return 0;
-		default:
-			lerror("writetoclient");
-		case EPIPE:
-		case ECONNRESET:
-			close_connection(p);
-			return -1;
-		}
-		break;
+		if (debug)
+			lerror("write");
+		close_connection(p);
+		return -1;
 	default:
 		p->t = current_time;
 		p->nwritten += r;
@@ -432,10 +423,10 @@ static int writetochild(struct connection *p)
 	case -1:
 		if (errno == EAGAIN)
 			return 0;
-		lerror("writetochild");
+		if (debug)
+			lerror("write");
 		close_connection(p);
 		return -1;
-		break;
 	default:
 		p->t = current_time;
 		p->client_input.start += r;

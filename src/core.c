@@ -334,7 +334,8 @@ static void end_response(struct connection *cn)
 #if defined LINUX_SENDFILE || defined FREEBSD_SENDFILE
 	if (cn->rfd != -1)
 		if (set_nopush(cn->fd, 0) == -1) {
-			lerror("set_nopush");
+			if (debug)
+				lerror("set_nopush");
 			close_connection(cn);
 			return;
 		}
@@ -379,16 +380,12 @@ static void write_connection(struct connection *cn)
 		if (debug)
 			log_d("write_connection: %d %d %d %d", cn->fd, p->start - p->floor, n, m);
 		if (m == -1) {
-			switch (errno) {
-			default:
-				log_d("error writing to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
-				lerror("write");
-			case ECONNRESET:
-			case EPIPE:
-				close_connection(cn);
-			case EAGAIN:
+			if (errno == EAGAIN)
 				return;
-			}
+			if (debug)
+				lerror("write");
+			close_connection(cn);
+			return;
 		}
 		cn->t = current_time;
 		cn->nwritten += m;
@@ -420,17 +417,12 @@ static int read_connection(struct connection *cn)
 	if (debug)
 		log_d("read_connection: %d %d %d %d", cn->fd, cn->header_input.end - cn->header_input.floor, bytestoread, nr);
 	if (nr == -1) {
-		switch (errno) {
-		default:
-			log_d("error reading from %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
-			lerror("read");
-		case ECONNRESET:
-		case EPIPE:
-			close_connection(cn);
-			return -1;
-		case EAGAIN:
+		if (errno == EAGAIN)
 			return 0;
-		}
+		if (debug)
+			lerror("read");
+		close_connection(cn);
+		return -1;
 	}
 	if (nr == 0) {
 		close_connection(cn);
@@ -451,7 +443,8 @@ static int begin_response(struct connection *cn)
 	cn->left = cn->r->content_length;
 #if defined LINUX_SENDFILE || defined FREEBSD_SENDFILE
 	if (set_nopush(cn->fd, 1) == -1) {
-		lerror("set_nopush");
+		if (debug)
+			lerror("set_nopush");
 		return -1;
 	}
 	return 0;
