@@ -1,7 +1,7 @@
 /*
  * request.c - parse and process an HTTP request
  *
- * Copyright 1996, 1997, Michiel Boland
+ * Copyright 1996, 1997, 1998, Michiel Boland
  */
 
 /* Mysterons */
@@ -1036,7 +1036,7 @@ static void log_request(struct request *r)
 		    cl);
 	} else {
 		ti = ctime(&current_time);
-		log(L_TRANS, "%.24s - %s - %s %s %s %.3s %ld %.128s %.128s",
+		log(L_TRANS, "%.24s\t-\t%s\t-\t%s\t%s\t%s\t%.3s\t%ld\t%.128s\t%.128s",
 		    ti ? ti : "???",
 		    cn->ip,
 		    r->vs->fullname,
