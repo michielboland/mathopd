@@ -565,6 +565,8 @@ static int add_fd(struct request *r, const char *filename)
 		return -1;
 	if (get_mime(r, filename) == -1)
 		return -1;
+	if (r->class != CLASS_FILE)
+		return -1;
 	fd = open(filename, O_RDONLY);
 	if (fd == -1)
 		return -1;
