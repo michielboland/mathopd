@@ -289,6 +289,10 @@ static int output_headers(struct pool *p, struct request *r)
 	}
 	if (r->location && r->status == 302)
 		b += sprintf(b, "Location: %.512s\r\n", r->location);
+	if (r->status == 416)
+		b += sprintf(b, "Content-Range: bytes */%lu\r\n", r->range_total);
+	if (r->status == 206)
+		b += sprintf(b, "Content-Range: bytes %lu-%lu/%lu\r\n", r->range_floor, r->range_ceiling, r->range_total);
 	if (r->cn->keepalive) {
 		if (r->protocol_minor == 0)
 			b += sprintf(b, "Connection: Keep-Alive\r\n");
@@ -516,6 +520,42 @@ static int process_special(struct request *r)
 	return 404;
 }
 
+static int satisfy_range(struct request *r)
+{
+	r->range_total = r->content_length;
+	switch(r->range) {
+	case -1:
+		if (r->range_suffix == 0)
+			return -1;
+		r->range_ceiling = r->range_total - 1;
+		if (r->range_suffix < r->range_total)
+			r->range_floor = r->range_total - r->range_suffix;
+		else
+			r->range_floor = 0;
+		break;
+	case 1:
+		if (r->range_floor >= r->range_total)
+			return -1;
+		r->range_ceiling = r->range_total - 1;
+		break;
+	case 2:
+		if (r->range_floor >= r->range_total)
+			return -1;
+		if (r->range_ceiling >= r->range_total)
+			r->range_ceiling = r->range_total - 1;
+		break;
+	}
+	if (r->range_floor == 0 && r->range_ceiling == r->range_total - 1) {
+		r->range = 0;
+		return 0;
+	}
+	if (r->if_range_s && r->last_modified > r->if_range) {
+		r->range = 0;
+		return 0;
+	}
+	return 0;
+}
+
 static int process_fd(struct request *r)
 {
 	int fd;
@@ -551,12 +591,23 @@ static int process_fd(struct request *r)
 		r->num_content = -1;
 		return 304;
 	}
+	if (r->range) {
+		if (satisfy_range(r) == -1) {
+			close(fd);
+			return 416;
+		}
+		if (r->range) {
+			if (r->range_floor)
+				lseek(fd, r->range_floor, SEEK_SET);
+			r->content_length = r->range_ceiling - r->range_floor + 1;
+		}
+	}
 	if (r->method == M_GET) {
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		r->cn->rfd = fd;
 	} else
 		close(fd);
-	return 200;
+	return r->range ? 206 : 200;
 }
 
 static int add_fd(struct request *r, const char *filename)
@@ -991,8 +1042,6 @@ static int process_headers(struct request *r)
 			if (s) {
 				if (process_range_header(r, s) == -1)
 					log_d("ignoring Range header \"%s\"", s);
-				else if (debug)
-					log_d("Range: %s", s);
 			}
 		}
 	}
@@ -1017,6 +1066,10 @@ int prepare_reply(struct request *r)
 		r->status_line = "204 No Content";
 		send_message = 0;
 		break;
+	case 206:
+		r->status_line = "206 Partial Content";
+		send_message = 0;
+		break;
 	case 302:
 		r->status_line = "302 Moved";
 		break;
@@ -1039,6 +1092,9 @@ int prepare_reply(struct request *r)
 	case 405:
 		r->status_line = "405 Method Not Allowed";
 		r->allowedmethods = "GET, HEAD";
+		break;
+	case 416:
+		r->status_line = "416 Requested Range Not Satisfiable";
 		break;
 	case 501:
 		r->status_line = "501 Not Implemented";
@@ -1082,6 +1138,9 @@ int prepare_reply(struct request *r)
 			break;
 		case 503:
 			b += sprintf(b, "The server is temporarily busy.\n");
+			break;
+		case 416:
+			b += sprintf(b, "The requested range is not satisfiable.\n");
 			break;
 		default:
 			b += sprintf(b, "An internal server error has occurred.\n");
@@ -1143,6 +1202,7 @@ void init_request(struct request *r)
 	r->range_floor = 0;
 	r->range_ceiling = 0;
 	r->range_suffix = 0;
+	r->range_total = 0;
 }
 
 int process_request(struct request *r)
