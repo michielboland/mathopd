@@ -261,6 +261,7 @@ static int output_headers(struct pool *p, struct request *r)
 	long cl;
 	char tmp_outbuf[2048], gbuf[40], *b;
 	unsigned long port;
+	const char *protocol;
 
 	if (r->cn->assbackwards)
 		return 0;
@@ -283,13 +284,16 @@ static int output_headers(struct pool *p, struct request *r)
 		if (r->last_modified)
 			b += sprintf(b, "Last-Modified: %s\r\n", rfctime(r->last_modified, gbuf));
 	}
-	if (r->location) {
+	if (r->location && r->status == 302) {
 		if (r->location[0] == '/' && r->servername) {
 			port = r->cn->s->port;
+			protocol = r->cn->s->protocol;
+			if (protocol == 0)
+				protocol = "http";
 			if (port == 80)
-				b += sprintf(b, "Location: http://%s%.512s\r\n", r->servername, r->location);
+				b += sprintf(b, "Location: %s://%s%.512s\r\n", protocol, r->servername, r->location);
 			else
-				b += sprintf(b, "Location: http://%s:%lu%.512s\r\n", r->servername, port, r->location);
+				b += sprintf(b, "Location: %s://%s:%lu%.512s\r\n", protocol, r->servername, port, r->location);
 		} else
 			b += sprintf(b, "Location: %.512s\r\n", r->location);
 	}
