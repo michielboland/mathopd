@@ -586,6 +586,10 @@ Desc:    If you want to redirect a user to a different web site, regardless
          redirected to http://www.an.example/foo.html/index.html (which does
          not make much sense of course.)
 
+Keyword: PathInfo
+Where:   Control
+Type:    Flag
+
 Keyword: Port
 Where:   Server
 Type:    Integer

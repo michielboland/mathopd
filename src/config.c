@@ -124,6 +124,7 @@ static const char c_num_headers[] =		"NumHeaders";
 static const char c_off[] =			"Off";
 static const char c_on[] =			"On";
 static const char c_path_args[] =		"PathArgs";
+static const char c_path_info[] =		"PathInfo";
 static const char c_pid_file[] =		"PIDFile";
 static const char c_port[] =			"Port";
 static const char c_putenv[] =			"PutEnv";
@@ -621,6 +622,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->allow_dotfiles = b->allow_dotfiles;
 		a->putenvs = b->putenvs;
 		a->extra_headers = b->extra_headers;
+		a->path_info_ok = b->path_info_ok;
 	} else {
 		a->index_names = 0;
 		a->accesses = 0;
@@ -641,6 +643,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->allow_dotfiles = 0;
 		a->putenvs = 0;
 		a->extra_headers = 0;
+		a->path_info_ok = 0;
 	}
 	a->next = *as;
 	*as = a;
@@ -720,6 +723,8 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_list(p, &a->putenvs);
 		else if (!strcasecmp(p->tokbuf, c_extra_headers))
 			t = config_list(p, &a->extra_headers);
+		else if (!strcasecmp(p->tokbuf, c_path_args))
+			t = config_flag(p, &a->path_info_ok);
 		else
 			t = e_keyword;
 		if (t)

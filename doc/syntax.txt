@@ -85,6 +85,7 @@ control-item:
 	"UserDirectory" flag
 	"PutEnv" string-block
 	"ExtraHeaders" string-block
+	"PathInfo" flag
 
 server-item:
 	"Port" integer
