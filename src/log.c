@@ -79,6 +79,8 @@ void log_request(struct request *r)
 	static int l1, l2;
 	struct tm *tp;
 
+	if (r->forked)
+		return;
 	if (log_file == -1)
 		return;
 	if (log_columns <= 0) {
@@ -130,8 +132,8 @@ void log_request(struct request *r)
 			s = r->version;
 			break;
 		case ML_STATUS:
-			s = r->status_line;
-			l = 3;
+			sprintf(tmp, "%d", r->status);
+			s = tmp;
 			break;
 		case ML_CONTENT_LENGTH:
 			cl = r->num_content;
