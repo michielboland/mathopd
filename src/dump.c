@@ -146,11 +146,7 @@ static int do_dump(int fd, const char *name, struct request *r)
 		lerror("remove");
 		return -1;
 	}
-	if (fcntl(fd, F_SETFD, FD_CLOEXEC) == -1) {
-		log_d("do_dump: failed to set FD_CLOEXEC flag !?!?!?");
-		lerror("fcntl");
-		return -1;
-	}
+	fcntl(fd, F_SETFD, FD_CLOEXEC);
 	if (dump(fd) == -1) {
 		log_d("do_dump: failed to dump to file %s", name);
 		return -1;
