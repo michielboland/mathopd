@@ -555,11 +555,19 @@ Keyword: NumHeaders
 Where:   Tuning
 Type:    Integer
 Default: 100
-Desc:    Mathopd keeps track of the HTTP headers that are sent by a client
+Desc:    This keyword has a dual purpose.
+
+         Mathopd keeps track of the HTTP headers that are sent by a client
          to pass on to child processes. Since each of these headers must
          be stored somewhere, a fixed amount of memory is set aside for
          these. The number of HTTP headers that are actually stored is
-         determined by the value of NumHeaders.
+         determined by the value of NumHeaders. If a client sends more headers
+         these will still be processed by the server, but they will not be
+         available as environment variables.
+
+         This keyword has an additional function: it determines the maximum
+         number of headers that a CGI script can send. It is an error for
+         a script to send more than this number of headers.
 
 Keyword: PIDFile
 Where:   Global
