@@ -297,6 +297,7 @@ extern char *agent_filename;
 extern char *child_filename;
 
 extern char *admin;
+extern char *rootdir;
 extern char *coredir;
 extern struct connection *connections;
 extern struct server *servers;
