@@ -36,6 +36,8 @@ $(BIN): $(OBJS)
 $(OBJS): $(DEPENDS)
 .c.o:
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+.c.s:
+	$(CC) -S $(CFLAGS) $(CPPFLAGS) $< -o $@
 clean:
 	rm -f $(BIN) $(OBJS)
 .PHONY: install clean
