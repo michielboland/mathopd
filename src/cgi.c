@@ -72,8 +72,12 @@ static int add(const char *name, const char *value, size_t choplen)
 	else {
 		namelen = strlen(name);
 		valuelen = strlen(value);
-		if (choplen && choplen < valuelen)
-			valuelen -= choplen;
+		if (choplen) {
+			if (choplen < valuelen)
+				valuelen -= choplen;
+			else
+				valuelen = 0;
+		}
 		tmp = malloc(namelen + valuelen + 2);
 		if (tmp == 0)
 			return -1;
