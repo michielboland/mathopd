@@ -8,6 +8,8 @@
 
 #include "mathopd.h"
 
+extern int cern; /* aargh */
+
 #ifdef BROKEN_SPRINTF
 #define SPRINTF2(x,y) (sprintf(x,y), strlen(x))
 #define SPRINTF3(x,y,z) (sprintf(x,y,z), strlen(x))
@@ -186,11 +188,22 @@ static char *rfctime(time_t t)
 	static char buf[32];
 	struct tm *tp;
 
-	if ((tp = gmtime(&t)) != 0) {
+	if ((tp = gmtime(&t)) != 0)
 		strftime(buf, 31, "%a, %d %b %Y %H:%M:%S GMT", tp);
-	}
 	else
-		buf[0] = '\0';
+		buf[0] = 0;
+	return buf;
+}
+
+static char *cerntime(time_t t)
+{
+	static char buf[32];
+	struct tm *tp;
+
+	if ((tp = gmtime(&t)) != 0)
+		strftime(buf, 27, "%d/%b/%Y:%H:%M:%S +0000", tp);
+	else
+		buf[0] = 0;
 	return buf;
 }
 
@@ -709,20 +722,20 @@ static int get_method(char *p, struct request *r)
 		return 0;
 	}
 
-	if (r->cn->assbackwards)
-		return -1;
-
-	if (streq(p, m_head)) {
-		r->method = M_HEAD;
-		r->method_s = m_head;
-		return 0;
+	if (!r->cn->assbackwards) {
+		if (streq(p, m_head)) {
+			r->method = M_HEAD;
+			r->method_s = m_head;
+			return 0;
+		}
+		if (streq(p, m_post)) {
+			r->method = M_POST;
+			r->method_s = m_post;
+			return 0;
+		}
 	}
 
-	if (streq(p, m_post)) {
-		r->method = M_POST;
-		r->method_s = m_post;
-		return 0;
-	}
+	log(L_ERROR, "unknown method \"%s\" from %s", p, r->cn->ip);
 
 	return -1;
 }
@@ -733,8 +746,11 @@ static int get_url(char *p, struct request *r)
 
 	if (p == 0)
 		return -1;
-	if (strlen(p) > STRLEN)
+	if (strlen(p) > STRLEN) {
+		log(L_ERROR, "url too long from %s", r->cn->ip);
 		return -1;
+	}
+
 	r->url = p;
 
 	s = strchr(p, '?');
@@ -749,8 +765,10 @@ static int get_url(char *p, struct request *r)
 		*s = '\0';
 	}
 
-	if (unescape_url(r->url, r->path) == -1)
+	if (unescape_url(r->url, r->path) == -1) {
+		log(L_ERROR, "badly encoded url from %s", r->cn->ip);
 		return -1;
+	}
 	if (r->path[0] != '/')
 		return -1; /* this is wrong */
 
@@ -770,8 +788,11 @@ static int get_version(char *p, struct request *r)
 	x = atoi(p);
 	y = atoi(s);
 	log(L_DEBUG, "major=%d, minor=%d", x, y);
-	if (x != 1 || y > 1)
+	if (x != 1 || y > 1) {
+		log(L_ERROR, "unsupported HTTP version (%d.%d) from %s",
+		    x, y, r->cn->ip);
 		return -1;
+	}
 
 	r->protocol_major = x;
 	r->protocol_minor = y;
@@ -815,7 +836,7 @@ static int process_headers(struct request *r)
 	r->c = 0;
 
 	if ((l = getline(r->cn->input)) == 0) {
-		r->error = br_empty;
+		r->error = br_empty; /* can this happen? */
 		return 400;
 	}
 
@@ -831,9 +852,13 @@ static int process_headers(struct request *r)
 		return 400;
 	}
 
-	if (!r->cn->assbackwards) {
+	if (r->cn->assbackwards)
+		r->protocol_minor = 9;
+	else {
 		p = strtok(0, whitespace);
 		if (p == 0 || strncmp(p, "HTTP/", 5)) {
+			log(L_ERROR, "bad protocol string \"%.32s\" from %s",
+			    p, r->cn->ip);
 			r->error = br_bad_protocol;
 			return 400;
 		}
@@ -1003,6 +1028,9 @@ int prepare_reply(struct request *r)
 		r->content_type = "text/html";
 	}
 
+	if (r->status >= 400 && r->method != M_GET && r->method != M_HEAD)
+		r->cn->keepalive = 0;
+
 	return (output_headers(p, r) == -1
 		|| (send_message && putstrings(p, 1, buf) == -1)) ? -1 : 0;
 }
@@ -1011,20 +1039,40 @@ static void log_request(struct request *r)
 {
 	struct connection *cn = r->cn;
 	char *ti;
+	long cl;
 
 	if (r->path[0] == '\0') {
 		r->path[0] = '?';
 		r->path[1] = '\0';
 	}
-	ti = ctime(&current_time);
-	log(L_TRANS, "%.24s - %s - %s %s %s %.3s",
-	    ti ? ti : "???",
-	    cn->ip,
-	    r->vs->fullname,
-	    r->method_s,
-	    r->path,
-	    r->status_line
-	);
+	cl = r->num_content;
+	if (cl >= 0)
+		cl = r->content_length;
+	if (cl < 0)
+		cl = 0;
+
+	if (cern) {
+		ti = cerntime(current_time);
+		log(L_TRANS, "%s - - [%s] \"%s %s HTTP/%d.%d\" %.3s %ld",
+		    cn->ip,
+		    ti,
+		    r->method_s,
+		    r->path,
+		    r->protocol_major,
+		    r->protocol_minor,
+		    r->status_line,
+		    cl);
+	} else {
+		ti = ctime(&current_time);
+		log(L_TRANS, "%.24s - %s - %s %s %s %.3s %ld",
+		    ti ? ti : "???",
+		    cn->ip,
+		    r->vs->fullname,
+		    r->method_s,
+		    r->path,
+		    r->status_line,
+		    cl);
+	}
 	if (r->user_agent)
 		log(L_AGENT, "%s", r->user_agent);
 }
