@@ -665,7 +665,7 @@ void cleanup_children(void)
 				if (p->ibp > p->opp)
 					f = 1;
 				if (f == 0)
-					close_child(p, HC_REINIT);
+					close_child(p, p->cn->keepalive ? HC_REINIT : HC_CLOSING);
 			}
 		}
 		p = p->next;
