@@ -342,7 +342,6 @@ static int exec_cgi(struct request *r)
 	else
 		log_d("executing %s", cgi_argv[0]);
 	if (execve(cgi_argv[0], (char **) cgi_argv, cgi_envp) == -1) {
-		log_d("could not execute %s", cgi_argv[0]);
 		lerror("execve");
 		return cgi_error(r, errno == EACCES ? 403 : 500);
 	}
