@@ -1,6 +1,7 @@
 srcdir=@srcdir@
 VPATH=@srcdir@
-SBINDIR=@prefix@/sbin
+prefix=@prefix@
+SBINDIR=$(prefix)/sbin
 CC=@CC@
 CFLAGS=@CFLAGS@
 CPPFLAGS=@CPPFLAGS@ -I.
