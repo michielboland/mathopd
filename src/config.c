@@ -141,6 +141,7 @@ static const char c_remote_user[] =		"RemoteUser";
 static const char c_root_directory[] =		"RootDirectory";
 static const char c_run_scripts_as_owner[] =	"RunScriptsAsOwner";
 static const char c_script_buf_size[] =		"ScriptBufSize";
+static const char c_script_lo_wat[] =		"ScriptLoWat";
 static const char c_script_timeout[] =		"ScriptTimeout";
 static const char c_script_user[] =		"ScriptUser";
 static const char c_server[] =			"Server";
@@ -910,6 +911,8 @@ static const char *config_tuning(struct configuration *p, struct tuning *tp)
 			t = config_int(p, &tp->script_timeout);
 		else if (!strcasecmp(p->tokbuf, c_script_buf_size))
 			t = config_int(p, &tp->script_buf_size);
+		else if (!strcasecmp(p->tokbuf, c_script_lo_wat))
+			t = config_int(p, &tp->script_lo_wat);
 		else
 			t = e_keyword;
 		if (t)

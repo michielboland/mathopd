@@ -58,6 +58,7 @@
 #define DEFAULT_SCRIPT_TIMEOUT 60
 #define DEFAULT_SCRIPT_BUF_SIZE 4096
 #define DEFAULT_BACKLOG 128
+#define DEFAULT_SCRIPT_LOWAT 1
 
 #define STRLEN 400
 #define PATHLEN (2 * STRLEN)
@@ -344,6 +345,7 @@ struct tuning {
 	unsigned long num_headers;
 	unsigned long script_timeout;
 	unsigned long script_buf_size;
+	unsigned long script_lo_wat;
 };
 
 /* main */
