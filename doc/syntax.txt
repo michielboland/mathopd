@@ -94,6 +94,7 @@ server-item:
 	"Address" address
 	"Virtual" virtual-block
 	"Control" control-block
+	"Backlog" integer
 
 virtual-item:
 	"Host" string

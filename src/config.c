@@ -90,6 +90,7 @@ static const char c_allow_dotfiles[] =		"AllowDotfiles";
 static const char c_any_host[] =		"AnyHost";
 static const char c_apply[] =			"Apply";
 static const char c_auto_index_command[] =	"AutoIndexCommand";
+static const char c_backlog[] =			"Backlog";
 static const char c_buf_size[] =		"BufSize";
 static const char c_bytes_read[] =		"BytesRead";
 static const char c_bytes_written[] =		"BytesWritten";
@@ -816,6 +817,7 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	s->controls = controls;
 	s->naccepts = 0;
 	s->nhandled = 0;
+	s->backlog = DEFAULT_BACKLOG;
 	if ((t = gettoken(p)) != t_open)
 		return t;
 	while ((t = gettoken(p)) != t_close) {
@@ -829,6 +831,8 @@ static const char *config_server(struct configuration *p, struct server **ss)
 			t = config_virtual(p, &s->vservers, s);
 		else if (!strcasecmp(p->tokbuf, c_control))
 			t = config_control(p, &s->controls);
+		else if (!strcasecmp(p->tokbuf, c_backlog))
+			t = config_int(p, &s->backlog);
 		else
 			t = e_keyword;
 		if (t)
@@ -836,6 +840,8 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	}
 	if (s->port == 0 || s->port > 0xffff)
 		return e_illegalport;
+	if (s->backlog > MAX_BACKLOG)
+		s->backlog = MAX_BACKLOG;
 	num_servers++;
 	s->next = *ss;
 	*ss = s;

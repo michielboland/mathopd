@@ -28,6 +28,7 @@ config.c:
 		ScriptBufSize
 		PathInfo
 		AutoIndexCommand
+		Backlog
 
 	The "Name" keyword has been removed since it no longer
 	has any function.
@@ -69,6 +70,10 @@ main.c:
 	The fork_request now creates a socket pair to communicate with
 	the child process, and calls init_child(), which converts the
 	underlying connection into something that the stub can handle.
+
+	The second argument to the listen() call is now dynamic via
+	the Backlog keyword. The listen backlog now defaults to 5,
+	rather than 128, which appears to make more sense.
 
 request.c:
 

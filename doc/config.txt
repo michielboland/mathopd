@@ -111,6 +111,14 @@ Desc:    If a request for a directory is made, and none of the files
          listing. The AutoIndexCommand determines which script exactly.
          The script must be an absolute pathname.
 
+Keyword: Backlog
+Where:   Server
+Type:    Integer
+Desc:    The value of Backlog determines the number of connections that can
+         be made while the server is busy handling the active connections
+         (that is, not accepting new connections.) This is an experimental
+         feature.
+
 Keyword: BufSize
 Where:   Tuning
 Type:    Integer
