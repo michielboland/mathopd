@@ -46,7 +46,7 @@ int process_redirect(struct request *r)
 		return 405;
 	fp = fopen(r->path_translated, "r");
 	if (fp == 0) {
-		log_d("cannot open redirect file %.200s", r->path_translated);
+		log_d("cannot open redirect file %s", r->path_translated);
 		lerror("fopen");
 		return 500;
 	}

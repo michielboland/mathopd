@@ -244,7 +244,7 @@ int process_imap(struct request *r)
 		return 405;
 	fp = fopen(r->path_translated, "r");
 	if (fp == 0) {
-		log_d("cannot open map file %.200s", r->path_translated);
+		log_d("cannot open map file %s", r->path_translated);
 		lerror("fopen");
 		return 500;
 	}

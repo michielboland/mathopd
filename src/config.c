@@ -361,7 +361,7 @@ static const char *config_list(struct simple_list **ls)
 static const char *config_mime(struct mime **ms, int class)
 {
 	struct mime *m;
-	char *name, *s, buf[32];
+	char *name, *s;
 
 	GETOPEN();
 	while (NOTCLOSE()) {
@@ -377,14 +377,9 @@ static const char *config_mime(struct mime **ms, int class)
 				m->ext = 0;
 			else {
 				s = tokbuf;
-				if (*s == '/')
-					sprintf(buf, "%.30s", s);
-				else {
-					while (*s == '.')
-						++s;
-					sprintf(buf, ".%.30s", s);
-				}
-				COPY(m->ext, buf);
+				while (*s == '.')
+					++s;
+				COPY(m->ext, s);
 			}
 			m->next = *ms;
 			*ms = m;
@@ -740,7 +735,7 @@ static const char *fill_servernames(void)
 			if (s->port == DEFAULT_PORT)
 				v->fullname = name;
 			else {
-				sprintf(buf, "%.80s:%d", name, s->port);
+				sprintf(buf, "%.200s:%d", name, s->port);
 				COPY(v->fullname, buf);
 			}
 			v = v->next;
