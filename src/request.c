@@ -996,9 +996,19 @@ static int process_headers(struct request *r)
 	s = r->url;
 	if (strlen(s) > STRLEN)
 		return 400;
+	if (*s != '/') {
+		u = strchr(s, '/');
+		if (u == 0 || u[1] != '/' || u[2] == 0 || u[2] == '/')
+			return 400;
+		u += 2;
+		s = strchr(u, '/');
+		if (s == 0)
+			return 400;
+		memcpy(r->rhost, u, s - u);
+		r->rhost[s - u] = 0;
+		r->host = r->rhost;
+	}
 	if (unescape_url(s, r->path) == -1)
-		return 400;
-	if (r->path[0] != '/')
 		return 400;
 	if (r->cn->assbackwards) {
 		r->protocol_major = 0;
@@ -1211,6 +1221,7 @@ void init_request(struct request *r)
 	r->range_total = 0;
 	r->ius_s = 0;
 	r->ius = 0;
+	r->rhost[0] = 0;
 }
 
 int process_request(struct request *r)
