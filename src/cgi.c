@@ -265,45 +265,32 @@ static int become_user(const char *name)
 	uid_t u;
 
 	if (name == 0) {
-		u = geteuid();
-		if (debug)
-			log_d("become_user: geteuid() = %d", u);
-		if (u == 0) {
-			log_d("cannot run scripts as superuser");
-			return -1;
-		}
-	} else {
-		pw = getpwnam(name);
-		if (pw == 0) {
-			log_d("%s: no such user", name);
-			return -1;
-		}
-		u = pw->pw_uid;
-		if (u == 0) {
-			log_d("%s: invalid user", name);
-			return -1;
-		}
-		rv = setuid(0);
-		if (debug)
-			log_d("become_user: setuid(0) = %d", rv);
-		if (rv == -1) {
-			lerror("setuid");
-			return -1;
-		}
-		rv = initgroups(name, pw->pw_gid);
-		if (debug)
-			log_d("become_user: initgroups(\"%s\", %d) = %d", name, pw->pw_gid, rv);
-		if (rv == -1) {
-			lerror("initgroups");
-			return -1;
-		}
-		rv = setgid(pw->pw_gid);
-		if (debug)
-			log_d("become_user: setgid(%d) = %d", pw->pw_gid, rv);
-		if (rv == -1) {
-			lerror("setgid");
-			return -1;
-		}
+		log_d("become_user: name may not be null");
+		return -1;
+	}
+	pw = getpwnam(name);
+	if (pw == 0) {
+		log_d("%s: no such user", name);
+		return -1;
+	}
+	u = pw->pw_uid;
+	if (u == 0) {
+		log_d("%s: invalid user (uid 0)", name);
+		return -1;
+	}
+	rv = initgroups(name, pw->pw_gid);
+	if (debug)
+		log_d("become_user: initgroups(\"%s\", %d) = %d", name, pw->pw_gid, rv);
+	if (rv == -1) {
+		lerror("initgroups");
+		return -1;
+	}
+	rv = setgid(pw->pw_gid);
+	if (debug)
+		log_d("become_user: setgid(%d) = %d", pw->pw_gid, rv);
+	if (rv == -1) {
+		lerror("setgid");
+		return -1;
 	}
 	rv = setuid(u);
 	if (debug)
@@ -312,29 +299,89 @@ static int become_user(const char *name)
 		lerror("setuid");
 		return -1;
 	}
-	if (name)
-		log_d("now running as user %s (%d)", name, u);
+	log_d("now running as user %s (%d)", name, u);
+	return 0;
+}
+
+static int set_uids(uid_t uid, gid_t gid)
+{
+	int rv;
+
+	if (uid < 100) {
+		log_d("refusing to set uid to %d", uid);
+		return -1;
+	}
+	rv = setgroups(0, &gid);
+	if (debug)
+		log_d("set_uids: setgroups(0, [%d]) = %d", gid, rv);
+	if (rv == -1) {
+		lerror("setgroups");
+		return -1;
+	}
+	rv = setgid(gid);
+	if (debug)
+		log_d("set_uids: setgid(%d) = %d", gid, rv);
+	if (rv == -1) {
+		lerror("setgid");
+		return -1;
+	}
+	rv = setuid(uid);
+	if (debug)
+		log_d("set_uids: setuid(%d) = %d", uid, rv);
+	if (rv == -1) {
+		lerror("setuid");
+		return -1;
+	}
+	log_d("set_uids: uid set to %d, gid set to %d", uid, gid);
 	return 0;
 }
 
 static int exec_cgi(struct request *r)
 {
-	if (init_cgi_env(r) == -1)
-		return cgi_error(r, 500, "could not initialize CGI environment");
-	if (r->c->script_user) {
-		if (become_user(r->c->script_user) == -1) {
-			return cgi_error(r, 403, "cannot set uids");
-		}
-	} else if (r->c->run_scripts_as_owner) {
-		return cgi_error(r, 500, "RunScriptsAsOwner not yet implemented");
-	} else {
-		log_d("cannot run scripts withouth changing identity");
-		return cgi_error(r, 403, "script permission denied");
+	uid_t e, u;
+	int rv;
+
+	e = geteuid();
+	if (debug)
+		log_d("exec_cgi: geteuid() = %d", e);
+	if (e == 0) {
+		log_d("I appear to be root!?");
+		_exit(-1);
 	}
-	if (geteuid() == 0) {
+	rv = setuid(0);
+	if (debug)
+		log_d("exec_cgi: setuid(0) = %d", rv);
+	if (rv != -1) {
+		if (r->c->script_user) {
+			if (become_user(r->c->script_user) == -1) {
+				setuid(e);
+				return cgi_error(r, 403, "cannot set uids");
+			}
+		} else if (r->c->run_scripts_as_owner) {
+			if (set_uids(r->finfo.st_uid, r->finfo.st_gid) == -1) {
+				setuid(e);
+				return cgi_error(r, 403, "cannot set uids");
+			}
+		} else {
+			setuid(e);
+			log_d("cannot run scripts withouth changing identity");
+			return cgi_error(r, 403, "script permission denied");
+		}
+	}
+	e = geteuid();
+	if (debug) {
+		log_d("exec_cgi: geteuid() = %d", e);
+	}
+	u = getuid();
+	if (debug) {
+		log_d("exec_cgi: getuid() = %d", u);
+	}
+	if (e == 0 || u == 0) {
 		log_d("cannot run scripts as root");
 		return cgi_error(r, 403, "security check failed");
 	}
+	if (init_cgi_env(r) == -1)
+		return cgi_error(r, 500, "could not initialize CGI environment");
 	log_d("executing %s", cgi_argv[0]);
 	if (execve(cgi_argv[0], (char **) cgi_argv, cgi_envp) == -1) {
 		log_d("could not execute %s", cgi_argv[0]);
