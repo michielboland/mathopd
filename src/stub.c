@@ -241,7 +241,7 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 			return -1;
 		}
 		s = 302;
-		memcpy(pp->obuf + len, "HTTP/1.0 302 Moved\r\n", 20);
+		memcpy(pp->obuf + len, "HTTP/1.1 302 Moved\r\n", 20);
 		len += 20;
 	} else if (havestatus == 0) {
 		if (len + 17 > pp->osize) {
@@ -249,7 +249,7 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 			return -1;
 		}
 		s = 200;
-		memcpy(pp->obuf + len, "HTTP/1.0 200 OK\r\n", 17);
+		memcpy(pp->obuf + len, "HTTP/1.1 200 OK\r\n", 17);
 		len += 17;
 	} else {
 		s = atoi(headers[status].value);
@@ -270,7 +270,7 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 			log_d("convert_cgi_headers: no room to put status line");
 			return -1;
 		}
-		memcpy(pp->obuf + len, "HTTP/1.0 ", 9);
+		memcpy(pp->obuf + len, "HTTP/1.1 ", 9);
 		len += 9;
 		memcpy(pp->obuf + len, headers[status].value, tmpvaluelen);
 		len += tmpvaluelen;
