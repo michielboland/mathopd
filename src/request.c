@@ -1246,6 +1246,7 @@ void init_request(struct request *r)
 	r->rhost[0] = 0;
 	r->forked = 0;
 	r->in_transfer_encoding = 0;
+	r->in_mblen = 0;
 }
 
 int process_request(struct request *r)

@@ -249,6 +249,7 @@ struct request {
 	char rhost[STRLEN];
 	int forked;
 	char *in_transfer_encoding;
+	size_t in_mblen;
 };
 
 struct connection {
