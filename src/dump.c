@@ -57,8 +57,39 @@ static void dump_servers(FILE *f, struct server *s)
 
 static void fdump(FILE *f)
 {
-	fprintf(f, "*** Start of dump\n");
-	fprintf(f, "SCM %lu %lu %d\n", startuptime, current_time, maxconnections);
+	int ncrd, ncwr, ncwt;
+	struct connection *cn;
+
+	ncrd = ncwr = ncwt = 0;
+	cn = connections;
+	while (cn) {
+		if (cn->state != HC_FREE) {
+			switch (cn->action) {
+			case HC_READING:
+				ncrd++;
+				break;
+			case HC_WRITING:
+				ncwr++;
+				break;
+			case HC_WAITING:
+				ncwt++;
+				break;
+			}
+		}
+		cn = cn->next;
+	}
+	fprintf(f,
+		"Uptime: %d seconds\n"
+		"Active connections: %d (Rd:%d Wr:%d Wt:%d) out of %lu\n"
+		"Max simultaneous connections since last dump: %d\n"
+		"Number of exited children: %d\n"
+		"\n"
+		"Server                           Address            accepts   handled  requests\n"
+		"\n",
+		(int) (current_time - startuptime),
+		nconnections, ncrd, ncwr, ncwt, tuning.num_connections,
+		maxconnections,
+		numchildren);
 	maxconnections = nconnections;
 	dump_servers(f, servers);
 	fprintf(f, "*** End of dump\n");
@@ -87,7 +118,6 @@ static int dump(int fd)
 		close(fd2);
 		return -1;
 	}
-	close(fd2);
 	return 0;
 }
 
