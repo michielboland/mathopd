@@ -41,6 +41,7 @@ static const char rcsid[] = "$Id$";
 #include <sys/wait.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <netdb.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -248,14 +249,17 @@ static struct connection *find_connection(void)
 
 static int accept_connection(struct server *s)
 {
-	int fd;
+	struct sockaddr_storage sa_remote, sa_local;
+	socklen_t l;
+	int fd, rv;
 	struct connection *cn;
 
 	do {
 		cn = find_connection();
 		if (cn == 0)
 			return 0;
-		fd = accept(s->fd, 0, 0);
+		l = sizeof sa_remote;
+		fd = accept(s->fd, (struct sockaddr *) &sa_remote, &l);
 		if (fd == -1)
 			switch (errno) {
 			case EAGAIN:
@@ -277,8 +281,25 @@ static int accept_connection(struct server *s)
 			log_d("accept_connection: %d", fd);
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		fcntl(fd, F_SETFL, O_NONBLOCK);
-		if (cn->connection_state != HC_FREE) {
+		if (cn->connection_state != HC_FREE)
 			close_connection(cn);
+		rv = getnameinfo((struct sockaddr *) &sa_remote, l, cn->peer.ap_address, sizeof cn->peer.ap_address, cn->peer.ap_port, sizeof cn->peer.ap_port, NI_NUMERICHOST | NI_NUMERICSERV);
+		if (rv) {
+			log_d("accept_connection: getnameinfo failed for peer: %s", gai_strerror(rv));
+			close(fd);
+			break;
+		}
+		l = sizeof sa_local;
+		if (getsockname(fd, (struct sockaddr *) &sa_local, &l) == -1) {
+			lerror("getsockname");
+			close(fd);
+			break;
+		}
+		rv = getnameinfo((struct sockaddr *) &sa_local, l, cn->sock.ap_address, sizeof cn->sock.ap_address, cn->sock.ap_port, sizeof cn->sock.ap_port, NI_NUMERICHOST | NI_NUMERICSERV);
+		if (rv) {
+			log_d("accept_connection: getnameinfo failed for sock: %s", gai_strerror(rv));
+			close(fd);
+			break;
 		}
 		cn->s = s;
 		cn->fd = fd;
