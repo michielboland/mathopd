@@ -367,6 +367,7 @@ extern int nconnections;
 extern int maxconnections;
 extern time_t current_time;
 
+extern void log_socket_error(int, const char *);
 extern void log_d(const char *, ...);
 extern void lerror(const char *);
 extern void httpd_main(void);
