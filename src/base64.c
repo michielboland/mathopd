@@ -118,7 +118,7 @@ static int f_webuserok(const char *authorization, FILE *fp, char *username, int 
 	register int c, bp, skipline;
 
 	if (strlen(authorization) >= sizeof tmp) {
-		log_d("authorization exceeds %d bytes", sizeof tmp);
+		log_d("authorization string too long");
 		return 0;
 	}
 	if (base64decode(authorization, tmp) == -1) {
@@ -131,7 +131,7 @@ static int f_webuserok(const char *authorization, FILE *fp, char *username, int 
 		return 0;
 	}
 	if (username && q >= tmp + len) {
-		log_d("supplied username exceeds %d bytes", len);
+		log_d("supplied username too long");
 		return 0;
 	}
 	*q++ = 0;
