@@ -72,6 +72,9 @@ static struct connection_list waiting_connections;
 static struct connection_list reading_connections;
 static struct connection_list writing_connections;
 static struct connection_list forked_connections;
+static int min_unused_pollindex;
+static int min_free_pollindex;
+static int num_pollfds;
 
 static void c_unlink(struct connection *c, struct connection_list *l)
 {
@@ -160,6 +163,51 @@ void set_connection_state(struct connection *c, enum connection_state state)
 		c_link(c, n);
 }
 
+int allocate_pollindex(int fd, short events)
+{
+	int i, j;
+
+	i = min_free_pollindex;
+	if (i == min_unused_pollindex)
+		min_free_pollindex = ++min_unused_pollindex;
+	else {
+		j = i + 1;
+		while (j < min_unused_pollindex) {
+			if (pollfds[j].fd == -1)
+				break;
+			j++;
+		}
+		min_free_pollindex = j;
+	}
+	pollfds[i].fd = fd;
+	pollfds[i].events = events;
+	pollfds[i].revents = 0;
+	return i;
+}
+
+static void free_pollindex(int i)
+{
+	int j;
+
+	if (pollfds[i].fd == -1)
+		return;
+	if (i + 1 == min_unused_pollindex) {
+		j = i;
+		while (j > 0) {
+			if (pollfds[j - 1].fd != -1)
+				break;
+			j--;
+		}
+		min_unused_pollindex = j;
+		if (j < min_free_pollindex)
+			min_free_pollindex = j;
+	} else if (i < min_free_pollindex)
+		min_free_pollindex = i;
+	pollfds[i].fd = -1;
+	pollfds[i].events = 0;
+	pollfds[i].revents = 0;
+}
+
 static void init_connection(struct connection *cn)
 {
 	cn->header_input.state = 0;
@@ -183,10 +231,15 @@ int reinit_connection(struct connection *cn)
 	log_request(cn->r);
 	cn->logged = 1;
 	if (cn->rfd != -1) {
+		if (cn->rpollindex != -1) {
+			free_pollindex(cn->rpollindex);
+			cn->rpollindex = -1;
+		}
 		close(cn->rfd);
 		cn->rfd = -1;
 	}
 	init_connection(cn);
+	pollfds[cn->pollindex].events = POLLIN;
 	set_connection_state(cn, HC_WAITING);
 	s = cn->header_input.middle;
 	if (s == cn->header_input.end) {
@@ -204,8 +257,13 @@ void close_connection(struct connection *cn)
 		log_request(cn->r);
 	}
 	--stats.nconnections;
+	free_pollindex(cn->pollindex);
 	close(cn->fd);
 	if (cn->rfd != -1) {
+		if (cn->rpollindex != -1) {
+			free_pollindex(cn->rpollindex);
+			cn->rpollindex = -1;
+		}
 		close(cn->rfd);
 		cn->rfd = -1;
 	}
@@ -219,6 +277,7 @@ static void close_servers(void)
 	s = servers;
 	while (s) {
 		if (s->fd != -1) {
+			free_pollindex(s->pollindex);
 			close(s->fd);
 			s->fd = -1;
 		}
@@ -311,7 +370,8 @@ static int accept_connection(struct server *s)
 			cn->peer = sa_remote;
 			cn->sock = sa_local;
 			cn->t = current_time;
-			cn->pollno = -1;
+			cn->pollindex = allocate_pollindex(cn->fd, POLLIN);
+			cn->rpollindex = -1;
 			++stats.nconnections;
 			if (stats.nconnections > stats.maxconnections)
 				stats.maxconnections = stats.nconnections;
@@ -586,53 +646,9 @@ static int scan_request(struct connection *cn)
 			return -1;
 		}
 		set_connection_state(cn, HC_WRITING);
+		pollfds[cn->pollindex].events = POLLOUT;
 	}
 	return 0;
-}
-
-static int setup_server_pollfds(int n)
-{
-	struct server *s;
-
-	s = servers;
-	while (s) {
-		if (s->fd != -1) {
-			pollfds[n].events = POLLIN;
-			pollfds[n].fd = s->fd;
-			s->pollno = n++;
-		} else
-			s->pollno = -1;
-		s = s->next;
-	}
-	return n;
-}
-
-static int setup_connection_pollfds(int n)
-{
-	struct connection *cn;
-
-	cn = waiting_connections.head;
-	while (cn) {
-		pollfds[n].fd = cn->fd;
-		pollfds[n].events = POLLIN;
-		cn->pollno = n++;
-		cn = cn->next;
-	}
-	cn = reading_connections.head;
-	while (cn) {
-		pollfds[n].fd = cn->fd;
-		pollfds[n].events = POLLIN;
-		cn->pollno = n++;
-		cn = cn->next;
-	}
-	cn = writing_connections.head;
-	while (cn) {
-		pollfds[n].fd = cn->fd;
-		pollfds[n].events = POLLOUT;
-		cn->pollno = n++;
-		cn = cn->next;
-	}
-	return n;
 }
 
 static int run_servers(void)
@@ -641,10 +657,9 @@ static int run_servers(void)
 
 	s = servers;
 	while (s) {
-		if (s->pollno != -1)
-			if (pollfds[s->pollno].revents & POLLIN)
-				if (accept_connection(s) == -1)
-					return -1;
+		if (pollfds[s->pollindex].revents & POLLIN)
+			if (accept_connection(s) == -1)
+				return -1;
 		s = s->next;
 	}
 	return 0;
@@ -676,9 +691,7 @@ static void run_rconnection(struct connection *cn)
 	int n;
 	short r;
 
-	n = cn->pollno;
-	if (n == -1)
-		return;
+	n = cn->pollindex;
 	r = pollfds[n].revents;
 	if (r & POLLERR) {
 		log_connection_error(cn);
@@ -689,8 +702,6 @@ static void run_rconnection(struct connection *cn)
 		if (read_connection(cn) == -1 || scan_request(cn) == -1)
 			return;
 		r &= ~POLLIN;
-		if (cn->connection_state == HC_WRITING)
-			r |= POLLOUT;
 		pollfds[n].revents = r;
 	}
 }
@@ -700,9 +711,7 @@ static void run_wconnection(struct connection *cn)
 	int n;
 	short r;
 
-	n = cn->pollno;
-	if (n == -1)
-		return;
+	n = cn->pollindex;
 	r = pollfds[n].revents;
 	if (r & POLLERR) {
 		log_connection_error(cn);
@@ -793,6 +802,64 @@ static void reap_children(void)
 	errno = errno_save;
 }
 
+static void setup_pollfds(void)
+{
+	struct server *s;
+
+	s = servers;
+	while (s) {
+		s->pollindex = allocate_pollindex(s->fd, POLLIN);
+		s = s->next;
+	}
+}
+
+static void block_servers(void)
+{
+	struct server *s;
+
+	s = servers;
+	while (s) {
+		if (s->pollindex != -1)
+			pollfds[s->pollindex].events &= ~POLLIN;
+		s = s->next;
+	}
+}
+
+static void unblock_servers(void)
+{
+	struct server *s;
+
+	s = servers;
+	while (s) {
+		if (s->pollindex != -1)
+			pollfds[s->pollindex].events |= POLLIN;
+		s = s->next;
+	}
+}
+
+static void dump_pollfds(void)
+{
+	int i, j;
+	char *b;
+
+	b = malloc(10 * (min_unused_pollindex + 1));
+	if (b == 0)
+		return;
+	j = sprintf(b, "fds:     ");
+	for (i = 0; i < min_unused_pollindex; i++)
+		j += sprintf(b + j, " %4d", pollfds[i].fd);
+	log_d(b);
+	j = sprintf(b, "events:  ");
+	for (i = 0; i < min_unused_pollindex; i++)
+		j += sprintf(b + j, " %4hd", pollfds[i].events);
+	log_d(b);
+	j = sprintf(b, "revents: ");
+	for (i = 0; i < min_unused_pollindex; i++)
+		j += sprintf(b + j, " %4hd", pollfds[i].revents);
+	log_d(b);
+	free(b);
+}
+
 #ifndef INFTIM
 #define INFTIM -1
 #endif
@@ -800,11 +867,12 @@ static void reap_children(void)
 void httpd_main(void)
 {
 	int rv;
-	int n, t;
+	int t;
 	time_t hours;
 	int accepting;
 	time_t last_time;
 
+	setup_pollfds();
 	accepting = 1;
 	last_time = current_time = startuptime = time(0);
 	hours = current_time / 3600;
@@ -843,17 +911,16 @@ void httpd_main(void)
 			log_d("performing internal dump");
 			internal_dump();
 		}
-		n = 0;
-		if (accepting && (free_connections.head || waiting_connections.head))
-			n = setup_server_pollfds(n);
-		n = setup_connection_pollfds(n);
-		n = setup_child_pollfds(n, forked_connections.head);
-		if (n == 0 && accepting) {
+		if (min_unused_pollindex == 0) {
 			log_d("no more sockets to poll from");
 			break;
 		}
+		if (debug)
+			dump_pollfds();
 		t = accepting ? (stats.nconnections ? 60000 : INFTIM) : 1000;
-		rv = poll(pollfds, n, t);
+		if (debug)
+			log_d("------- poll");
+		rv = poll(pollfds, min_unused_pollindex, t);
 		current_time = time(0);
 		if (rv == -1) {
 			if (errno != EINTR) {
@@ -862,9 +929,13 @@ void httpd_main(void)
 			} else
 				continue;
 		}
+		if (debug)
+			dump_pollfds();
 		if (current_time != last_time) {
-			if (accepting == 0)
+			if (accepting == 0) {
+				unblock_servers();
 				accepting = 1;
+			}
 			last_time = current_time;
 			if (current_time / 3600 != hours) {
 				hours = current_time / 3600;
@@ -874,8 +945,10 @@ void httpd_main(void)
 			}
 		}
 		if (rv) {
-			if (accepting && run_servers() == -1)
+			if (accepting && run_servers() == -1) {
+				block_servers();
 				accepting = 0;
+			}
 			run_connections();
 		}
 		cleanup_connections();
@@ -885,8 +958,13 @@ void httpd_main(void)
 
 int init_pollfds(size_t n)
 {
-	pollfds = realloc(pollfds, n * sizeof *pollfds);
-	return pollfds == 0 ? -1 : 0;
+	if (n == 0)
+		return 0;
+	pollfds = malloc(n * sizeof *pollfds);
+	if (pollfds == 0)
+		return -1;
+	num_pollfds = n;
+	return 0;
 }
 
 int new_pool(struct pool *p, size_t s)
