@@ -66,7 +66,8 @@ config.c:
 	The value for the User parameter is now immediately checked
 	at configuration time, and the user and group IDs are stored
 	then. The ScriptUser gets a similar treatment. This means
-	that after startup, no password lookups will be done.
+	that after startup, no password lookups will be done (except
+	perhaps for UserDirectory thingies.)
 
 core.c:
 
