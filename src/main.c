@@ -127,6 +127,7 @@ static void sighandler(int sig)
 {
 	switch (sig) {
 	case SIGTERM:
+	case SIGINT:
 		gotsigterm = 1;
 		break;
 	case SIGHUP:
