@@ -172,6 +172,7 @@ struct control {
 	char *script_user;
 	int run_scripts_as_owner;
 	struct file_owner *allowed_owners;
+	int allow_dotfiles;
 };
 
 struct virtual {
