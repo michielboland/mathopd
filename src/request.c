@@ -41,6 +41,7 @@ static const char rcsid[] = "$Id$";
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -246,63 +247,6 @@ static char *getline(struct pool *p, int fold)
 	}
 	log_d("getline: fallen off the end");
 	return 0;
-}
-
-static int putstring(struct pool *p, char *s)
-{
-	size_t l;
-
-	l = strlen(s);
-	if (p->end + l > p->ceiling) {
-		log_d("no more room to put string!?!?");
-		return -1;
-	}
-	memcpy(p->end, s, l);
-	p->end += l;
-	return 0;
-}
-
-static int output_headers(struct pool *p, struct request *r)
-{
-	long cl;
-	char tmp_outbuf[2048], gbuf[40], *b;
-	struct simple_list *h;
-
-	b = tmp_outbuf;
-	b += sprintf(b, "HTTP/1.1 %s\r\n"
-		"Server: %s\r\n"
-		"Date: %s\r\n",
-		r->status_line,
-		server_version,
-		rfctime(current_time, gbuf));
-	if (r->allowedmethods)
-		b += sprintf(b, "Allow: %s\r\n", r->allowedmethods);
-	if (r->c && r->c->realm && r->status == 401)
-		b += sprintf(b, "WWW-Authenticate: Basic realm=\"%s\"\r\n", r->c->realm);
-	if (r->num_content >= 0) {
-		b += sprintf(b, "Content-Type: %s\r\n", r->content_type);
-		cl = r->content_length;
-		if (cl >= 0)
-			b += sprintf(b, "Content-Length: %ld\r\n", cl);
-		if (r->last_modified)
-			b += sprintf(b, "Last-Modified: %s\r\n", rfctime(r->last_modified, gbuf));
-	}
-	if (r->location && r->status == 302)
-		b += sprintf(b, "Location: %.512s\r\n", r->location);
-	if (r->status == 416)
-		b += sprintf(b, "Content-Range: bytes */%lu\r\n", r->range_total);
-	if (r->status == 206)
-		b += sprintf(b, "Content-Range: bytes %lu-%lu/%lu\r\n", r->range_floor, r->range_ceiling, r->range_total);
-	if (r->cn->keepalive) {
-		if (r->protocol_minor == 0)
-			b += sprintf(b, "Connection: keep-alive\r\n");
-	} else if (r->protocol_minor)
-		b += sprintf(b, "Connection: close\r\n");
-	if (r->c && (r->status == 200 || r->status == 206))
-		for (h = r->c->extra_headers; h; h = h->next)
-			b += sprintf(b, "%s\r\n", h->name);
-	b += sprintf(b, "\r\n");
-	return putstring(p, tmp_outbuf);
 }
 
 static char *dirmatch(char *s, char *t)
@@ -1237,117 +1181,188 @@ static int process_headers(struct request *r)
 	return 1;
 }
 
+static const char *http_code_phrase(int status)
+{
+	switch (status) {
+	case 200:
+		return "200 OK";
+	case 204:
+		return "204 No Content";
+	case 206:
+		return "206 Partial Content";
+	case 302:
+		return "302 Moved";
+	case 304:
+		return "304 Not Modified";
+	case 400:
+		return "400 Bad Request";
+	case 401:
+		return "401 Not Authorized";
+	case 403:
+		return "403 Forbidden";
+	case 404:
+		return "404 Not Found";
+	case 405:
+		return "405 Method Not Allowed";
+	case 411:
+		return "411 Length Required";
+	case 412:
+		return "412 Precondition Failed";
+	case 414:
+		return "414 Request-URI Too Long";
+	case 416:
+		return "416 Requested Range Not Satisfiable";
+	case 501:
+		return "501 Not Implemented";
+	case 503:
+		return "503 Service Unavailable";
+	case 505:
+		return "505 HTTP Version Not Supported";
+	default:
+		return "500 Internal Server Error";
+	}
+}
+
+int pool_print(struct pool *p, const char *fmt, ...)
+{
+	va_list ap;
+	size_t n;
+	int r;
+
+	if (p->ceiling <= p->end)
+		return -1;
+	n = p->ceiling - p->end;
+	va_start(ap, fmt);
+	r = vsnprintf(p->end, n, fmt, ap);
+	va_end(ap);
+	if ((size_t) r >= n)
+		return -1;
+	p->end += r;
+	return r;
+}
+
 static int prepare_reply(struct request *r)
 {
 	struct pool *p;
-	char *b, buf[2 * PATHLEN + 400];
 	int send_message;
+	char gbuf[40];
+	struct simple_list *h;
+	const char *status_line;
+	char *cl_start, *cl_end;
 
-	send_message = r->num_content == -1 && r->method != M_HEAD;
-	if (r->status >= 400)
-		r->last_modified = 0;
-	switch (r->status) {
-	case 200:
-		r->status_line = "200 OK";
-		send_message = 0;
-		break;
-	case 204:
-		r->status_line = "204 No Content";
-		send_message = 0;
-		break;
-	case 206:
-		r->status_line = "206 Partial Content";
-		send_message = 0;
-		break;
-	case 302:
-		r->status_line = "302 Moved";
-		break;
-	case 304:
-		r->status_line = "304 Not Modified";
-		send_message = 0;
-		break;
-	case 400:
-		r->status_line = "400 Bad Request";
-		break;
-	case 401:
-		r->status_line = "401 Not Authorized";
-		break;
-	case 403:
-		r->status_line = "403 Forbidden";
-		break;
-	case 404:
-		r->status_line = "404 Not Found";
-		break;
-	case 405:
-		r->status_line = "405 Method Not Allowed";
-		r->allowedmethods = "GET, HEAD";
-		break;
-	case 411:
-		r->status_line = "411 Length Required";
-		break;
-	case 412:
-		r->status_line = "412 Precondition Failed";
-		break;
-	case 414:
-		r->status_line = "414 Request-URI Too Long";
-		break;
-	case 416:
-		r->status_line = "416 Requested Range Not Satisfiable";
-		break;
-	case 501:
-		r->status_line = "501 Not Implemented";
-		break;
-	case 503:
-		r->status_line = "503 Service Unavailable";
-		break;
-	case 505:
-		r->status_line = "505 HTTP Version Not Supported";
-		break;
-	default:
-		r->status_line = "500 Internal Server Error";
-		break;
-	}
+	p = &r->cn->output;
+	send_message = r->num_content == -1 && r->method != M_HEAD && r->status != 204 && r->status != 304;
+	status_line = http_code_phrase(r->status);
+	cl_start = cl_end = 0;
 	if (send_message) {
-		b = buf;
-		b += sprintf(b, "<title>%s</title>\n"
-			"<h1>%s</h1>\n", r->status_line, r->status_line);
-		switch (r->status) {
-		case 302:
-			b += sprintf(b, "This document has moved to URL <a href=\"%s\">%s</a>.\n", r->location, r->location);
-			break;
-		case 401:
-			b += sprintf(b, "You need proper authorization to use this resource.\n");
-			break;
-		case 400:
-		case 405:
-		case 501:
-		case 505:
-			b += sprintf(b, "Your request was not understood or not allowed by this server.\n");
-			break;
-		case 403:
-			b += sprintf(b, "Access to this resource has been denied to you.\n");
-			break;
-		case 404:
-			b += sprintf(b, "The resource requested could not be found on this server.\n");
-			break;
-		case 503:
-			b += sprintf(b, "The server is temporarily busy.\n");
-			break;
-		}
-		if (r->c && r->c->admin)
-			b += sprintf(b, "<p>Please contact the site administrator at <i>%.100s</i>.\n", r->c->admin);
-		r->content_length = strlen(buf);
 		r->num_content = 0;
 		r->content_type = "text/html";
+		r->content_length = p->ceiling - p->floor; /* hack - this gives us enough room in the output to change it to something less */
 	}
+	if (r->status >= 400)
+		r->last_modified = 0;
+	if (pool_print(p, "HTTP/1.1 %s\r\nServer: %s\r\nDate: %s\r\n", status_line, server_version, rfctime(current_time, gbuf)) == -1)
+		return -1;
+	switch (r->status) {
+	case 206:
+		if (pool_print(p, "Content-Range: bytes %lu-%lu/%lu\r\n", r->range_floor, r->range_ceiling, r->range_total) == -1)
+			return -1;
+		break;
+	case 302:
+		if (r->location)
+			if (pool_print(p, "Location: %.512s\r\n", r->location) == -1)
+				return -1;
+		break;
+	case 401:
+		if (r->c && r->c->realm)
+			if (pool_print(p, "WWW-Authenticate: Basic realm=\"%s\"\r\n", r->c->realm) == -1)
+				return -1;
+		break;
+	case 405:
+		if (pool_print(p, "Allow: GET, HEAD\r\n") == -1)
+			return -1;
+		break;
+	case 416:
+		if (pool_print(p, "Content-Range: bytes */%lu\r\n", r->range_total) == -1)
+			return -1;
+		break;
+	}
+	if (r->num_content >= 0) {
+		if (pool_print(p, "Content-Type: %s\r\n", r->content_type) == -1)
+			return -1;
+		if (r->content_length >= 0) {
+			if (pool_print(p, "Content-Length: ") == -1)
+				return -1;
+			cl_start = p->end;
+			if (pool_print(p, "%ld", r->content_length) == -1)
+				return -1;
+			cl_end = p->end;
+			if (pool_print(p, "\r\n") == -1)
+				return -1;
+		}
+		if (r->last_modified)
+			if (pool_print(p, "Last-Modified: %s\r\n", rfctime(r->last_modified, gbuf)) == -1)
+				return -1;
+	}
+	if (r->cn->keepalive) {
+		if (r->protocol_minor == 0)
+			if (pool_print(p, "Connection: keep-alive\r\n") == -1)
+				return -1;
+	} else if (r->protocol_minor)
+		if (pool_print(p, "Connection: close\r\n") == -1)
+			return -1;
+	if (r->c && (r->status == 200 || r->status == 206))
+		for (h = r->c->extra_headers; h; h = h->next)
+			if (pool_print(p, "%s\r\n", h->name) == -1)
+				return -1;
+	if (pool_print(p, "\r\n") == -1)
+		return -1;
+	p->middle = p->end;
+	if (send_message == 0)
+		return 0;
+	if (pool_print(p, "<title>%s</title>\n<h1>%s</h1>\n", status_line, status_line) == -1)
+		return -1;
+	switch (r->status) {
+	case 302:
+		if (pool_print(p, "This document has moved to URL <a href=\"%s\">%s</a>.\n", r->location, r->location) == -1)
+			return -1;
+		break;
+	case 401:
+		if (pool_print(p, "You need proper authorization to use this resource.\n") == -1)
+			return -1;
+		break;
+	case 400:
+	case 405:
+	case 501:
+	case 505:
+		if (pool_print(p, "Your request was not understood or not allowed by this server.\n") == -1)
+			return -1;
+		break;
+	case 403:
+		if (pool_print(p, "Access to this resource has been denied to you.\n") == -1)
+			return -1;
+		break;
+	case 404:
+		if (pool_print(p, "The resource requested could not be found on this server.\n") == -1)
+			return -1;
+		break;
+	case 503:
+		if (pool_print(p, "The server is temporarily busy.\n") == -1)
+			return -1;
+		break;
+	}
+	if (r->c && r->c->admin)
+		if (pool_print(p, "<p>Please contact the site administrator at <i>%s</i>.\n", r->c->admin) == -1)
+			return -1;
+	r->content_length = p->end - p->middle;
+	if (cl_start == 0) {
+		log_d("cl_start is null!?!?");
+		return -1;
+	}
+	sprintf(cl_start, "%*ld", cl_end - cl_start, r->content_length);
+	*cl_end = '\r';
 	if (r->status >= 400 && r->method != M_GET && r->method != M_HEAD)
 		r->cn->keepalive = 0;
-	p = &r->cn->output;
-	if (output_headers(p, r) == -1)
-		return -1;
-	if (send_message)
-		if (putstring(p, buf) == -1)
-			return -1;
 	return 0;
 }
 
@@ -1371,7 +1386,6 @@ void init_request(struct request *r)
 	r->last_modified = 0;
 	r->ims = 0;
 	r->location = 0;
-	r->status_line = 0;
 	r->method_s = 0;
 	r->url = 0;
 	r->args = 0;
@@ -1384,7 +1398,6 @@ void init_request(struct request *r)
 	r->c = 0;
 	r->error_file = 0;
 	r->user[0] = 0;
-	r->allowedmethods = 0;
 	r->location_length = 0;
 	r->nheaders = 0;
 	r->range_s = 0;
