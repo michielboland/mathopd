@@ -191,6 +191,7 @@ int open_log(const char *name)
 	char converted_name[PATHLEN];
 	const char *n;
 	struct tm *tp;
+	int rv;
 
 	n = name;
 	if (strchr(name, '%')) {
@@ -204,7 +205,12 @@ int open_log(const char *name)
 				n = converted_name;
 		}
 	}
-	return open(n, O_WRONLY | O_CREAT | O_APPEND, 0666);
+	rv = open(n, O_WRONLY | O_CREAT | O_APPEND, 0666);
+	if (rv == -1) {
+		log_d("cannot open %s", n);
+		lerror("open");
+	}
+	return rv;
 }
 
 static int init_log_d(char *name, int *fdp)
