@@ -690,6 +690,37 @@ static int check_realm(struct request *r)
 	return -1;
 }
 
+struct control *faketoreal(char *x, char *y, struct request *r, int update)
+{
+	unsigned long ip;
+	struct control *c;
+	char *s;
+
+	if (r->vs == 0) {
+		log_d("virtualhost not initialized!");
+		return 0;
+	}
+	ip = r->cn->peer.sin_addr.s_addr;
+	s = 0;
+	c = r->vs->controls;
+	while (c) {
+		if (c->locations && c->alias) {
+			s = c->exact_match ? exactmatch(x, c->alias) : dirmatch(x, c->alias);
+			if (s && (c->clients == 0 || evaluate_access(ip, c->clients) == APPLY))
+				break;
+		}
+		c = c->next;
+	}
+	if (c) {
+		if (update)
+			c->locations = c->locations->next;
+		strcpy(y, c->locations->name);
+		if (c->locations->name[0] == '/' || !c->path_args_ok)
+			strcat(y, s);
+	}
+	return c;
+}
+
 static int process_path(struct request *r)
 {
 	int rv;
@@ -1111,35 +1142,4 @@ int process_request(struct request *r)
 	if (r->status_line && r->c)
 			log_request(r);
 	return r->status > 0 ? 0 : -1;
-}
-
-struct control *faketoreal(char *x, char *y, struct request *r, int update)
-{
-	unsigned long ip;
-	struct control *c;
-	char *s;
-
-	if (r->vs == 0) {
-		log_d("virtualhost not initialized!");
-		return 0;
-	}
-	ip = r->cn->peer.sin_addr.s_addr;
-	s = 0;
-	c = r->vs->controls;
-	while (c) {
-		if (c->locations && c->alias) {
-			s = c->exact_match ? exactmatch(x, c->alias) : dirmatch(x, c->alias);
-			if (s && (c->clients == 0 || evaluate_access(ip, c->clients) == APPLY))
-				break;
-		}
-		c = c->next;
-	}
-	if (c) {
-		if (update)
-			c->locations = c->locations->next;
-		strcpy(y, c->locations->name);
-		if (c->locations->name[0] == '/' || !c->path_args_ok)
-			strcat(y, s);
-	}
-	return c;
 }
