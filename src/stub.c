@@ -681,7 +681,7 @@ void init_child(struct pipe_params *p, struct request *r, int fd)
 		p->imax = 0;
 	}
 	p->cn = r->cn;
-	r->cn->state = HC_FORKED;
+	set_connection_state(r->cn, HC_FORKED);
 	p->error_condition = 0;
 	p->cpollno = -1;
 	p->ppollno = -1;
@@ -727,8 +727,7 @@ int setup_child_pollfds(int n)
 static void close_child(struct pipe_params *p, int nextaction)
 {
 	close(p->pfd);
-	p->cn->state = HC_ACTIVE;
-	p->cn->action = nextaction;
+	set_connection_state(p->cn, nextaction);
 	p->cn = 0;
 }
 
