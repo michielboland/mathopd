@@ -1,4 +1,4 @@
-README file for Mathopd/1.5
+README file for Mathopd/1.6
 
 This is Mathopd, a fast, lightweight, non-forking HTTP server for
 UN*X systems.
@@ -14,9 +14,9 @@ The doc/ directory contains some documentation about running
 this software. It also has detailed descriptions of all
 settings that can be configured.
 
-IMPORTANT: if you are upgrading from version 1.4, please read
-the file doc/CHANGES, in particular all entries that are marked
-with '[!]'.
+Mathopd/1.6 is currently BETA quality, which means it may
+crash and burn at random intervals. If you need a stable
+mathopd, please use the latest version from the 1.5 branch.
 
 Michiel Boland
-February 2004
+March 2004
