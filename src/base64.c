@@ -48,29 +48,33 @@ static const char rcsid[] = "$Id$";
 #endif
 #include "mathopd.h"
 
-static unsigned char b64[256];
+#define B64(x) ( \
+	(x) >= 'A' ? ( \
+		(x) <= 'Z' ? \
+		(x) - 'A' : \
+		(x) >= 'a' ? ( \
+			x <= 'z' ? \
+			(x) - 'a' + 26 : \
+			64 \
+		) : 64 \
+	) : \
+	(x) <= '9' ? ( \
+		(x) >= '0' ? \
+		(x) - '0' + 52 : \
+		(x) == '+' ? \
+		62 : \
+		(x) == '/' ? \
+	63 : \
+		 64 \
+	) : \
+	(x) == '=' ? \
+	0 : \
+	64 \
+)
 
-void base64initialize(void)
+static int base64decode(const char *encoded, char *decoded)
 {
-	int i, j;
-
-	memset(b64, 64, sizeof b64);
-	j = 0;
-	for (i = 'A'; i <= 'Z'; i++)
-		b64[i] = j++;
-	for (i = 'a'; i <= 'z'; i++)
-		b64[i] = j++;
-	for (i = '0'; i <= '9'; i++)
-		b64[i] = j++;
-	b64['+'] = 62;
-	b64['/'] = 63;
-	b64['='] = 0;
-}
-
-static int base64decode(const unsigned char *encoded, unsigned char *decoded)
-{
-	register int c;
-	register unsigned char t1, t2, u1, u2, u3;
+	register char c, t1, t2, u1, u2, u3;
 
 	while (1) {
 		c = *encoded++;
@@ -78,27 +82,27 @@ static int base64decode(const unsigned char *encoded, unsigned char *decoded)
 			*decoded = 0;
 			return 0;
 		}
-		t1 = b64[c];
+		t1 = B64(c);
 		if (t1 == 64)
 			return -1;
 		c = *encoded++;
 		if (c == 0)
 			return -1;
-		t2 = b64[c];
+		t2 = B64(c);
 		if (t2 == 64)
 			return -1;
 		u1 = t1 << 2 | t2 >> 4;
 		c = *encoded++;
 		if (c == 0)
 			return -1;
-		t1 = b64[c];
+		t1 = B64(c);
 		if (t1 == 64)
 			return -1;
 		u2 = (t2 & 0xf) << 4 | t1 >> 2;
 		c = *encoded++;
 		if (c == 0)
 			return -1;
-		t2 = b64[c];
+		t2 = B64(c);
 		if (t2 == 64)
 			return -1;
 		u3 = (t1 & 0x3) << 6 | t2;
