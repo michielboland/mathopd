@@ -638,8 +638,6 @@ static int setup_connection_pollfds(int n)
 
 	cn = waiting_connections.head;
 	while (cn) {
-		if (debug)
-			log_d("POLLIN %d", cn - connection_array);
 		pollfds[n].fd = cn->fd;
 		pollfds[n].events = POLLIN;
 		cn->pollno = n++;
@@ -647,8 +645,6 @@ static int setup_connection_pollfds(int n)
 	}
 	cn = reading_connections.head;
 	while (cn) {
-		if (debug)
-			log_d("POLLIN %d", cn - connection_array);
 		pollfds[n].fd = cn->fd;
 		pollfds[n].events = POLLIN;
 		cn->pollno = n++;
@@ -656,8 +652,6 @@ static int setup_connection_pollfds(int n)
 	}
 	cn = writing_connections.head;
 	while (cn) {
-		if (debug)
-			log_d("POLLOUT %d", cn - connection_array);
 		pollfds[n].fd = cn->fd;
 		pollfds[n].events = POLLOUT;
 		cn->pollno = n++;
