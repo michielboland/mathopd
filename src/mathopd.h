@@ -166,6 +166,7 @@ struct control {
 	struct simple_list *extra_headers;
 	int path_info_ok;
 	char *auto_index_command;
+	unsigned long expire_interval;
 };
 
 struct virtual {
