@@ -115,19 +115,12 @@ Desc:    The server uses two buffers to store incoming and outgoing data.
 Keyword: BytesRead
 Where:   LogFormat
 Desc:    The number of octets (bytes) read from the client during a single
-         request. Note that bytes read by CGI scripts and/or external
-         programs are not counted.
+         request.
 
 Keyword: BytesWritten
 Where:   LogFormat
 Desc:    The number of octets (bytes) sent to the client during a single
-         request. For non-CGI requests, this corresponds to the total size
-         of the response headers plus the size of the response body,
-         unless the HTTP transfer is interrupted, in which case this
-         number will be the number of bytes transferred before the
-         interruption occurs. For CGI/External requests, the value zero is
-         logged, since Mathopd has no way of knowing how many bytes a child
-         process transfers to a client.
+         request.
 
 Keyword: ChildLog
 Where:   Control
@@ -135,7 +128,7 @@ Type:    String
 Desc:    If a child process, such as a CGI script, writes a message to its
          standard error file descriptor (fd 2) it will end up in the file
          designated by the ChildLog keyword. If no ChildLog is specified,
-         error output is mixed with any other output from scripts.
+         no CGI script will run.
 
 Keyword: Clients
 Where:   Control
@@ -744,8 +737,7 @@ Desc:    Some file extensions can be treated specially if they are
 
 Keyword: Status
 Where:   LogFormat
-Desc:    The three-digit HTTP status code for this request. Requests that
-         are passed to CGI/External programs are marked with status "---".
+Desc:    The three-digit HTTP status code for this request.
 
 Keyword: StayRoot
 Where:   Global
