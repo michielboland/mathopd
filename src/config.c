@@ -706,6 +706,7 @@ void config(void)
 	tuning.num_connections = DEFAULT_NUM_CONNECTIONS;
 	tuning.timeout = DEFAULT_TIMEOUT;
 	tuning.accept_multi = 1;
+	fcm = DEFAULT_UMASK;
 
 	s = config_main();
 
