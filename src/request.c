@@ -656,7 +656,7 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 	while (c) {
 		if (c->locations && c->alias) {
 			n = c->exact_match ? exactmatch(x, c->alias) : dirmatch(x, c->alias);
-			if (s && (c->clients == 0 || evaluate_access(ip, c->clients) == APPLY))
+			if (n != -1 && (c->clients == 0 || evaluate_access(ip, c->clients) == APPLY))
 				break;
 		}
 		c = c->next;
