@@ -551,9 +551,8 @@ void httpd_main(void)
 			rv = poll(pollfds, n, 1000);
 		current_time = time(0);
 		if (current_time != last_time) {
-			if (accepting == 0) {
+			if (accepting == 0)
 				accepting = 1;
-			}
 			last_time = current_time;
 		}
 		if (rv == -1) {
