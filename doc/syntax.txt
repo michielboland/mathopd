@@ -1,4 +1,37 @@
+A configuration file for mathopd consists of zero or more 'items',
+possibly mixed with comment text.
+
+An item is a configuration keyword followed by zero or one arguments,
+as indicated by the syntax below.
+
+I have taken the liberty of introducing some meta-concepts to make
+the syntax more readable.
+
+When you read the phrase "X-block", please replace it with the following.
+
+X-block: "{" X-items "}"
+
+X-items:
+	<nothing>
+	X-item X-items
+
+Keywords and arguments are separated by whitespace, that is, spaces,
+tab characters, carriage returns, or line feeds.
+
+A string is anything enclosed in double quotes ("). The quotes can be
+omitted if the string is actually just a single word. To include the
+double quote character itself in a string, precede the quote with a
+backslash ('\').
+
+An integer is represented using the normal 'C' conventions: '0x' in
+front indicates a hexadecimal number, '0' in front indicates octal.
+
+The '#' character, when not used inside a string, is considered the
+beginning of comment text. A comment lasts until the next line.
+Comments are ignored when the input file is parsed.
+
 Configuration File Syntax
+--------------------------------
 
 configuration-item:
 	"RootDirectory" string
@@ -89,3 +122,7 @@ logformat-item:
 	"BytesRead"
 	"BytesWritten"
 	"QueryString"
+
+flag:
+	"On"
+	"Off"
