@@ -161,8 +161,6 @@ static int f_webuserok(const char *authorization, int fd, char *username, int le
 			if (eof)
 				return 0;
 			flen = read(fd, fbuf, sizeof fbuf);
-			if (debug)
-				log_d("f_webuserok: %d %d", fd, flen);
 			if (flen == -1) {
 				lerror("read");
 				return 0;
