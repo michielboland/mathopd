@@ -346,8 +346,10 @@ int process_cgi(struct request *r)
 		return 500;
 	sprintf(curdir, "%.*s", s - r->path_translated, r->path_translated);
 	pp = new_pipe_params();
-	if (pp == 0)
+	if (pp == 0) {
+		r->cn->keepalive = 0;
 		return 503;
+	}
 	switch (r->c->script_identity) {
 	case SI_CHANGETOFIXED:
 		u = r->c->script_uid;
@@ -405,6 +407,7 @@ int process_cgi(struct request *r)
 	if (pid == -1) {
 		close(p[0]);
 		destroy_parameters(cp);
+		r->cn->keepalive = 0;
 		return 500;
 	}
 	r->cn->pid = pid;
