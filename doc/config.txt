@@ -104,31 +104,99 @@ Desc:    Normally, Mathopd will not serve any file if any part of its
          still disallowed.
 
 Keyword: AnyHost
+Where:   Virtual
+
 Keyword: Apply
+Where:   Clients
+Type:    Network
+
 Keyword: BufSize
+Where:   Tuning
+Type:    Integer
+
 Keyword: BytesRead
+Where:   LogFormat
+
 Keyword: BytesWritten
+Where:   LogFormat
+
 Keyword: ChildLog
+Where:   Control
+Type:    String
+
 Keyword: Clients
+Where:   Control
+Type:    Block
+
 Keyword: ContentLength
+Where:   LogFormat
+
 Keyword: Control
-Keyword: Control
-Keyword: Control
+Where:   Global, Server, Virtual
+Type:    Block
+
 Keyword: CoreDirectory
+Where:   Global
+Type:    String
+
 Keyword: Ctime
+Where:   LogFormat
+
 Keyword: DNSLookups
+Where:   Control
+Type:    Flag
+Default: On
+
 Keyword: Deny
+Where:   Access
+Type:    Network
+
 Keyword: EncryptedUserFile
+Where:   Control
+Type:    Flag
+Default: Off
+
 Keyword: Error401File
+Where:   Control
+Type:    String
+
 Keyword: Error403File
+Where:   Control
+Type:    String
+
 Keyword: Error404File
+Where:   Control
+Type:    String
+
 Keyword: ErrorLog
+Where:   Global
+Type:    String
+
 Keyword: ExactMatch
+Where:   Control
+Type:    Flag
+
 Keyword: Export
+Where:   Control
+Type:    Block
+
 Keyword: External
+Where:   Control
+Type:    Block
+
 Keyword: Host
+Where:   Virtual
+Type:    String
+
 Keyword: IndexNames
+Where:   Control
+Type:    Block
+
 Keyword: InputBufSize
+Where:   Tuning
+Type:    Integer
+Default: 2048
+
 Keyword: Location
 Keyword: Log
 Keyword: LogFormat
@@ -166,4 +234,8 @@ Keyword: UserAgent
 Keyword: UserDirectory
 Keyword: UserFile
 Keyword: Version
+
 Keyword: Virtual
+Where:   Server
+Type:    Block
+Desc:    The 'Virtual' keyword starts a virtual server block.
