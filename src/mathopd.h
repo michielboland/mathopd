@@ -325,6 +325,7 @@ struct statistics {
 	int nconnections;
 	int maxconnections;
 	unsigned long nrequests;
+	int numchildren;
 };
 
 /* main */
@@ -337,7 +338,6 @@ extern volatile sig_atomic_t gotsigusr2;
 extern volatile sig_atomic_t gotsigchld;
 extern volatile sig_atomic_t gotsigquit;
 extern volatile sig_atomic_t gotsigwinch;
-extern int numchildren;
 extern int debug;
 extern unsigned long fcm;
 extern int stayroot;

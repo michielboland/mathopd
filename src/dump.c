@@ -128,7 +128,7 @@ static void fdump(FILE *f, struct request *r)
 		(int) (current_time - startuptime),
 		stats.nconnections, tuning.num_connections,
 		stats.maxconnections,
-		numchildren,
+		stats.numchildren,
 		stats.nrequests);
 	getrusage(RUSAGE_SELF, &ru);
 	fprintf(f, "CPU time used by this process: %11.2f user %11.2f system\n", ru.ru_utime.tv_sec + 1e-6 * ru.ru_utime.tv_usec, ru.ru_stime.tv_sec + 1e-6 * ru.ru_stime.tv_usec);

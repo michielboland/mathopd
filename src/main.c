@@ -63,7 +63,6 @@ volatile sig_atomic_t gotsigusr2;
 volatile sig_atomic_t gotsigchld;
 volatile sig_atomic_t gotsigquit;
 volatile sig_atomic_t gotsigwinch;
-int numchildren;
 int debug;
 unsigned long fcm; /* should be mode_t */
 int stayroot;
