@@ -797,36 +797,6 @@ static int process_headers(struct request *r)
 		else if (!strcasecmp(l, "Content-length"))
 			r->in_content_length = s;
 	}
-	if (debug) {
-		if (r->method_s)
-			log_d("method_s = \"%s\"", r->method_s);
-		if (r->version)
-			log_d("version = \"%s\"", r->version);
-		if (r->url)
-			log_d("url = \"%s\"", r->url);
-		if (r->args)
-			log_d("args = \"%s\"", r->args);
-		if (r->user_agent)
-			log_d("user_agent = \"%s\"", r->user_agent);
-		if (r->referer)
-			log_d("referer = \"%s\"", r->referer);
-		if (r->from)
-			log_d("from = \"%s\"", r->from);
-		if (r->authorization)
-			log_d("authorization = \"%s\"", r->authorization);
-		if (r->cookie)
-			log_d("cookie = \"%s\"", r->cookie);
-		if (r->host)
-			log_d("host = \"%s\"", r->host);
-		if (r->connection)
-			log_d("connection = \"%s\"", r->connection);
-		if (r->ims_s)
-			log_d("ims_s = \"%s\"", r->ims_s);
-		if (r->in_content_type)
-			log_d("in_content_type = \"%s\"", r->in_content_type);
-		if (r->in_content_length)
-			log_d("in_content_length = \"%s\"", r->in_content_length);
-	}
 	s = r->method_s;
 	if (s == 0) {
 		log_d("method_s == 0 !?");

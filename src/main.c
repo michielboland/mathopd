@@ -283,8 +283,6 @@ int fork_request(struct request *r, int (*f)(struct request *))
 	switch (pid) {
 	case 0:
 		my_pid = getpid();
-		if (debug)
-			log_d("fork_request: child process created");
 		forked = 1;
 		mysignal(SIGPIPE, SIG_DFL);
 		fd = r->cn->fd;

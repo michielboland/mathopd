@@ -115,8 +115,6 @@ static char *dnslookup(struct in_addr ia, int level)
 
 	if (level == 0)
 		return 0;
-	if (debug)
-		log_d("dnslookup: gethostbyaddr(%s)", inet_ntoa(ia));
 	h = gethostbyaddr((char *) &ia, sizeof ia, AF_INET);
 	if (h == 0 || h->h_name == 0)
 		return 0;
@@ -128,8 +126,6 @@ static char *dnslookup(struct in_addr ia, int level)
 	if (level <= 1)
 		return tmp;
 	message = "name does not match address";
-	if (debug)
-		log_d("dnslookup: gethostbyname(\"%s\")", tmp);
 	h = gethostbyname(tmp);
 	if (h == 0)
 		message = "host not found";
