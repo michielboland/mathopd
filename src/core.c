@@ -299,10 +299,6 @@ static void read_connection(struct connection *cn)
 
 	p = cn->input;
 	state = p->state;
-	if (cn->action == HC_WAITING) {
-		cn->action = HC_READING;
-		--available_connections;
-	}
 	fd = cn->fd;
 	i = p->ceiling - p->end;
 	if (i == 0) {
@@ -348,6 +344,10 @@ static void read_connection(struct connection *cn)
 		case 1:
 			switch (c) {
 			default:
+				if (cn->action == HC_WAITING) {
+					cn->action = HC_READING;
+					--available_connections;
+				}
 				gettimeofday(&cn->itv, 0);
 				state = 2;
 			case ' ':
