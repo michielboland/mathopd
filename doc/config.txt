@@ -78,8 +78,6 @@ Desc:    Control blocks that contain an Alias keyword are used in
 Keyword: Allow
 Where:   Access
 Type:    Network
-Desc:    Allow is used to specify a network that is allowed access to
-         a resource. It is most useful in combination with Deny keywords.
 
 Keyword: AllowDotfiles
 Where:   Control
