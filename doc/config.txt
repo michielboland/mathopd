@@ -65,15 +65,6 @@ Desc:    Control blocks that contain an Alias keyword are used in
              Location /usr/share/doc/handbook
            }
 
-          You can do some tricks with aliases, one of which is the
-          tilde-hack:
-
-            Control {
-              Alias /~
-              Location public_html
-              UserDirectory On
-            }
-
          Note that the order of aliases in the configuration matters.
          In general you should put your leasts specific aliases, like
          the root, first.
