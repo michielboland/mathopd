@@ -158,8 +158,6 @@ static const char e_keyword[] =		"unknown keyword";
 static const char e_memory[] =		"out of memory";
 static const char e_illegalport[] =	"Illegal port number";
 static const char e_noinput[] =		"no input";
-static const char e_unknown_user[] =	"unknown user";
-static const char e_unknown_group[] =	"unknown group";
 
 static const char t_close[] =		"unexpected closing brace";
 static const char t_eof[] =		"unexpected end of file";
@@ -780,7 +778,6 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	s->s_name = 0;
 	s->children = 0;
 	s->vservers= 0;
-	s->s_fullname = 0;
 	s->controls = controls;
 	s->next = *ss;
 	s->naccepts = 0;
@@ -820,15 +817,6 @@ static const char *fill_servernames(void)
 
 	s = servers;
 	while (s) {
-		if (s->s_name) {
-			if (s->port == 80)
-				s->s_fullname = s->s_name;
-			else {
-				sprintf(buf, "%.200s:%lu", s->s_name, s->port);
-				if ((s->s_fullname = strdup(buf)) == 0)
-					return e_memory;
-			}
-		}
 		v = s->children;
 		while (v) {
 			v->controls = v->vserver->controls;
