@@ -1238,7 +1238,7 @@ static int process_headers(struct request *r)
 static int prepare_reply(struct request *r)
 {
 	struct pool *p;
-	char *b, buf[200];
+	char *b, buf[2 * PATHLEN + 80];
 	int send_message;
 
 	send_message = r->num_content == -1 && r->method != M_HEAD;
