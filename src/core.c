@@ -416,8 +416,11 @@ static void read_connection(struct connection *cn)
 	p->state = state;
 	cn->t = current_time;
 	if (state == 8) {
-		if (process_request(cn->r) == -1)
+		if (process_request(cn->r) == -1) {
+			if (cn->state != HC_FORKED)
+				cn->action = HC_CLOSING;
 			return;
+		}
 		cn->left = cn->r->content_length;
 		if (fill_connection(cn) == -1) {
 			cn->action = HC_CLOSING;
