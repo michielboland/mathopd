@@ -8,38 +8,49 @@
 
 #include "mathopd.h"
 
-char *magic_word = "Keep-Alive";
+#ifdef BROKEN_SPRINTF
+#define SPRINTF2(x,y) (sprintf(x,y), strlen(x))
+#define SPRINTF3(x,y,z) (sprintf(x,y,z), strlen(x))
+#define SPRINTF4(x,y,z,w) (sprintf(x,y,z,w), strlen(x))
+#else
+#define SPRINTF2 sprintf
+#define SPRINTF3 sprintf
+#define SPRINTF4 sprintf
+#endif
 
-static char *br_empty =			"empty request";
-static char *br_bad_method =		"bad method";
-static char *br_bad_url =		"bad or missing url";
-static char *br_bad_protocol =		"bad protocol";
-static char *br_bad_date =		"bad date";
-static char *br_bad_path_name =		"bad path name";
-static char *fb_not_plain =		"file not plain";
-static char *fb_symlink =		"symlink spotted";
-static char *fb_active =		"actively forbidden";
-static char *fb_access =		"no permission";
-static char *ni_post =			"cannot apply POST method to URL";
-static char *nf_not_found =		"not found";
-static char *nf_no_index =		"no index";
-static char *nf_path_info =		"path info";
-static char *nf_slash =			"trailing slash";
-static char *se_alias =			"cannot resolve pathname";
-static char *se_get_path_info =		"cannot determine path argument";
-static char *se_no_control =		"out of control";
-static char *se_no_mime =		"no MIME type";
-static char *se_no_specialty =		"unconfigured specialty";
-static char *se_open =			"open failed";
-static char *su_open =			"too many open files";
-static char *se_unknown =		"unknown error (help!)";
+STRING(magic_word) = "Keep-Alive";
 
-static char *get_method =		"GET";
-static char *head_method =		"HEAD";
-static char *post_method =		"POST";
+static STRING(br_empty) =		"empty request";
+static STRING(br_bad_method) =		"bad method";
+static STRING(br_bad_url) =		"bad or missing url";
+static STRING(br_bad_protocol) =	"bad protocol";
+static STRING(br_bad_date) =		"bad date";
+static STRING(br_bad_path_name) =	"bad path name";
+static STRING(fb_not_plain) =		"file not plain";
+static STRING(fb_symlink) =		"symlink spotted";
+static STRING(fb_active) =		"actively forbidden";
+static STRING(fb_access) =		"no permission";
+static STRING(ni_post) =		"cannot apply POST method to URL";
+static STRING(nf_not_found) =		"not found";
+static STRING(nf_no_index) =		"no index";
+static STRING(nf_path_info) =		"path info";
+static STRING(nf_slash) =		"trailing slash";
+static STRING(se_alias) =		"cannot resolve pathname";
+static STRING(se_get_path_info) =	"cannot determine path argument";
+static STRING(se_no_control) =		"out of control";
+static STRING(se_no_mime) =		"no MIME type";
+static STRING(se_no_specialty) =	"unconfigured specialty";
+static STRING(se_no_virtual) =		"no virtual server";
+static STRING(se_open) =		"open failed";
+static STRING(su_open) =		"too many open files";
+static STRING(se_unknown) =		"unknown error (help!)";
 
-static char *old_protocol =		"HTTP/0.9";
-static char *new_protocol =		"HTTP/1.0";
+static STRING(get_method) =		"GET";
+static STRING(head_method) =		"HEAD";
+static STRING(post_method) =		"POST";
+
+static STRING(old_protocol) =		"HTTP/0.9";
+static STRING(new_protocol) =		"HTTP/1.0";
 
 static time_t timerfc(char *s)
 {
@@ -251,7 +262,7 @@ static int putstrings(struct pool *p, int n, ...)
 	return n >= 0 ? -1 : 0;
 }
 
-static int out3(struct pool *p, char *a, char *b, char *c)
+static int out3(struct pool *p, const char *a, const char *b, const char *c)
 {
 	return b ? putstrings(p, 3, a, b, c) : 0;
 }
@@ -259,7 +270,7 @@ static int out3(struct pool *p, char *a, char *b, char *c)
 static int output_headers(struct pool *p, struct request *r)
 {
 	long l;
-	static char *crlf = "\r\n";
+	static STRING(crlf) = "\r\n";
 
 #define OUT(y, z) if (out3(p, (y), (z), crlf) == -1) return -1
 
@@ -301,26 +312,27 @@ static char *dirmatch(char *s, char *t)
 {
 	int n = strlen(t);
 
+	log(L_DEBUG, "dirmatch(\"%s\", \"%s\")", s, t);
 	return (strneq(s, t, n) && (s[n] == '/' || s[n] == '\0')) ? s + n : 0;
 }
 
 static int findcontrol(struct request *r)
 {
 	char *p = r->path_translated;
-	struct server *s = r->cn->s;
 	struct control *a, *b;
 	char *m, *t;
 
-	a = s->controls;
+	a = r->vs->controls;
 	b = 0;
 	m = 0;
 
+	log(L_DEBUG, "findcontrol starting at %p ...", a);
 	while (a) {
-		if (a->directory == 0) {
+		if (a->locations == 0) {
 			if (b == 0)
 				b = a;
 		}
-		else if ((t = dirmatch(p, a->directory)) != 0) {
+		else if ((t = dirmatch(p, a->locations->name)) != 0) {
 			if (m == 0 || m < t) {
 				m = t;
 				b = a;
@@ -328,6 +340,7 @@ static int findcontrol(struct request *r)
 		}
 		a = a->next;
 	}
+	log(L_DEBUG, "... and got %p", b);
 	r->c = b;
 
 	return b ? 0 : -1;
@@ -395,6 +408,7 @@ static int get_path_info(struct request *r)
 
 	while (cp > p) {
 		*cp = '\0';
+		log(L_DEBUG, "stat(\"%s\")", p);
 		rv = stat(p, s);
 		if (cp != end)
 			*cp = '/';
@@ -443,7 +457,7 @@ static int check_symlinks(struct request *r)
 	if (c->symlinksok)
 		return 0;
 	strcpy(b, p);
-	t = b + (c->directory ? strlen(c->directory) : 0);
+	t = b + (c->locations->name ? strlen(c->locations->name) : 0);
 	s = b + strlen(b);
 	while (--s > t) {
 		if (*s == '/') {
@@ -452,6 +466,7 @@ static int check_symlinks(struct request *r)
 		}
 		else if (flag) {
 			flag = 0;
+			log(L_DEBUG, "lstat(\"%s\")", b);
 			if (lstat(b, &buf) == -1) {
 				lerror("lstat");
 				return -1;
@@ -470,7 +485,7 @@ static int makedir(struct request *r)
 	static char buf[PATHLEN];
 	char *e;
 
-	construct_url(buf, r->url, r->cn->s);
+	construct_url(buf, r->url, r->vs);
 	e = buf+strlen(buf);
 	*e++ = '/';
 	*e = '\0';
@@ -481,35 +496,31 @@ static int makedir(struct request *r)
 static int append_indexes(struct request *r)
 {
 	char *p = r->path_translated;
-	char **i = r->c->index_names;
-	char *s = 0;
+	struct simple_list *i = r->c->index_names;
 	char *q = p + strlen(p);
 
 	r->isindex = 1;
-	if (i) {
-		while ((s = *i++) != 0) {
-			strcpy(q, s);
-			if (stat(p, &r->finfo) != -1)
-				break;
-		}
+	while (i) {
+		strcpy(q, i->name);
+		log(L_DEBUG, "stat(\"%s\")", p);
+		if (stat(p, &r->finfo) != -1)
+			break;
+		i = i->next;
 	}
-	if (s == 0) {
+	if (i == 0) {
 		*q = '\0';
-		if (r->path_args[0] && r->path_args[1]) {
+		if (r->path_args[0] && r->path_args[1])
 			r->error = nf_not_found;
-			return 404;
-		}
-		else {
+		else
 			r->error = nf_no_index;
-			return 404;
-		}
+		return 404;
 	}
 	return 0;
 }
 
 static int process_special(struct request *r)
 {
-	char *ct;
+	const char *ct;
 
 	ct = r->content_type;
 	r->num_content = -1;
@@ -524,10 +535,6 @@ static int process_special(struct request *r)
 #ifdef DUMP_MAGIC_TYPE
 	if (strceq(ct, DUMP_MAGIC_TYPE))
 		return process_dump(r);
-#endif
-#ifdef REDIRECT_MAGIC_TYPE
-	if (strceq(ct, REDIRECT_MAGIC_TYPE))
-		return process_redirect(r);
 #endif
 	r->error = se_no_specialty;
 	return 500;
@@ -578,11 +585,67 @@ static int process_fd(struct request *r)
 	return 200;
 }
 
+static int hostmatch(const char *s, const char *t)
+{
+	register char c, d;
+
+	log(L_DEBUG, "hostmatch(\"%s\", \"%s\")", s, t);
+	while (c = *s++, d = *t++, c && c != ':' && d) {
+		if (toupper(c) != toupper(d))
+			return 0;
+	}
+	switch (c) {
+	case '\0':
+	case ':':
+	case '.':
+		switch (d) {
+		case '\0':
+		case '.':
+			return 1;
+		}
+	default:
+		return 0;
+	}
+}
+
+static int find_vs(struct request *r)
+{
+	struct virtual *v = r->cn->s->children;
+	struct virtual *gv = 0;
+
+	log(L_DEBUG, "find_vs starting at %p ...", v);
+	while (v) {
+		if (v->host == 0)
+			gv = v;
+		else if (r->host && hostmatch(r->host, v->host))
+			break;
+		v = v->next;
+	}
+	log(L_DEBUG, "... and got %p (gv=%p)", v, gv);
+	if (v == 0 && gv)
+		v = gv;
+	if (v) {
+		r->vs = v;
+		v->nrequests++;
+		return 0;
+	}
+	return 1;
+}
+
 static int process_path(struct request *r)
 {
-	if (faketoreal(r->path, r->path_translated, r->cn->s->controls) == 0) {
+	if (find_vs(r)) {
+		r->error = se_no_virtual;
+		return 500;
+	}
+	if (faketoreal(r->path, r->path_translated, r, 1) == 0) {
 		r->error = se_alias;
 		return 500;
+	}
+	if (r->path_translated[0] != '/') {
+		escape_url(r->path_translated);
+		r->location = r->path_translated;
+		return 302;
 	}
 	if (findcontrol(r) == -1) {
 		r->error = se_no_control;
@@ -627,12 +690,13 @@ static int process_path(struct request *r)
 	return r->special ? process_special(r) : process_fd(r);
 }
 
-static char *process_headers(struct request *r)
+static const char *process_headers(struct request *r)
 {
-	static char *whitespace = " \t";
+	static STRING(whitespace) = " \t";
 	char *l, *m, *p, *s;
 	int a = r->cn->assbackwards;
 
+	r->vs = 0;
 	r->user_agent = 0;
 	r->referer = 0;
 	r->from = 0;
@@ -804,53 +868,40 @@ int prepare_reply(struct request *r)
 	if (send_message) {
 		char *b;
 
-		sprintf(buf, "<TITLE>%s</TITLE>\n<H1>%s</H1><P>\n",
-				r->status_line, r->status_line);
-		b = buf + strlen(buf);
+		b = buf + SPRINTF4(buf, "<TITLE>%s</TITLE>\n<H1>%s</H1><P>\n",
+				   r->status_line, r->status_line);
 		switch (r->status) {
 		case 302:
-			sprintf(b,
-				"The document has moved to URL "
-				"<A HREF=\"%s\">%s</A>.\n",
-				r->location, r->location);
+			b += SPRINTF4(b, "The document has moved to URL "
+				      "<A HREF=\"%s\">%s</A>.\n",
+				      r->location, r->location);
 			break;
 		case 400:
-			sprintf(b,
-				"Your request contained the following error:\n"
-				"<P><B>%s</B>\n",
-				r->error);
+			b += SPRINTF3(b, "Your request contained the "
+				      "following error:\n<P><B>%s</B>\n",
+				      r->error);
 			break;
 		case 403:
-			sprintf(b,
-				"Access to URL %s denied on this server.\n",
-				r->url);
+			b += SPRINTF3(b, "Access to URL %s denied.\n", r->url);
 			break;
 		case 404:
-			sprintf(b,
-				"The URL %s was not found on this server.\n",
-				r->url);
+			b += SPRINTF3(b, "URL %s not found.\n", r->url);
 			break;
 		case 501:
-			sprintf(b,
-				"Cannot apply %s method to URL %s\n",
-				r->method_s,
-				r->url);
+			b += SPRINTF4(b, "Cannot apply %s method to URL %s\n",
+				      r->method_s, r->url);
 			break;
 		case 503:
-			sprintf(b,
-				"Server overloaded. Sorry.\n");
+			b += SPRINTF2(b, "Server overloaded. Sorry.\n");
 			break;
 		default:
-			sprintf(b,
-				"<B>%s</B>\n",
-				r->error ? r->error : se_unknown);
+			b += SPRINTF3(b, "<B>%s</B>\n",
+				      r->error ? r->error : se_unknown);
 			if (admin)
-				sprintf(b,
-					"<P>Please notify %s of this error.\n",
-					admin);
+				b += SPRINTF3(b, "<P>Please notify %s of "
+					      "this error.\n", admin);
 			break;
 		}
-		b += strlen(b);
 		sprintf(b, "%s\n", ERROR_FOOTER);
 		r->content_length = strlen(buf);
 		r->num_content = 0;
@@ -871,9 +922,10 @@ static void log_request(struct request *r)
 		r->path[1] = '\0';
 	}
 	ti = ctime(&current_time);
-	log(L_TRANS, "%.24s - %s - - %s %s %.3s",
+	log(L_TRANS, "%.24s - %s - %s %s %s %.3s",
 	    ti ? ti : "???",
 	    cn->ip,
+	    r->host ? r->host : "-",
 	    r->method_s,
 	    r->path,
 	    r->status_line
@@ -884,7 +936,6 @@ static void log_request(struct request *r)
 
 int process_request(struct request *r)
 {
-	++r->cn->s->nrequests;
 	if ((r->error = process_headers(r)) == 0)
 		r->status = process_path(r);
 	else
@@ -894,45 +945,61 @@ int process_request(struct request *r)
 		log(L_ERROR, "cannot prepare reply for client");
 		return -1;
 	}
-	if (r->status_line
-		&& r->c
-		&& r->c->log_level >= 2
-		&& (r->c->log_level > 2 || r->status == 200 ))
-		log_request(r);
+	if (r->status_line && r->c) {
+		switch(r->c->loglevel) {
+		case 1:
+			break;
+		case 2:
+			if (r->status != 200)
+				break;
+		default:
+			log_request(r);
+		}
+	}
 	return r->status > 0 ? 0 : -1;
 }
 
-struct control *faketoreal(char *x, char *y, struct control *c)
+struct control *faketoreal(char *x, char *y, struct request *r, int update)
 {
+	struct control *c;
 	char *s;
 	char *m = 0;
 	struct control *cc = 0;
 
+	if (r->vs == 0) {
+		log(L_ERROR, "virtualhost not initialized!");
+		return 0;
+	}
+	c = r->vs->controls;
+	log(L_DEBUG, "faketoreal starting at %p ...", c);
 	while (c) {
-		if (c->directory && c->alias
-		    && (s = dirmatch(x, c->alias)) != 0) {
-			if (m == 0 || s > m) {
-				m = s;
-				cc = c;
-			}
+		if (c->locations
+		    && c->alias
+		    && (s = dirmatch(x, c->alias)) != 0
+		    && (m == 0 || s > m)) {
+			m = s;
+			cc = c;
 		}
 		c = c->next;
 	}
+	log(L_DEBUG, "... and got %p", cc);
 	if (cc) {
-		strcpy(y, cc->directory);
+		if (update)
+			cc->locations = cc->locations->next;
+		strcpy(y, cc->locations->name);
 		strcat(y, m);
 	}
 	return cc;
 }
 
-void construct_url(char *d, char *s, struct server *sv)
+void construct_url(char *d, char *s, struct virtual *v)
 {
-	sprintf(d, "http://%s%s", sv->fullname, s);
+	sprintf(d, "http://%s%s", v->fullname, s);
 }
 
 void escape_url(char *url)
 {
-	static char *hex = "0123456789abcdef";
+	static STRING(hex) = "0123456789abcdef";
 	char scratch[PATHLEN];
 	char *s;
 	register char c;
