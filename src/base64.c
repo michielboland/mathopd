@@ -41,9 +41,8 @@ static const char rcsid[] = "$Id$";
 #include <stdio.h>
 #ifdef HAVE_CRYPT_H
 #include <crypt.h>
-#else
-#include <unistd.h>
 #endif
+#include <unistd.h>
 #include <fcntl.h>
 #include "mathopd.h"
 
