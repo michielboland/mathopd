@@ -63,10 +63,7 @@ static int add(const char *name, const char *value, size_t choplen)
 
 	if (name && value == 0)
 		return 0;
-	if (cgi_envc == 0)
-		e = malloc(sizeof *cgi_envp);
-	else
-		e = realloc(cgi_envp, (cgi_envc + 1) * sizeof *cgi_envp);
+	e = realloc(cgi_envp, (cgi_envc + 1) * sizeof *cgi_envp);
 	if (e == 0)
 		return -1;
 	cgi_envp = e;
@@ -98,10 +95,7 @@ static int add_argv(const char *a, const char *b, int decode)
 	size_t s;
 	char **e;
 
-	if (cgi_argc == 0)
-		e = malloc(sizeof *cgi_argv);
-	else
-		e = realloc(cgi_argv, (cgi_argc + 1) * sizeof *cgi_argv);
+	e = realloc(cgi_argv, (cgi_argc + 1) * sizeof *cgi_argv);
 	if (e == 0)
 		return -1;
 	cgi_argv = e;

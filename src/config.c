@@ -403,10 +403,7 @@ static const char *config_log(FILE *f, int **colsp, int *numcolsp)
 		else
 			return e_keyword;
 		++numcols;
-		if (cols)
-			cols = realloc(cols, sizeof *cols * numcols);
-		else
-			cols = malloc(sizeof *cols);
+		cols = realloc(cols, sizeof *cols * numcols);
 		if (cols == 0)
 			return e_memory;
 		cols[numcols - 1] = ml;
