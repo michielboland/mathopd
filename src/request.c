@@ -474,16 +474,20 @@ static int makedir(struct request *r)
 
 static int append_indexes(struct request *r)
 {
-	char *p, *q;
+	char *p;
 	struct simple_list *i;
 	int fd;
+	size_t l, n;
 
 	p = r->path_translated;
-	q = p + strlen(p);
+	l = strlen(p);
 	r->isindex = 1;
-	i = r->c->index_names;
-	while (i) {
-		strcpy(q, i->name);
+	for (i = r->c->index_names; i; i = i->next) {
+		n = strlen(i->name);
+		if (l + n >= PATHLEN - 1)
+			continue;
+		memcpy(p + l, i->name, n);
+		p[l + n] = 0;
 		fd = open(p, O_RDONLY | O_NONBLOCK);
 		if (debug)
 			log_d("append_indexes: open(\"%s\") = %d", p, fd);
@@ -491,7 +495,7 @@ static int append_indexes(struct request *r)
 			if (errno != ENOENT) {
 				log_d("append_indexes: cannot open %s", p);
 				lerror("open");
-				*q = 0;
+				p[l] = 0;
 				r->error_file = r->c->error_404_file;
 				r->status = 404;
 				return -1;
@@ -503,10 +507,9 @@ static int append_indexes(struct request *r)
 			}
 			break;
 		}
-		i = i->next;
 	}
 	if (i == 0) {
-		*q = 0;
+		p[l] = 0;
 		return -1;
 	}
 	return 0;
