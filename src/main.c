@@ -291,63 +291,52 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-int fork_request(struct request *r, int (*f)(struct request *))
+pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd, int efd, uid_t u, gid_t g, const char *curdir)
 {
-	struct pipe_params *pp;
-	int p[2], efd;
 	pid_t pid;
+	sigset_t set, oset;
 
-	if (r->cn->assbackwards) {
-		log_d("fork_request: no HTTP/0.9 allowed here");
-		return 500;
-	}
-	pp = children;
-	while (pp) {
-		if (pp->cn == 0)
-			break;
-		pp = pp->next;
-	}
-	if (pp == 0) {
-		log_d("fork_request: out of children");
-		return 503;
-	}
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, p) == -1) {
-		lerror("socketpair");
-		return 503;
-	}
-	fcntl(p[0], F_SETFD, FD_CLOEXEC);
-	fcntl(p[1], F_SETFD, FD_CLOEXEC);
+	sigfillset(&set);
+	sigprocmask(SIG_SETMASK, &set, &oset);
+#ifdef HAVE_VFORK
+	pid = vfork();
+#else
 	pid = fork();
+#endif
 	switch (pid) {
-	case 0:
-		my_pid = getpid();
-		setpgid(0, my_pid);
-		close(p[0]);
-		dup2(p[1], 0);
-		dup2(p[1], 1);
-		close(p[1]);
-		if (r->c->child_filename) {
-			efd = open_log(r->c->child_filename);
-			if (efd == -1)
-				_exit(EX_UNAVAILABLE);
-			dup2(efd, 2);
-			close(efd);
-		}
-		_exit(f(r));
-		break;
-	case -1:
-		lerror("fork");
-		close(p[0]);
-		close(p[1]);
-		return 503;
 	default:
-		if (debug)
-			log_d("fork_request: child process %d created", pid);
 		setpgid(pid, pid);
-		close(p[1]);
-		fcntl(p[0], F_SETFL, O_NONBLOCK);
-		init_child(pp, r, p[0]);
-		break;
+	case -1:
+		sigprocmask(SIG_SETMASK, &oset, 0);
+		return pid;
+	case 0:
+		setpgid(0, getpid());
+		mysignal(SIGCHLD, SIG_DFL);
+		mysignal(SIGHUP, SIG_DFL);
+		mysignal(SIGTERM, SIG_DFL);
+		mysignal(SIGINT, SIG_DFL);
+		mysignal(SIGQUIT, SIG_DFL);
+		mysignal(SIGUSR1, SIG_DFL);
+		mysignal(SIGUSR2, SIG_DFL);
+		mysignal(SIGPIPE, SIG_DFL);
+		sigprocmask(SIG_SETMASK, &oset, 0);
+		dup2(fd, 0);
+		dup2(fd, 1);
+		if (efd != -1)
+			dup2(efd, 2);
+		if (u) {
+			if (setuid(0) == -1)
+				_exit(1);
+			if (setgid(g) == -1)
+				_exit(2);
+			if (setuid(u) == -1)
+				_exit(3);
+		}
+		if (getuid() == 0 || geteuid() == 0)
+			_exit(4);
+		if (chdir(curdir) == -1)
+			_exit(5);
+		execve(program, argv, envp);
+		_exit(6);
 	}
-	return -1;
 }

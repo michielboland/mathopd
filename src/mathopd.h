@@ -343,7 +343,7 @@ extern int debug;
 extern unsigned long fcm;
 extern int stayroot;
 extern int my_pid;
-extern int fork_request(struct request *, int (*)(struct request *));
+extern pid_t spawn(const char *, char *const[], char *const[], int, int, uid_t, gid_t, const char *);
 
 /* config */
 
