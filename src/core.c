@@ -105,6 +105,24 @@ static void c_link(struct connection *c, struct connection_list *l)
 	l->head = c;
 }
 
+static struct connection_list *clistp(enum connection_state state)
+{
+	switch (state) {
+	default:
+		return 0;
+	case HC_FREE:
+		return &free_connections;
+	case HC_WAITING:
+		return &waiting_connections;
+	case HC_READING:
+		return &reading_connections;
+	case HC_WRITING:
+		return &writing_connections;
+	case HC_FORKED:
+		return &forked_connections;
+	}
+}
+
 void set_connection_state(struct connection *c, enum connection_state state)
 {
 	enum connection_state oldstate;
@@ -113,46 +131,8 @@ void set_connection_state(struct connection *c, enum connection_state state)
 	oldstate = c->connection_state;
 	if (state == oldstate)
 		return;
-	switch (oldstate) {
-	default:
-		o = 0;
-		break;
-	case HC_FREE:
-		o = &free_connections;
-		break;
-	case HC_WAITING:
-		o = &waiting_connections;
-		break;
-	case HC_READING:
-		o = &reading_connections;
-		break;
-	case HC_WRITING:
-		o = &writing_connections;
-		break;
-	case HC_FORKED:
-		o = &forked_connections;
-		break;
-	}
-	switch (state) {
-	default:
-		n = 0;
-		break;
-	case HC_FREE:
-		n = &free_connections;
-		break;
-	case HC_WAITING:
-		n = &waiting_connections;
-		break;
-	case HC_READING:
-		n = &reading_connections;
-		break;
-	case HC_WRITING:
-		n = &writing_connections;
-		break;
-	case HC_FORKED:
-		n = &forked_connections;
-		break;
-	}
+	o = clistp(oldstate);
+	n = clistp(state);
 	if (o)
 		c_unlink(c, o);
 	c->connection_state = state;
