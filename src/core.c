@@ -338,42 +338,46 @@ static void write_connection(struct connection *cn)
 	int m, n;
 
 	p = &cn->output;
-	do {
-		n = p->end - p->start;
+	n = p->end - p->start;
+	if (n == 0) {
+		p->start = p->end = p->floor;
+		n = fill_connection(cn);
+		if (n == -1) {
+			close_connection(cn);
+			return;
+		}
 		if (n == 0) {
-			if (cn->left == 0) {
-				if (cn->keepalive)
-					reinit_connection(cn);
-				else
-					close_connection(cn);
-				return;
-			}
-			p->start = p->end = p->floor;
-			n = fill_connection(cn);
-			if (n <= 0) {
+			if (cn->keepalive)
+				reinit_connection(cn);
+			else
 				close_connection(cn);
-				return;
-			}
+			return;
 		}
-		cn->t = current_time;
-		m = write(cn->fd, p->start, n);
-		if (debug)
-			log_d("write_connection: %d %d %d %d", cn->fd, p->start - p->floor, n, m);
-		if (m == -1) {
-			switch (errno) {
-			default:
-				log_d("error writing to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
-				lerror("write");
-			case ECONNRESET:
-			case EPIPE:
-				close_connection(cn);
-			case EAGAIN:
-				return;
-			}
+	}
+	m = write(cn->fd, p->start, n);
+	if (debug)
+		log_d("write_connection: %d %d %d %d", cn->fd, p->start - p->floor, n, m);
+	if (m == -1) {
+		switch (errno) {
+		default:
+			log_d("error writing to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
+			lerror("write");
+		case ECONNRESET:
+		case EPIPE:
+			close_connection(cn);
+		case EAGAIN:
+			return;
 		}
-		cn->nwritten += m;
-		p->start += m;
-	} while (n == m);
+	}
+	cn->t = current_time;
+	cn->nwritten += m;
+	p->start += m;
+	if (n == m && cn->left == 0) {
+		if (cn->keepalive)
+			reinit_connection(cn);
+		else
+			close_connection(cn);
+	}
 }
 
 static int read_connection(struct connection *cn)
