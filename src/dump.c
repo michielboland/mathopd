@@ -151,7 +151,7 @@ static void fdump(FILE *f, struct request *r)
 	fprintf(f, "                     children: %11.2f user %11.2f system\n\n", ru.ru_utime.tv_sec + 1e-6 * ru.ru_utime.tv_usec, ru.ru_stime.tv_sec + 1e-6 * ru.ru_stime.tv_usec);
 	maxconnections = nconnections;
 	dump_servers(f, servers);
-	dump_connections(f, r->cn);
+	dump_connections(f, r ? r->cn : 0);
 	fprintf(f, "*** End of dump\n");
 }
 
