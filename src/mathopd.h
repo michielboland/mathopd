@@ -370,5 +370,6 @@ extern void sanitize_host(char *);
 extern int init_log_buffer(size_t);
 extern void log_request(struct request *);
 extern int init_logs(void);
+extern int open_log(const char *);
 
 #endif

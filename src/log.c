@@ -186,27 +186,34 @@ void log_request(struct request *r)
 	return;
 }
 
+int open_log(const char *name)
+{
+	char converted_name[PATHLEN];
+	const char *n;
+	struct tm *tp;
+
+	n = name;
+	if (strchr(name, '%')) {
+		current_time = time(0);
+		if (log_gmt)
+			tp = gmtime(&current_time);
+		else
+			tp = localtime(&current_time);
+		if (tp) {
+			if (strftime(converted_name, PATHLEN - 1, name, tp))
+				n = converted_name;
+		}
+	}
+	return open(n, O_WRONLY | O_CREAT | O_APPEND, 0666);
+}
+
 static int init_log_d(char *name, int *fdp)
 {
 	int fd, nfd;
-	char converted_name[PATHLEN], *n;
-	struct tm *tp;
 
 	if (name) {
-		n = name;
-		if (strchr(name, '%')) {
-			current_time = time(0);
-			if (log_gmt)
-				tp = gmtime(&current_time);
-			else
-				tp = localtime(&current_time);
-			if (tp) {
-				if (strftime(converted_name, PATHLEN - 1, name, tp))
-					n = converted_name;
-			}
-		}
 		fd = *fdp;
-		nfd = open(n, O_WRONLY | O_CREAT | O_APPEND, 0666);
+		nfd = open_log(name);
 		if (nfd == -1)
 			return fd == -1 ? -1 : 0;
 		if (fd == -1)
