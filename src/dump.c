@@ -118,18 +118,12 @@ static void fdump(FILE *f, struct request *r)
 {
 	struct rusage ru;
 
-	fprintf(f,
-		"Uptime: %d seconds\n"
-		"Active connections: %d out of %lu\n"
-		"Max simultaneous connections since last dump: %d\n"
-		"Number of exited children: %d\n"
-		"Number of requests executed: %lu\n"
-		"\n",
-		(int) (current_time - startuptime),
-		stats.nconnections, tuning.num_connections,
-		stats.maxconnections,
-		stats.numchildren,
-		stats.nrequests);
+	fprintf(f, "Uptime: %d seconds\n", (int) (current_time - startuptime));
+	fprintf(f, "Active connections: %d out of %lu\n", stats.nconnections, tuning.num_connections);
+	fprintf(f, "Max simultaneous connections since last dump: %d\n", stats.maxconnections);
+	fprintf(f, "Number of exited children: %d\n", stats.numchildren);
+	fprintf(f, "Number of requests executed: %lu\n", stats.nrequests);
+	fprintf(f, "\n");
 	getrusage(RUSAGE_SELF, &ru);
 	fprintf(f, "CPU time used by this process: %11.2f user %11.2f system\n", ru.ru_utime.tv_sec + 1e-6 * ru.ru_utime.tv_usec, ru.ru_stime.tv_sec + 1e-6 * ru.ru_stime.tv_usec);
 	getrusage(RUSAGE_CHILDREN, &ru);
