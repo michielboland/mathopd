@@ -392,6 +392,8 @@ static int get_path_info(struct request *r)
 					*cds = 0;
 			}
 			*cp = 0;
+			if (debug)
+				log_d("get_path_info: curdir = \"%s\"", r->curdir);
 			return 0;
 		} else if (r->c->path_info_ok == 0)
 			return -1;
