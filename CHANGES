@@ -116,3 +116,5 @@ Modified get_path_info to not search path the beginning
 of the assigned server directory.
 
 An autoconf configure script is now included.
+
+A new keyword, AllowDotfiles, has been added.
