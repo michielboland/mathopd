@@ -27,6 +27,13 @@ static void init_pool(struct pool *p)
 
 static void reinit_connection(struct connection *cn, int action)
 {
+	if (debug)
+		log(L_DEBUG, "reinit: [%s].%hu -> [%s].%hu, action=%d",
+				inet_ntoa(cn->peer.sin_addr),
+				ntohs(cn->peer.sin_port),
+				inet_ntoa(cn->sock.sin_addr),
+				ntohs(cn->sock.sin_port),
+				action);
 	if (cn->rfd != -1) {
 		close(cn->rfd);
 		cn->rfd = -1;
@@ -38,25 +45,14 @@ static void reinit_connection(struct connection *cn, int action)
 	cn->action = action;
 }
 
-static void init_connection(struct connection *cn, struct server *s, int fd,
-			    struct sockaddr_in sa)
-{
-	s->nhandled++;
-	cn->state = HC_ACTIVE;
-	cn->s = s;
-	cn->fd = fd;
-	cn->rfd = -1;
-	cn->peer = sa;
-	strncpy(cn->ip, inet_ntoa(sa.sin_addr), 15);
-	cn->t = cn->it = current_time;
-	++nconnections;
-	if (nconnections > maxconnections)
-		maxconnections = nconnections;
-	reinit_connection(cn, HC_READING);
-}
-
 static void close_connection(struct connection *cn)
 {
+	if (debug)
+		log(L_DEBUG, "close: [%s].%hu -> [%s].%hu",
+				inet_ntoa(cn->peer.sin_addr),
+				ntohs(cn->peer.sin_port),
+				inet_ntoa(cn->sock.sin_addr),
+				ntohs(cn->sock.sin_port));
 	--nconnections;
 	close(cn->fd);
 	if (cn->rfd != -1)
@@ -90,16 +86,22 @@ static void nuke_connections(void)
 
 static void accept_connection(struct server *s)
 {
-	struct sockaddr_in sa;
+	struct sockaddr_in sa, sa2;
 	int lsa, fd;
 	struct connection *cn, *cw;
 
-	lsa = sizeof sa;
 	do {
+		lsa = sizeof sa;
 		fd = accept(s->fd, (struct sockaddr *) &sa, &lsa);
 		if (fd == -1) {
 			if (errno != EAGAIN)
 				lerror("accept");
+			break;
+		}
+		lsa = sizeof sa2;
+		if (getsockname(fd, (struct sockaddr *) &sa2, &lsa) == -1) {
+			lerror("getsockname");
+			close(fd);
 			break;
 		}
 		s->naccepts++;
@@ -114,16 +116,31 @@ static void accept_connection(struct server *s)
 				cw = cn;
 			cn = cn->next;
 		}
-		if (cn)
-			init_connection(cn, s, fd, sa);
-		else if (cw) {
+		if (cn == 0 && cw) {
 			close_connection(cw);
-			init_connection(cw, s, fd, sa);
+			cn = cw;
 		}
-		else {
-			log(L_ERROR, "connection to %s dropped",
-			    inet_ntoa(sa.sin_addr));
+		if (cn == 0) {
+			log(L_ERROR, "connection [%s].%hu -> [%s].%hu dropped",
+				inet_ntoa(sa.sin_addr),
+				ntohs(sa.sin_port),
+				inet_ntoa(sa2.sin_addr),
+				ntohs(sa2.sin_port));
 			close(fd);
+		} else {
+			s->nhandled++;
+			cn->state = HC_ACTIVE;
+			cn->s = s;
+			cn->fd = fd;
+			cn->rfd = -1;
+			cn->peer = sa;
+			cn->sock = sa2;
+			strncpy(cn->ip, inet_ntoa(sa.sin_addr), 15);
+			cn->t = cn->it = current_time;
+			++nconnections;
+			if (nconnections > maxconnections)
+				maxconnections = nconnections;
+			reinit_connection(cn, HC_READING);
 		}
 	} while (tuning.accept_multi);
 }
