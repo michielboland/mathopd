@@ -434,7 +434,7 @@ static void write_connection(struct connection *cn)
 		cn->t = current_time;
 		cn->nwritten += m;
 		p->start += m;
-	} while (n == m);
+	} while (n == m && tuning.greedy);
 }
 
 static int read_connection(struct connection *cn)

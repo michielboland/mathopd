@@ -337,6 +337,7 @@ struct tuning {
 	int clobber;
 	unsigned long wait_timeout;
 	int num_processes;
+	int greedy;
 };
 
 struct statistics {

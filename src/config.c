@@ -101,6 +101,7 @@ static const char c_export[] =			"Export";
 static const char c_external[] =		"External";
 static const char c_extra_headers[] =		"ExtraHeaders";
 static const char c_family[] =			"Family";
+static const char c_greedy[] =			"Greedy";
 static const char c_host[] =			"Host";
 static const char c_index_names[] =		"IndexNames";
 static const char c_input_buf_size[] =		"InputBufSize";
@@ -911,6 +912,8 @@ static const char *config_tuning(struct configuration *p, struct tuning *tp)
 			t = config_int(p, &tp->wait_timeout);
 		else if (!strcasecmp(p->tokbuf, c_num_processes))
 			t = config_smallint(p, &tp->num_processes);
+		else if (!strcasecmp(p->tokbuf, c_greedy))
+			t = config_flag(p, &tp->greedy);
 		else
 			t = e_keyword;
 		if (t)
@@ -1009,6 +1012,7 @@ const char *config(const char *config_filename)
 	tuning.clobber = 1;
 	tuning.wait_timeout = DEFAULT_WAIT_TIMEOUT;
 	tuning.num_processes = 1;
+	tuning.greedy = 1;
 	fcm = DEFAULT_UMASK;
 	stayroot = 0;
 	log_columns = 0;
