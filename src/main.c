@@ -1,14 +1,14 @@
 /*
  * main.c - Mathopd
  *
- * Copyright 1996, 1997, Michiel Boland
+ * Copyright 1996, 1997, 1998, Michiel Boland
  */
 
 /* Once Around */
 
 #include "mathopd.h"
 
-STRING(server_version) = "Mathopd/1.1b22";
+STRING(server_version) = "Mathopd/1.1b23";
 
 volatile int gotsigterm;
 volatile int gotsighup;
