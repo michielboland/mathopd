@@ -41,6 +41,7 @@ static const char rcsid[] = "$Id$";
 #include <sys/wait.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <netinet/tcp.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <errno.h>
@@ -247,11 +248,23 @@ static struct connection *find_connection(void)
 	return 0;
 }
 
+static void pool_adjust(struct pool *p, int s)
+{
+	size_t n;
+
+	n = p->size;
+	if (s > 0 && s < n)
+		n -= n % s;
+	if (debug)
+		log_d("pool_adjust: n=%d", n);
+	p->ceiling = p->floor + n;
+}
+
 static int accept_connection(struct server *s)
 {
 	struct sockaddr_storage sa_remote, sa_local;
 	socklen_t l;
-	int fd, rv;
+	int fd, rv, mss;
 	struct connection *cn;
 
 	do {
@@ -304,6 +317,12 @@ static int accept_connection(struct server *s)
 			close(fd);
 			break;
 		}
+		l = sizeof mss;
+		if (getsockopt(fd, IPPROTO_TCP, TCP_MAXSEG, &mss, &l) == -1) {
+			lerror("getsockopt");
+			close(fd);
+			break;
+		}
 		cn->s = s;
 		cn->fd = fd;
 		cn->rfd = -1;
@@ -312,6 +331,7 @@ static int accept_connection(struct server *s)
 		++stats.nconnections;
 		if (stats.nconnections > stats.maxconnections)
 			stats.maxconnections = stats.nconnections;
+		pool_adjust(&cn->output, mss);
 		init_connection(cn);
 		cn->logged = 0;
 		cn->header_input.start = cn->header_input.middle = cn->header_input.end = cn->header_input.floor;
@@ -960,6 +980,7 @@ static int new_pool(struct pool *p, size_t s)
 	}
 	p->floor = p->start = p->middle = p->end = t;
 	p->ceiling = t + s;
+	p->size = s;
 	return 0;
 }
 
