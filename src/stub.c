@@ -381,7 +381,7 @@ static void pipe_run(struct pipe_params *p)
 				p->error_condition = STUB_ERROR_CLIENT;
 				return;
 			}
-			r = read(p->cfd, p->ibuf + p->ibp, bytestoread);
+			r = recv(p->cfd, p->ibuf + p->ibp, bytestoread, 0);
 			switch (r) {
 			case -1:
 				if (errno == EAGAIN)
@@ -403,7 +403,7 @@ static void pipe_run(struct pipe_params *p)
 			}
 		}
 		if (revents & POLLOUT) {
-			r = write(p->cfd, p->obuf + p->obp, p->otop - p->obp);
+			r = send(p->cfd, p->obuf + p->obp, p->otop - p->obp, 0);
 			switch (r) {
 			case -1:
 				if (errno == EAGAIN)
@@ -441,7 +441,7 @@ static void pipe_run(struct pipe_params *p)
 				p->error_condition = STUB_ERROR_PIPE;
 				return;
 			}
-			r = read(p->pfd, p->pbuf + p->ipp, bytestoread);
+			r = recv(p->pfd, p->pbuf + p->ipp, bytestoread, 0);
 			switch (r) {
 			case -1:
 				if (errno == EAGAIN)
@@ -472,7 +472,7 @@ static void pipe_run(struct pipe_params *p)
 			}
 		}
 		if (revents & POLLOUT) {
-			r = write(p->pfd, p->ibuf + p->opp, p->ibp - p->opp);
+			r = send(p->pfd, p->ibuf + p->opp, p->ibp - p->opp, 0);
 			switch (r) {
 			case -1:
 				if (errno == EAGAIN)
