@@ -1574,7 +1574,7 @@ int process_request(struct request *r)
 		n = 0;
 		do {
 			if (r->error_file) {
-				r->location_length = sprintf(r->path_translated, "%.*s", PATHLEN - 1, r->error_file);
+				r->location_length = expand_hostname(r->path_translated, r->error_file, r->host, PATHLEN - 1);
 				r->error_file = 0;
 			}
 			if (debug)
