@@ -624,10 +624,8 @@ static void pipe_run(struct pipe_params *p)
 		p->error_condition = STUB_ERROR_PIPE;
 		return;
 	}
-	cevents &= POLLIN;
-	cevents |= POLLOUT;
-	pevents &= POLLIN;
-	pevents |= POLLOUT;
+	cevents &= POLLIN | POLLOUT;
+	pevents &= POLLIN | POLLOUT;
 	if (cevents & POLLIN) {
 		if (readfromclient(p) == -1)
 			return;
