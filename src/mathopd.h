@@ -163,7 +163,6 @@ struct control {
 
 struct virtual {
 	char *host;
-	char *fullname;
 	struct server *parent;
 	struct control *controls;
 	struct virtual *next;

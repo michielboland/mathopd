@@ -735,7 +735,6 @@ static const char *config_vhost(struct virtual **vs, struct vserver *s, const ch
 			return e_memory;
 		sanitize_host(v->host);
 	}
-	v->fullname = 0;
 	v->parent = s->server;
 	v->controls = 0; /* filled in later */
 	v->vserver = s;
@@ -827,26 +826,12 @@ static const char *fill_servernames(void)
 {
 	struct server *s;
 	struct virtual *v;
-	char buf[8];
-	char *name;
 
 	s = servers;
 	while (s) {
 		v = s->children;
 		while (v) {
 			v->controls = v->vserver->controls;
-			name = v->host ? v->host : s->s_name;
-			if (name) {
-				if (s->port == 80)
-					v->fullname = name;
-				else {
-					v->fullname = malloc(strlen(name) + sprintf(buf, ":%lu", s->port) + 1);
-					if (v->fullname == 0)
-						return e_memory;
-					strcpy(v->fullname, name);
-					strcat(v->fullname, buf);
-				}
-			}
 			v = v->next;
 		}
 		s = s->next;
