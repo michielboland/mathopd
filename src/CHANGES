@@ -104,3 +104,8 @@ This appears to make more sense.
 
 SCRIPT_NAME is now just the pure script name, without
 extra info past a trailing slash.
+
+A TCPNoDelay flag has been added that can be set inside
+a server definition. When set, the TCP_NODELAY option is
+set for all incoming connections. This appears to slightly
+increase responsiveness.
