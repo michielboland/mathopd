@@ -45,7 +45,6 @@
 
 #define CGI_MAGIC_TYPE "CGI"
 #define IMAP_MAGIC_TYPE "Imagemap"
-#define DUMMY_MAGIC_TYPE "Dummy"
 #define DUMP_MAGIC_TYPE "Dump"
 
 #define DEFAULT_BUF_SIZE 12288
