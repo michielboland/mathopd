@@ -250,11 +250,8 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 		return -1;
 	if (add("SERVER_SOFTWARE", server_version, 0, cp) == -1)
 		return -1;
-	if (r->protocol_major) {
-		sprintf(t, "HTTP/%d.%d", r->protocol_major, r->protocol_minor);
-		if (add("SERVER_PROTOCOL", t, 0, cp) == -1)
-			return -1;
-	} else if (add("SERVER_PROTOCOL", "HTTP/0.9", 0, cp) == -1)
+	sprintf(t, "HTTP/%d.%d", r->protocol_major, r->protocol_minor);
+	if (add("SERVER_PROTOCOL", t, 0, cp) == -1)
 		return -1;
 	e = r->c->exports;
 	while (e) {
