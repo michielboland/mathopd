@@ -1224,7 +1224,6 @@ static int process_headers(struct request *r)
 		return 0;
 	}
 	if (r->protocol_major > 1 || (r->protocol_major == 1 && r->protocol_minor > 1)) {
-		log_d("%s: unsupported version HTTP/%d.%d", inet_ntoa(r->cn->peer.sin_addr), r->protocol_major, r->protocol_minor);
 		r->status = 505;
 		return 0;
 	}
