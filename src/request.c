@@ -1056,7 +1056,7 @@ static int process_headers(struct request *r)
 	}
 	s = r->url;
 	if (strlen(s) > STRLEN)
-		return 400;
+		return 414;
 	if (*s != '/') {
 		if (r->cn->assbackwards)
 			return 400;
@@ -1180,6 +1180,9 @@ static int prepare_reply(struct request *r)
 		break;
 	case 412:
 		r->status_line = "412 Precondition Failed";
+		break;
+	case 414:
+		r->status_line = "414 Request-URI Too Long";
 		break;
 	case 416:
 		r->status_line = "416 Requested Range Not Satisfiable";
