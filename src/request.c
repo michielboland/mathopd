@@ -1093,7 +1093,9 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 		if (update)
 			c->locations = c->locations->next;
 		strcpy(y, c->locations->name);
-		strcat(y, s);
+		if (c->locations->name[0] == '/'
+		    || !c->path_args_ok)
+			strcat(y, s);
 	}
 	return c;
 }
