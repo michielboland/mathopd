@@ -1,5 +1,5 @@
 /*
- *   Copyright 2001 Michiel Boland.
+ *   Copyright 2001, 2003 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -46,6 +46,7 @@ extern int poll(struct pollfd *, unsigned, int);
 
 #define POLLIN 1
 #define POLLOUT 4
+#define POLLERR 8
 #define INFTIM -1
 
 #endif
