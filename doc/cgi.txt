@@ -1,0 +1,101 @@
+Mathopd and CGI
+
+How to adjust your configuration file to enable CGI
+--------------------------------
+
+There are two methods to enable Mathopd to run CGI scripts.
+The first is the "CGI specialty, the second is the "External"
+keyword.
+
+The 'old-fashioned' /cgi-bin method, where one directory is
+dedicated to CGI scripts, can be implemented the following way:-
+
+  Control {
+    Alias /cgi-bin
+    Location /var/www/cgi-bin
+    Specials {
+      CGI { * }
+    }
+  }
+
+A variation on this theme, where instead of a /cgi-bin directory
+we mark CGI scripts by the .cgi extension:-
+
+  Control {
+    Specials {
+       CGI { cgi }
+    }
+  }
+
+Usually, CGI scripts are really just interpreted lines of program text,
+like a PHP or Perl script. Mathopd has another mechanism to deal with
+these which is far more flexible than the above. It works like this:
+
+  Control {
+    External {
+      /usr/bin/perl { pl }
+    }
+  }
+
+If things are set up this way, any file with extension .pl will
+automatically be treated as a CGI script, and /usr/bin/perl will be
+launched to interpret it. A side effect of this is that the script in
+question does not have to be executable, so no messing about with
+chmod is necessary.
+
+CGI and security
+--------------------------------
+
+A malicious CGI script can do a lot of damage to the operation of a
+webserver. One way for a script to do this is to send a signal to
+the server process that stops or kills it. To avoid accidents like
+this, it is recommended that you start mathopd as root (user-id 0),
+and set it up like this:-
+
+  User www
+  StayRoot On
+  Control {
+    ScriptUser cgi
+  }
+
+This way, the server process runs with the (effective) user-id of
+'www', but CGI programs and External programs run with the user-id
+of 'cgi'.
+
+It is also possible to have several ScriptUsers, for instance, one
+for each virtual server. It is also possible to disallow CGI
+altogether by not specifying any ScriptUser, or an invalid
+ScriptUser.
+
+An example.
+
+  User www
+  StayRoot On
+  Virtual {
+    Host www.an.example
+    Control {
+      Alias /
+      Location /home/example/www
+      ScriptUser example
+    }
+  }
+  Virtual {
+    Host www.another.example
+    Control {
+      Alias /
+      Location /home/another/www
+      ScriptUser another
+    }
+  }
+  Virtual {
+    Host www.athird.example
+    Control {
+      Alias /
+      Location /home/athird/www
+    }
+  }
+
+In the above setup, scripts from www.an.example will run as user
+'example' and scripts from www.another.example will run as user
+'another'. No scripts can run from www.athird.example, because no
+ScriptUser is defined there.
