@@ -1,7 +1,7 @@
 /*
  * request.c - parse and process an HTTP/1.0 request
  *
- * Copyright 1996, Michiel Boland
+ * Copyright 1996, 1997, Michiel Boland
  */
 
 /* Mysterons */
@@ -542,10 +542,10 @@ static int process_special(struct request *r)
 
 static int process_fd(struct request *r)
 {
-	if (r->method == M_POST) {
-		r->error = ni_post;
-		return 501;
-	}
+/*
+ * Do not return 501 error when there are
+ * path arguments
+ */
 	if (r->path_args[0]) {
 		if (r->path_args[1]) {
 			r->error = nf_path_info;
@@ -555,6 +555,10 @@ static int process_fd(struct request *r)
 			r->error = nf_slash;
 			return 404;
 		}
+	}
+	if (r->method == M_POST) {
+		r->error = ni_post;
+		return 501;
 	}
 	r->content_length = r->finfo.st_size;
 	r->last_modified = r->finfo.st_mtime;
@@ -642,14 +646,18 @@ static int process_path(struct request *r)
 		r->error = se_alias;
 		return 500;
 	}
+/*
+ * next two blocks were swapped since otherwise redirects
+ * would never make it to the logs - MB 2 Apr 1997
+ */
+	if (findcontrol(r) == -1) {
+		r->error = se_no_control;
+		return 500;
+	}
 	if (r->path_translated[0] != '/') {
 		escape_url(r->path_translated);
 		r->location = r->path_translated;
 		return 302;
-	}
-	if (findcontrol(r) == -1) {
-		r->error = se_no_control;
-		return 500;
 	}
 	if (evaluate_access(r) == DENY) {
 		r->error = fb_active;
@@ -857,8 +865,8 @@ int prepare_reply(struct request *r)
 		log(L_WARNING, "* %s (%s)", r->status_line, r->error);
 		if (r->url)
 			log(L_WARNING, "  url:   %s", r->url);
-		if (r->host)
-			log(L_WARNING, "  host:  %s", r->host);
+		if (r->vs && r->vs->fullname)
+			log(L_WARNING, "  host:  %s", r->vs->fullname);
 		if (r->user_agent)
 			log(L_WARNING, "  agent: %s", r->user_agent);
 		if (r->referer)
@@ -925,7 +933,7 @@ static void log_request(struct request *r)
 	log(L_TRANS, "%.24s - %s - %s %s %s %.3s",
 	    ti ? ti : "???",
 	    cn->ip,
-	    r->host ? r->host : "-",
+	    r->vs->fullname,
 	    r->method_s,
 	    r->path,
 	    r->status_line
