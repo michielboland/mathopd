@@ -372,10 +372,10 @@ static int get_path_info(struct request *r)
 		if (cp != end)
 			*cp = '\0';
 		rv = stat(p, s);
-		if (cp != end)
-			*cp = '/';
 		if (debug)
 			log(L_DEBUG, "get_path_info: stat(\"%s\", ...) = %d; st_mode = %#o", p, rv, s->st_mode);
+		if (cp != end)
+			*cp = '/';
 		if (rv != -1) {
 			strcpy(pa, cp);
 			if (S_ISDIR(s->st_mode))
