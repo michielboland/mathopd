@@ -302,6 +302,7 @@ struct connection {
 	struct timeval itv;
 	struct pipe_params pipe_params;
 	off_t file_offset;
+	int havefile;
 };
 
 struct connection_list {
