@@ -1606,6 +1606,7 @@ int cgi_error(struct request *r)
 	if (debug)
 		log_d("cgi_error");
 	r->status = 500;
+	r->forked = 0;
 	rv = prepare_reply(r);
 	if (rv == -1) {
 		log_d("prepare_reply failed in cgi_error");
