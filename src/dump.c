@@ -47,6 +47,7 @@ static const char rcsid[] = "$Id$";
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include "mathopd.h"
@@ -155,55 +156,10 @@ static void fdump(FILE *f, struct request *r)
 	fprintf(f, "*** End of dump\n");
 }
 
-static int dump(int fd, struct request *r)
-{
-	FILE *f;
-	int fd2;
-
-	fd2 = dup(fd);
-	if (fd2 == -1) {
-		log_d("dump: failed to duplicate file descriptor %d", fd);
-		lerror("dup");
-		return -1;
-	}
-	fcntl(fd2, F_SETFD, FD_CLOEXEC);
-	f = fdopen(fd2, "a+");
-	if (f == 0) {
-		log_d("dump: failed to associate stream with descriptor %d", fd2);
-		close(fd2);
-		return -1;
-	}
-	fdump(f, r);
-	if (fclose(f) == EOF) {
-		lerror("fclose");
-		close(fd2);
-		return -1;
-	}
-	return 0;
-}
-
-static int temp_dump_fd(char *name)
-{
-	int fd;
-
-	fd = mkstemp(name);
-	if (fd == -1) {
-		lerror("mkstemp");
-		return -1;
-	}
-	if (remove(name) == -1) {
-		log_d("cannot remove temporary file %s", name);
-		lerror("remove");
-		close(fd);
-		return -1;
-	}
-	fcntl(fd, F_SETFD, FD_CLOEXEC);
-	return fd;
-}
-
 int process_dump(struct request *r)
 {
-	int fd;
+	FILE *f;
+	int fd, fd2;
 	char name[32];
 
 	if (r->method != M_GET && r->method != M_HEAD)
@@ -213,11 +169,34 @@ int process_dump(struct request *r)
 		return 404;
 	}
 	strcpy(name, "/tmp/mathop-dump.XXXXXXXX");
-	fd = temp_dump_fd(name);
+	fd = mkstemp(name);
 	if (fd == -1)
 		return 500;
-	if (dump(fd, r) == -1) {
-		log_d("process_dump: dump failed");
+	fcntl(fd, F_SETFD, FD_CLOEXEC);
+	if (remove(name) == -1) {
+		log_d("cannot remove temporary file %s", name);
+		lerror("remove");
+		close(fd);
+		return -1;
+	}
+	fd2 = dup(fd);
+	if (fd2 == -1) {
+		lerror("dup");
+		close(fd);
+		return 500;
+	}
+	fcntl(fd2, F_SETFD, FD_CLOEXEC);
+	f = fdopen(fd2, "a+");
+	if (f == 0) {
+		log_d("dump: failed to associate stream with descriptor %d", fd2);
+		close(fd2);
+		close(fd);
+		return 500;
+	}
+	fdump(f, r);
+	if (fclose(f) == EOF) {
+		lerror("fclose");
+		close(fd2);
 		close(fd);
 		return 500;
 	}
@@ -236,4 +215,21 @@ int process_dump(struct request *r)
 	r->content_type = "text/plain";
 	r->num_content = 0;
 	return 200;
+}
+
+void internal_dump(void)
+{
+	FILE *f;
+	char name[32];
+
+	sprintf(name, "/tmp/mathopd-%d-dump", my_pid);
+	f = fopen(name, "a");
+	if (f == 0) {
+		log_d("cannot open %s for appending", name);
+		lerror("fopen");
+		return;
+	}
+	fprintf(f, "*** Dump performed at %s", ctime(&current_time));
+	fdump(f, 0);
+	fclose(f);
 }
