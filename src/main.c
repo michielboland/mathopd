@@ -8,16 +8,18 @@
 
 #include "mathopd.h"
 
-STRING(server_version) = "Mathopd/1.1b24";
+STRING(server_version) = "Mathopd/1.1b25";
 
 volatile int gotsigterm;
 volatile int gotsighup;
 volatile int gotsigusr1;
 volatile int gotsigusr2;
+volatile int gotsigwinch;
 volatile int numchildren;
 time_t startuptime;
 int debug;
 int fcm;
+int my_pid;
 
 static char *progname;
 static int forked;
@@ -87,6 +89,11 @@ static void sigusr1(int sig)
 static void sigusr2(int sig)
 {
 	gotsigusr2 = 1;
+}
+
+static void sigwinch(int sig)
+{
+	gotsigwinch = 1;
 }
 
 static void sigchld(int sig)
@@ -216,11 +223,14 @@ int main(int argc, char *argv[])
 	mysignal(SIGQUIT, sigterm, SA_INTERRUPT);
 	mysignal(SIGUSR1, sigusr1, SA_INTERRUPT);
 	mysignal(SIGUSR2, sigusr2, SA_INTERRUPT);
+	mysignal(SIGWINCH, sigwinch, SA_INTERRUPT);
 	mysignal(SIGPIPE, SIG_IGN, 0);
+
+	my_pid = getpid();
 
 	if (pid_fd != -1) {
 		ftruncate(pid_fd, 0);
-		sprintf(buf, "%d\n", (int) getpid());
+		sprintf(buf, "%d\n", my_pid);
 		write(pid_fd, buf, strlen(buf));
 		close(pid_fd);
 	}
@@ -237,8 +247,10 @@ int main(int argc, char *argv[])
 	gotsigterm = 0;
 	gotsigusr1 = 0;
 	gotsigusr2 = 0;
+	gotsigwinch = 1;
 
 	time(&startuptime);
+	time(&current_time);
 
 	httpd_main();
 
