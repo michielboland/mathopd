@@ -50,6 +50,9 @@ struct simple_list *exports;
 
 char *user_name;
 
+int log_columns;
+int *log_column;
+
 static const char *err;
 static char *fqdn;
 static char tokbuf[STRLEN];
@@ -124,6 +127,22 @@ static const char t_open[] =		"unexpected opening brace";
 static const char t_string[] =		"unexpected string";
 static const char t_too_long[] =	"token too long";
 static const char t_word[] =		"unexpected word";
+
+#define DEFAULT_LOG_COLUMNS 11
+
+static int default_log_column[] = {
+        ML_CTIME,
+        ML_USERNAME,
+        ML_ADDRESS,
+        ML_PORT,
+        ML_SERVERNAME, 
+        ML_METHOD, 
+        ML_URI, 
+        ML_STATUS,
+        ML_CONTENT_LENGTH,
+        ML_REFERER,
+        ML_USER_AGENT
+};
 
 #define ALLOC(x) if (((x) = malloc(sizeof *(x))) == 0) return e_memory
 #define COPY(x, y) if (((x) = strdup(y)) == 0) return e_memory
@@ -709,6 +728,8 @@ static const char *config2(void)
 	tuning.accept_multi = 1;
 	fcm = DEFAULT_UMASK;
 	stayroot = 0;
+	log_columns = DEFAULT_LOG_COLUMNS;
+	log_column = default_log_column;
 	line = 1;
 	s = config_main();
 	if (s) {
