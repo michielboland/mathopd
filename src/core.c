@@ -433,7 +433,7 @@ static void cleanup_connections(void)
 
 	cn = connections;
 	while (cn) {
-		if (cn->state == HC_ACTIVE && (cn->action == HC_CLOSING || current_time - cn->t >= (time_t) tuning.timeout))
+		if (cn->state == HC_ACTIVE && (cn->action == HC_CLOSING || current_time >= cn->t + (time_t) tuning.timeout))
 			close_connection(cn);
 		cn = cn->next;
 	}
