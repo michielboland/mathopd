@@ -210,14 +210,20 @@ int process_dump(struct request *r)
 void internal_dump(void)
 {
 	FILE *f;
-	char name[32];
+	int fd;
+	char name[40];
 	struct timeval tv;
 
-	sprintf(name, "/tmp/mathopd-%d-dump", my_pid);
-	f = fopen(name, "a");
+	sprintf(name, "/tmp/mathopd-%d-dump.XXXXXXX", my_pid);
+	fd = mkstemp(name);
+	if (fd == -1) {
+		lerror("mkstemp");
+		return;
+	}
+	f = fdopen(fd, "a");
 	if (f == 0) {
-		log_d("cannot open %s for appending", name);
-		lerror("fopen");
+		lerror("fdopen");
+		close(fd);
 		return;
 	}
 	gettimeofday(&tv, 0);
