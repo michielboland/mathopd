@@ -499,7 +499,8 @@ static int readfromchild(struct pipe_params *p)
 		if (p->haslen && bytestoread > p->pmax)
 			bytestoread = p->pmax;
 		if (bytestoread == 0) {
-			log_d("readfromchild: bytestoread is zero!");
+			if (p->pstate != 2)
+				log_d("readfromchild: bytestoread is zero!");
 			return 0;
 		}
 		r = recv(p->pfd, p->pbuf + p->ipp, bytestoread, 0);
