@@ -353,6 +353,22 @@ Desc:    The `External' keywords defines a set of filename extensions that
          This will treat all files that end with `.pl' as CGI scripts,
          interpreted by /usr/bin/perl.
 
+Keyword: ExtraHeaders
+Where:   Control
+Type:    Block
+Desc:    Use this keyword to add extra HTTP headers. This is perhaps best
+         demonstrated by an example.
+
+           Control {
+             ExtraHeaders { "Refresh: 5" }
+           }
+
+         If this is done, all responses from the server will be accompanied
+         by a "Refresh: 5" HTTP header. (This does not make a lot of sense
+         of course.)
+
+         This is an experimental feature that may go away in the future.
+
 Keyword: Host
 Where:   Virtual
 Type:    String

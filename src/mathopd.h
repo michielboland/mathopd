@@ -160,6 +160,7 @@ struct control {
 	int allow_dotfiles;
 	int user_directory;
 	struct simple_list *putenvs;
+	struct simple_list *extra_headers;
 };
 
 struct virtual {

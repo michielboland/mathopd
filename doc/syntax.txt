@@ -82,6 +82,7 @@ control-item:
 	"AllowDotfiles" flag
 	"UserDirectory" flag
 	"PutEnv" string-block
+	"ExtraHeaders" string-block
 
 server-item:
 	"Port" integer
