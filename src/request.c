@@ -793,8 +793,6 @@ static int process_range_header(struct request *r, const char *s)
 	int suffix;
 	unsigned long u, v;
 
-	while (isspace(*s))
-		++s;
 	if (strncasecmp(s, "bytes", 5))
 		return -1;
 	s += 5;
