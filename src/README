@@ -5,18 +5,57 @@ Mathopd in a production environment, and you are not the same
 person as the author, you should stay away from this code, and
 use the stable version instead.
 
-We are currently at 1.3b6. Changes to the last beta:
+We are currently at 1.3b7. Changes to the last beta:
 
-    A new file, log.c, has been added to the source.
-    This files does all the request logging. It uses an
-    array of things that we should log. The array is
-    currently hardcoded in such a way that the logging
-    output looks exactly similar to the `old' log format.
-    Logging can be customized in later versions.
+	Mathopd now returns an "Allow" header if the
+	status is 405.
 
-    The dump() routine has been removed. Instead, a
-    "Dump" specialty has been added. This can be used
-    to view live statistics of your web server using any
-    ordinary web browser.
+	Error messages now have the error number
+	prominently displayed again.
+
+	The "NoApply" keyword has been added to complement
+	"Apply". The configuration file syntax has been
+	tightened a bit: Allow and Deny are now legal only
+	inside Access lists, and Apply and NoApply are legal
+	only inside Clients lists.
+
+	The InputBufSize keyword has been added.
+
+	A HISTORY file was added for your entertainment.
+
+	Negative numbers are no longer allowed in the
+	configuration file.
+
+	The Port number for servers is now sanity-checked.
+
+	The 'params' member of the request structure has been
+	removed.
+
+	A new keyword "DNSLevel" has been added. This only
+	affects CGI/External programs and determines when
+	the REMOTE_HOST environment variable will be set
+	in child processes. The keyword can be used inside
+	Control blocks.
+
+	Let i be the IP address of the client. Let h
+	be the name corresponding to i. Let c
+	be the canonical name of h, and let i_1..i_n
+	be the list of IP addresses corresponding to h.
+
+	In other words:
+		h = gethostbyaddr(i)
+		c, i_1 ... i_n = gethostbyname(h)
+
+	If DNSLevel == 0, REMOTE_HOST is never set.
+	If DNSLevel == 1, REMOTE_HOST is always set to h.
+	If DNSLevel == 2, REMOTE_HOST is set to h, if one
+	of the ip addresses i_1 ... i_n is equal to i. Otherwise,
+	REMOTE_HOST is not set.
+	If DNSLevel > 2, REMOTE_HOST is set to h if h is
+	equal to c, and if one of the ip addresses i_1 ... i_n
+	is equal to i. Otherwise, REMOTE_HOST is not set.
+
+	DNSLevel defaults to 1, for backward compatibility.
+	The author recommends always setting DNSLevel to 3.
 
 Michiel Boland <boland@diva.nl>
