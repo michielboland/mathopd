@@ -1532,11 +1532,16 @@ int process_request(struct request *r)
 			r->status = 500;
 		}
 	}
-	if (r->status)
+	if (r->status) {
 		if (prepare_reply(r) == -1) {
 			log_d("cannot prepare reply for client");
 			return -1;
 		}
+	} else if (r->send_continue) {
+		if (debug)
+			log_d("sending 100-continue");
+		pool_print(&r->cn->output, "HTTP/1.1 %s\r\n\r\n", http_code_phrase(100));
+	}
 	if (debug)
 		log_d("process_request finished (s=%d)", s);
 	return s >= 0 ? 0 : -1;
