@@ -948,53 +948,46 @@ int prepare_reply(struct request *r)
 		log(L_WARNING, "  peer:  %s\n", r->cn->ip);
 	}
 	if (send_message) {
-		char *b;
+		char *b = buf;
 
-		b = buf + SPRINTF4(buf, "<TITLE>%s</TITLE>\n<H1>%s</H1><P>\n",
-				   r->status_line, r->status_line);
+		b += SPRINTF3(b, "<title>%s</title>\n", r->status_line);
+
 		switch (r->status) {
 		case 302:
-			b += SPRINTF4(b, "The document has moved to URL "
-				      "<A HREF=\"%s\">%s</A>.\n",
+			b += SPRINTF4(b, "This document has moved to URL "
+				      "<a href=\"%s\">%s</a>.\n",
 				      r->location, r->location);
 			break;
 		case 400:
-			b += SPRINTF3(b, "Your request contained the "
-				      "following error:\n<P><B>%s</B>\n",
-				      r->error);
+		case 405:
+		case 501:
+		case 505:
+			b += SPRINTF2(b, "Your request was not understood "
+				      "or not allowed by this server.\n");
 			break;
 		case 403:
-			b += SPRINTF3(b, "Access to URL %s denied.\n", r->url);
+			b += SPRINTF2(b, "Access to this resource has been "
+				      "denied to you.\n");
 			break;
 		case 404:
-			b += SPRINTF3(b, "URL %s not found.\n", r->url);
-			break;
-		case 405:
-			b += SPRINTF4(b, "Cannot apply %s method to URL %s\n",
-				      r->method_s,
-				      r->url);
-			break;
-		case 501:
-			b += SPRINTF2(b, "How do I do that?\n");
+			b += SPRINTF2(b, "The resource requested could not be "
+				      "found on this server.\n");
 			break;
 		case 503:
-			b += SPRINTF2(b, "Server overloaded. Sorry.\n");
-			break;
-		case 505:
-			b += SPRINTF2(b, "This server only understands "
-				      "HTTP versions up to 1.1\n");
+			b += SPRINTF2(b, "The server is temporarily busy.\n");
 			break;
 		default:
-			b += SPRINTF3(b, "<B>%s</B>\n",
-				      r->error ? r->error : se_unknown);
+			b += SPRINTF2(b, "An internal server error has "
+				      "occurred.\n");
 			break;
 		}
+
 		if (r->c && r->c->admin) {
 			b += SPRINTF3(b,
-				      "<p>Please notify %s of this error.",
+				      "<p>Please contact the site "
+				      "administrator at <i>%s</i>.\n",
 				      r->c->admin);
 		}
-		sprintf(b, "%s\n", ERROR_FOOTER);
 		r->content_length = strlen(buf);
 		r->num_content = 0;
 		r->content_type = "text/html";
