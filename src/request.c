@@ -294,6 +294,13 @@ static int output_headers(struct pool *p, struct request *r)
 
 	OUT("Date: ", rfctime(current_time));
 
+	if (r->c && r->c->refresh) {
+		char buf[20];
+
+		sprintf(buf, "%d", r->c->refresh);
+		OUT("Refresh: ", buf);
+	}
+
 	if (r->num_content >= 0) {
 
 		OUT("Content-type: ", r->content_type);
