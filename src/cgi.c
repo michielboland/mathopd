@@ -357,10 +357,17 @@ int process_cgi(struct request *r)
 		g = 0;
 		break;
 	}
-	if (amroot && u == server_uid) {
-		log_d("cannot run scripts withouth changing identity");
-		r->status = 500;
-		return 0;
+	if (amroot) {
+		if (u == server_uid) {
+			log_d("cannot run scripts withouth changing identity");
+			r->status = 500;
+			return 0;
+		}
+		if (u == 0) {
+			log_d("ScriptUser or RunScriptsAsOwner must be set");
+			r->status = 500;
+			return 0;
+		}
 	}
 	cp = malloc(sizeof *cp);
 	if (cp == 0) {
