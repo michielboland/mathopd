@@ -60,11 +60,9 @@ int init_log_buffer(size_t size)
 {
 	char *b;
 
-	b = malloc(size);
+	b = realloc(log_buffer, size);
 	if (b == 0)
 		return -1;
-	if (log_buffer)
-		free(log_buffer);
 	log_buffer = b;
 	log_buffer_size = size;
 	return 0;
