@@ -213,6 +213,7 @@ struct request {
 	char *host;
 	char *in_content_type;
 	char *in_content_length;
+	char *connection;
 	char *ims_s;
 	char path[PATHLEN];
 	char path_translated[PATHLEN];
