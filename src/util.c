@@ -40,32 +40,7 @@ static const char rcsid[] = "$Id$";
 #include <ctype.h>
 #include "mathopd.h"
 
-static const char hex[] = "0123456789abcdef";
-
 #define HEXDIGIT(x) (((x) <= '9') ? (x) - '0' : ((x) & 7) + 9)
-
-void escape_url(const char *from, char *to)
-{
-	char c;
-
-	while ((c = *from++) != 0) {
-		switch (c) {
-		case '%':
-		case ' ':
-		case '?':
-		case '+':
-		case '&':
-			*to++ = '%';
-			*to++ = hex[(c >> 4) & 15];
-			*to++ = hex[c & 15];
-			break;
-		default:
-			*to++ = c;
-			break;
-		}
-	}
-	*to = 0;
-}
 
 int unescape_url(const char *from, char *to)
 {

@@ -345,7 +345,6 @@ extern int process_redirect(struct request *);
 
 /* util */
 
-extern void escape_url(const char *, char *);
 extern int unescape_url(const char *, char *);
 extern int unescape_url_n(const char *, char *, size_t);
 
