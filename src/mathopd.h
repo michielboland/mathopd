@@ -154,6 +154,7 @@ struct control {
 	char *error_403_file;
 	char *error_404_file;
 	int do_crypt;
+	char *child_filename;
 };
 
 struct virtual {
@@ -271,7 +272,6 @@ extern char *pid_filename;
 extern char *log_filename;
 extern char *error_filename;
 extern char *agent_filename;
-extern char *child_filename;
 
 extern char *admin;
 extern char *rootdir;

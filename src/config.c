@@ -41,7 +41,6 @@ struct tuning tuning;
 char *pid_filename;
 char *log_filename;
 char *error_filename;
-char *child_filename;
 
 char *rootdir;
 char *coredir;
@@ -433,6 +432,7 @@ static const char *config_control(struct control **as)
 		a->error_403_file = b->error_403_file;
 		a->error_404_file = b->error_404_file;
 		a->do_crypt = b->do_crypt;
+		a->child_filename = b->child_filename;
 	}
 	else {
 		a->index_names = 0;
@@ -448,6 +448,7 @@ static const char *config_control(struct control **as)
 		a->error_403_file = 0;
 		a->error_404_file = 0;
 		a->do_crypt = 0;
+		a->child_filename = 0;
 	}
 	a->next = *as;
 	*as = a;
@@ -504,6 +505,8 @@ static const char *config_control(struct control **as)
 			t = config_string(&a->error_404_file);
 		else if (!strcasecmp(tokbuf, c_do_crypt))
 			t = config_flag(&a->do_crypt);
+		else if (!strcasecmp(tokbuf, c_child_log))
+			t = config_string(&a->child_filename);
 		else
 			t = e_keyword;
 		if (t)
@@ -659,8 +662,6 @@ static const char *config_main(void)
 			t = config_string(&log_filename);
 		else if (!strcasecmp(tokbuf, c_error))
 			t = config_string(&error_filename);
-		else if (!strcasecmp(tokbuf, c_child_log))
-			t = config_string(&child_filename);
 		else if (!strcasecmp(tokbuf, c_export))
 			t = config_list(&exports);
 		else if (!strcasecmp(tokbuf, c_tuning))

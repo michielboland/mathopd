@@ -278,6 +278,7 @@ int fork_request(struct request *r, int (*f)(struct request *))
 {
 	int fd, efd, rv;
 	pid_t pid;
+	char *child_filename;
 
 	if (forked)
 		_exit(1);
@@ -290,6 +291,7 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		forked = 1;
 		mysignal(SIGPIPE, SIG_DFL, 0);
 		fd = r->cn->fd;
+		child_filename = r->c->child_filename;
 		if (child_filename == 0)
 			efd = fd;
 		else {
