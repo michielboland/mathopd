@@ -1,14 +1,6 @@
-/*
- * main.c - Mathopd
- *
- * Copyright 1996, 1997, 1998, Michiel Boland
- */
-
-/* Once Around */
-
 #include "mathopd.h"
 
-STRING(server_version) = "Mathopd/1.1";
+const char server_version[] = "Mathopd/1.2b1";
 
 volatile int gotsigterm;
 volatile int gotsighup;
@@ -24,7 +16,7 @@ int my_pid;
 static char *progname;
 static int forked;
 
-static STRING(su_fork) = "could not fork";
+static const char su_fork[] = "could not fork";
 
 static int mysignal(int sig, void(*f)(int), int flags)
 {
