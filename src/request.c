@@ -379,8 +379,7 @@ static int get_path_info(struct request *r)
 		if (cp != end)
 			*cp = '/';
 		if (rv != -1) {
-			if (*cp)
-				strcpy(pa, cp);
+			strcpy(pa, cp);
 			if (S_ISDIR(s->st_mode))
 				*cp++ = '/';
 			*cp = 0;
