@@ -328,18 +328,18 @@ struct statistics {
 /* main */
 
 extern const char server_version[];
-extern sig_atomic_t gotsigterm;
-extern sig_atomic_t gotsighup;
-extern sig_atomic_t gotsigusr1;
-extern sig_atomic_t gotsigusr2;
-extern sig_atomic_t gotsigchld;
-extern sig_atomic_t gotsigquit;
-extern sig_atomic_t gotsigwinch;
+extern volatile sig_atomic_t gotsigterm;
+extern volatile sig_atomic_t gotsighup;
+extern volatile sig_atomic_t gotsigusr1;
+extern volatile sig_atomic_t gotsigusr2;
+extern volatile sig_atomic_t gotsigchld;
+extern volatile sig_atomic_t gotsigquit;
+extern volatile sig_atomic_t gotsigwinch;
 extern int debug;
 extern unsigned long fcm;
 extern int stayroot;
 extern int amroot;
-extern int my_pid;
+extern volatile int my_pid;
 extern pid_t spawn(const char *, char *const[], char *const[], int, int, uid_t, gid_t, const char *);
 
 /* config */
