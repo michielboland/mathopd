@@ -112,7 +112,7 @@ static int add_argv(const char *a, const char *b, int decode)
 		}
 		cgi_argv[cgi_argc] = tmp;
 	}
-	+cgi_argv;
+	++cgi_argv;
 	return 0;
 }
 
