@@ -446,7 +446,7 @@ static void reap_children(void)
 
 	gotsigchld = 0;
 	while (1) {
-		pid = waitpid(-1, &status, WNOHANG);
+		pid = waitpid(-1, &status, WNOHANG | WUNTRACED);
 		if (pid <= 0)
 			break;
 		++numchildren;
@@ -533,6 +533,12 @@ void lerror(const char *s)
 	errno = saved_errno;
 }
 
+#ifdef POLL
+#ifndef INFTIM
+#define INFTIM -1
+#endif
+#endif
+
 void httpd_main(void)
 {
 	struct server *s;
@@ -572,9 +578,6 @@ void httpd_main(void)
 			gotsigusr2 = 0;
 			nuke_servers();
 			log_d("servers closed");
-		}
-		if (gotsigwinch) {
-			gotsigwinch = 0;
 		}
 		if (gotsigchld)
 			reap_children();
