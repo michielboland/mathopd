@@ -85,7 +85,7 @@ static const char c_core_directory[] =	"CoreDirectory";
 static const char c_ctime[] =		"Ctime";
 static const char c_default_name[] =	"DefaultName";
 static const char c_deny[] =		"Deny";
-static const char c_dns[] =		"DNSLevel";
+static const char c_dns[] =		"DNSLookups";
 static const char c_do_crypt[] =	"EncryptedUserFile";
 static const char c_error[] =		"ErrorLog";
 static const char c_error_401_file[] =	"Error401File";
@@ -302,20 +302,16 @@ static const char *config_string(FILE *f, char **a)
 	return 0;
 }
 
-static const char *config_int(FILE *f, int *i)
+static const char *config_int(FILE *f, unsigned long *i)
 {
 	char *e;
 	unsigned long u;
-	int j;
 
 	GETWORD(f);
 	u = strtoul(tokbuf, &e, 0);
 	if (*e || e == tokbuf)
 		return e_inval;
-	j = u;
-	if (j < 0 || j != u)
-		return e_inval;
-	*i = j;
+	*i = u;
 	return 0;
 }
 
@@ -651,7 +647,7 @@ static const char *config_control(FILE *f, struct control **as)
 		a->exports = 0;
 		a->script_user = 0;
 		a->run_scripts_as_owner = 0;
-		a->max_age = -1;
+		a->max_age = 0;
 		a->allowed_owners = 0;
 	}
 	a->next = *as;
@@ -708,7 +704,7 @@ static const char *config_control(FILE *f, struct control **as)
 		else if (!strcasecmp(tokbuf, c_child_log))
 			t = config_string(f, &a->child_filename);
 		else if (!strcasecmp(tokbuf, c_dns))
-			t = config_int(f, &a->dns);
+			t = config_flag(f, &a->dns);
 		else if (!strcasecmp(tokbuf, c_export))
 			t = config_list(f, &a->exports);
 		else if (!strcasecmp(tokbuf, c_exact_match))
@@ -792,7 +788,7 @@ static const char *config_server(FILE *f, struct server **ss)
 
 	ALLOC(s);
 	num_servers++;
-	s->port = DEFAULT_PORT;
+	s->port = 80;
 	s->addr.s_addr = 0;
 	s->s_name = 0;
 	s->children = 0;
@@ -843,10 +839,10 @@ static const char *fill_servernames(void)
 		while (v) {
 			v->controls = v->vserver->controls;
 			name = v->host ? v->host : s->s_name;
-			if (s->port == DEFAULT_PORT)
+			if (s->port == 80)
 				v->fullname = name;
 			else {
-				sprintf(buf, "%.200s:%d", name, s->port);
+				sprintf(buf, "%.200s:%lu", name, s->port);
 				COPY(v->fullname, buf);
 			}
 			v = v->next;
@@ -941,7 +937,7 @@ static struct pool *new_pool(size_t s)
 const char *config(const char *config_filename)
 {
 	const char *s;
-	int n;
+	unsigned long n;
 	struct connection *cn;
 	FILE *config_file;
 
