@@ -234,7 +234,7 @@ void log_d(const char *fmt, ...)
 	n = vsnprintf(log_line + l, m, fmt, ap);
 	l += n < m ? n : m - 1;
 	log_line[l++] = '\n';
-	if (write(error_file, log_line, l) == -1)
+	if (error_file != -1 && write(error_file, log_line, l) == -1)
 		gotsigterm = 1;
 	if (am_daemon == 0 && forked == 0)
 		write(2, log_line, l);
