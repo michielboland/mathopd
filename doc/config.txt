@@ -693,8 +693,9 @@ Desc:    Some file extensions can be treated specially if they are
            Redirect
            Dump
 
-         For a description of CGI and Imagemaps, see the corresponding
-         documentation.
+         For a description of CGI, see cgi.txt.
+         An imagemap is a fairly ancient concept. It is generally not
+         used anymore but it is kept around for historical reasons.
          A redirect file simply redirects the client to a URL that is
          contained in the file. A Dump displays some mildly interesting
          server statistics but is otherwise not very useful.
