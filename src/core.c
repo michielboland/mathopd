@@ -443,6 +443,29 @@ static int read_connection(struct connection *cn)
 	return 0;
 }
 
+static int begin_response(struct connection *cn)
+{
+	if (cn->rfd == -1) {
+		cn->left = 0;
+		return 0;
+	}
+	cn->left = cn->r->content_length;
+#if defined LINUX_SENDFILE || defined FREEBSD_SENDFILE
+	if (set_nopush(cn->fd, 1) == -1) {
+		lerror("set_nopush");
+		return -1;
+	}
+	return 0;
+#else
+	if (cn->file_offset)
+		if (lseek(cn->rfd, cn->file_offset, SEEK_SET) == -1) {
+			lerror("lseek");
+			return -1;
+		}
+	return fill_connection(cn);
+#endif
+}
+
 static int scan_request(struct connection *cn)
 {
 	char *s;
@@ -584,20 +607,11 @@ static int scan_request(struct connection *cn)
 			}
 			return 0;
 		}
-		cn->left = cn->rfd == -1 ? 0 : cn->r->content_length;
-#if defined LINUX_SENDFILE || defined FREEBSD_SENDFILE
-		if (cn->rfd != -1)
-			if (set_nopush(cn->fd, 1) == -1) {
-				lerror("set_nopush");
-				close_connection(cn);
-				return -1;
-			}
-#else
-		if (fill_connection(cn) == -1) {
+		if (begin_response(cn) == -1) {
 			close_connection(cn);
 			return -1;
 		}
-#endif
+
 		set_connection_state(cn, HC_WRITING);
 	}
 	return 0;
