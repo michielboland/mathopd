@@ -633,7 +633,7 @@ void init_child(struct connection *p, int fd)
 	p->pipe_params.nocontent = r->method == M_HEAD;
 	p->pipe_params.haslen = 0;
 	p->pipe_params.pmax = 0;
-	if (r->method == M_POST) {
+	if (r->in_mblen) {
 		p->client_input.state = 1;
 		p->pipe_params.imax = r->in_mblen;
 		bytestomove = p->header_input.end - p->header_input.middle;
