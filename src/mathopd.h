@@ -333,6 +333,7 @@ extern struct pollfd *pollfds;
 extern int nconnections;
 extern int maxconnections;
 extern int log_file;
+extern int error_file;
 extern time_t current_time;
 
 extern void log_d(const char *, ...);
@@ -378,5 +379,6 @@ extern int process_dummy(struct request *);
 /* log */
 
 extern void log_request(struct request *);
+extern int init_logs(void);
 
 #endif

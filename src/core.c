@@ -59,8 +59,7 @@ int nconnections;
 int maxconnections;
 time_t current_time;
 int log_file;
-
-static int error_file;
+int error_file;
 
 static void init_pool(struct pool *p)
 {
@@ -458,81 +457,6 @@ static void reap_children(void)
 	}
 	if (pid < 0 && errno != ECHILD)
 		lerror("waitpid");
-}
-
-static int init_log_d(char *name, int *fdp)
-{
-	int fd, nfd;
-	char converted_name[PATHLEN], *n;
-	struct tm *tp;
-
-	if (name) {
-		n = name;
-		if (strchr(name, '%')) {
-			tp = localtime(&current_time);
-			if (tp) {
-				if (strftime(converted_name, PATHLEN - 1, name, tp))
-					n = converted_name;
-			}
-		}
-		fd = *fdp;
-		nfd = open(n, O_WRONLY | O_CREAT | O_APPEND, DEFAULT_FILEMODE);
-		if (nfd == -1)
-			return fd == -1 ? -1 : 0;
-		if (fd == -1)
-			*fdp = nfd;
-		else if (nfd != fd) {
-			dup2(nfd, fd);
-			close(nfd);
-			nfd = fd;
-		}
-		fcntl(nfd, F_SETFD, FD_CLOEXEC);
-	}
-	return 0;
-}
-
-static int init_logs(void)
-{
-	return init_log_d(log_filename, &log_file) == -1 || init_log_d(error_filename, &error_file) == -1 ? -1 : 0;
-}
-
-void log_d(const char *fmt, ...)
-{
-	va_list ap;
-	char log_line[1000];
-	int n, saved_errno;
-	char *ti;
-	size_t l, m;
-
-	if (error_file == -1 && am_daemon)
-		return;
-	va_start(ap, fmt);
-	saved_errno = errno;
-	ti = ctime(&current_time);
-	l = sprintf(log_line, "%.24s [%d] ", ti, my_pid);
-	m = sizeof log_line - l - 1;
-	n = vsnprintf(log_line + l, m, fmt, ap);
-	l += n < m ? n : m;
-	log_line[l++] = '\n';
-	write(error_file, log_line, l);
-	if (am_daemon == 0 && forked == 0)
-		write(2, log_line, l);
-	errno = saved_errno;
-	va_end(ap);
-}
-
-void lerror(const char *s)
-{
-	int saved_errno;
-	char *errmsg;
-
-	saved_errno = errno;
-	errmsg = strerror(errno);
-	if (s && *s)
-		log_d("%s: %s", s, errmsg ? errmsg : "???");
-	else
-		log_d("%s", errmsg ? errmsg : "???");
-	errno = saved_errno;
 }
 
 #ifdef POLL
