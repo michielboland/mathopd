@@ -313,7 +313,6 @@ static int convert_cgi_headers(struct connection *pp, int *sp)
 	*dest++ = '\r';
 	*dest++ = '\n';
 	pp->output.end = dest;
-	pollfds[pp->pollindex].events |= POLLOUT;
 	*sp = s;
 	return 0;
 }
@@ -355,10 +354,6 @@ static int readfromclient(struct connection *p)
 		p->nread += r;
 		p->client_input.end += r;
 		p->pipe_params.imax -= r;
-		if (p->pipe_params.imax == 0)
-			pollfds[p->pollindex].events &= ~POLLIN; /* done */
-		if (p->client_input.end == p->client_input.ceiling)
-			pollfds[p->pollindex].events &= ~POLLIN; /* block */
 		break;
 	}
 	return 0;
@@ -405,13 +400,9 @@ static int readfromchild(struct connection *p)
 		p->script_input.end += r;
 		if (p->pipe_params.haslen) {
 			p->pipe_params.pmax -= r;
-			if (p->pipe_params.pmax == 0) {
+			if (p->pipe_params.pmax == 0)
 				p->script_input.state = 2;
-				pollfds[p->rpollindex].events &= ~POLLIN; /* done */
-			}
 		}
-		if (p->script_input.end == p->script_input.ceiling)
-			pollfds[p->rpollindex].events &= ~POLLIN; /* block */
 		break;
 	}
 	return 0;
@@ -447,12 +438,8 @@ static int writetoclient(struct connection *p)
 		p->t = current_time;
 		p->nwritten += r;
 		p->output.start += r;
-		if (p->output.start == p->output.end) {
-			pollfds[p->pollindex].events &= ~POLLOUT;
+		if (p->output.start == p->output.end)
 			p->output.start = p->output.end = p->output.floor;
-			if (p->pipe_params.state == 2)
-				pollfds[p->rpollindex].events |= POLLIN;
-		}
 		break;
 	}
 	return 0;
@@ -482,12 +469,8 @@ static int writetochild(struct connection *p)
 	default:
 		p->t = current_time;
 		p->client_input.start += r;
-		if (p->client_input.start == p->client_input.end) {
-			if (p->pipe_params.imax)
-				pollfds[p->pollindex].events |= POLLIN; /* unblock */
+		if (p->client_input.start == p->client_input.end)
 			p->client_input.start = p->client_input.end = p->client_input.floor;
-			pollfds[p->rpollindex].events &= ~POLLOUT;
-		}
 		break;
 	}
 	return 0;
@@ -554,9 +537,7 @@ static void copychunk(struct connection *p)
 	size_t bytestocopy;
 	char chunkbuf[16];
 	size_t chunkheaderlen;
-	int needoutput;
 
-	needoutput = 0;
 	if (p->pipe_params.nocontent) {
 		p->script_input.start = p->script_input.end = p->script_input.floor;
 		return;
@@ -576,25 +557,19 @@ static void copychunk(struct connection *p)
 			}
 			memcpy(p->output.end, chunkbuf, chunkheaderlen);
 			p->output.end += chunkheaderlen;
-			needoutput = 1;
 		}
 	}
 	if (bytestocopy) {
 		memcpy(p->output.end, p->script_input.start, bytestocopy);
 		p->output.end += bytestocopy;
-		needoutput = 1;
 		p->script_input.start += bytestocopy;
-		if (p->script_input.start == p->script_input.end) {
-			pollfds[p->rpollindex].events |= POLLIN;
+		if (p->script_input.start == p->script_input.end)
 			p->script_input.start = p->script_input.end = p->script_input.floor;
-		}
 		if (p->pipe_params.chunkit) {
 			memcpy(p->output.end, "\r\n", 2);
 			p->output.end += 2;
 		}
 	}
-	if (needoutput)
-		pollfds[p->pollindex].events |= POLLOUT;
 }
 
 static void copylastchunk(struct connection *p)
@@ -604,7 +579,6 @@ static void copylastchunk(struct connection *p)
 			memcpy(p->output.end, "0\r\n\r\n", 5);
 			p->output.end += 5;
 			p->script_input.state = 3;
-			pollfds[p->pollindex].events |= POLLOUT;
 		}
 	} else
 		p->script_input.state = 3;
@@ -628,8 +602,8 @@ void pipe_run(struct connection *p)
 	short cevents, pevents;
 	int canwritetoclient, canwritetochild;
 
-	cevents = pollfds[p->pollindex].revents;
-	pevents = pollfds[p->rpollindex].revents;
+	cevents = p->pollno != -1 ? pollfds[p->pollno].revents : 0;
+	pevents = p->rpollno != -1 ? pollfds[p->rpollno].revents : 0;
 	if (cevents & POLLERR) {
 		log_socket_error(p->fd, "pipe_run: error on client socket");
 		close_connection(p);
@@ -721,6 +695,41 @@ void init_child(struct connection *p, int fd)
 		p->client_input.state = 0;
 		p->pipe_params.imax = 0;
 	}
-	p->rpollindex = allocate_pollindex(fd, p->client_input.end > p->client_input.start ? POLLIN | POLLOUT : POLLIN);
 	set_connection_state(p, HC_FORKED);
+	p->pollno = -1;
+	p->rpollno = -1;
+}
+
+int setup_child_pollfds(int n, struct connection *p)
+{
+	struct connection *q;
+	short e;
+
+	while (p) {
+		q = p->next;
+		e = 0;
+		if (p->client_input.state == 1 && p->client_input.end < p->client_input.ceiling && p->pipe_params.imax)
+			e |= POLLIN;
+		if (p->output.end > p->output.start || (p->pipe_params.state == 2 && p->script_input.start < p->script_input.end && p->output.end == p->output.floor))
+			e |= POLLOUT;
+		if (e) {
+			pollfds[n].fd = p->fd;
+			pollfds[n].events = e;
+			p->pollno = n++;
+		} else
+			p->pollno = -1;
+		e = 0;
+		if (p->script_input.state == 1 && p->script_input.end < p->script_input.ceiling && (p->pipe_params.chunkit || p->pipe_params.haslen == 0 || p->pipe_params.pmax))
+			e |= POLLIN;
+		if (p->client_input.end > p->client_input.start)
+			e |= POLLOUT;
+		if (e) {
+			pollfds[n].fd = p->rfd;
+			pollfds[n].events = e;
+			p->rpollno = n++;
+		} else
+			p->rpollno = -1;
+		p = q;
+	}
+	return n;
 }
