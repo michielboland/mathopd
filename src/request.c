@@ -1007,7 +1007,6 @@ static int process_headers(struct request *r)
 	char *l, *u, *s;
 	time_t i;
 	size_t n;
-	int multiple_range;
 	unsigned long cl;
 
 	do {
@@ -1040,7 +1039,6 @@ static int process_headers(struct request *r)
 	if (r->protocol_major && r->protocol_minor)
 		r->cn->keepalive = 1;
 	n = 0;
-	multiple_range = 0;
 	while ((l = getline(&r->cn->header_input, 1)) != 0) {
 		s = strchr(l, ':');
 		if (s == 0)
@@ -1079,9 +1077,11 @@ static int process_headers(struct request *r)
 		else if (!strcasecmp(l, "Content-Length"))
 			r->in_content_length = s;
 		else if (!strcasecmp(l, "Range")) {
-			if (r->range_s)
-				multiple_range = 1;
-			else
+			if (r->range_s) {
+				log_d("multiple Range headers");
+				r->status = 400;
+				return 0;
+			} else
 				r->range_s = s;
 		} else if (!strcasecmp(l, "If-Range"))
 			r->if_range_s = s;
@@ -1194,14 +1194,10 @@ static int process_headers(struct request *r)
 			if (i != -1)
 				r->if_range = i;
 		}
-		if (multiple_range)
-			log_d("multiple Range headers!?");
-		else {
-			s = r->range_s;
-			if (s) {
-				if (parse_range_header(r, s) == -1)
-					log_d("ignoring Range header \"%s\"", s);
-			}
+		s = r->range_s;
+		if (s) {
+			if (parse_range_header(r, s) == -1)
+				log_d("ignoring Range header \"%s\"", s);
 		}
 	} else if (r->method == M_POST) {
 		if (r->in_content_length == 0) {
