@@ -172,7 +172,7 @@ static int separate(const char *s, struct token *t, int m)
 
 static int f_process_imap(struct request *r, FILE *fp)
 {
-	char input[STRLEN], default_url[STRLEN];
+	char input[PATHLEN], default_url[PATHLEN];
 	struct token tok[2 * MAXVERTS + 2];
 	point testpoint, pointarray[MAXVERTS];
 	long dist, mindist;
@@ -198,7 +198,7 @@ static int f_process_imap(struct request *r, FILE *fp)
 	mindist = 0;
 	status = 0;
 	url = 0;
-	while (fgetline(input, STRLEN, fp) != -1) {
+	while (fgetline(input, PATHLEN, fp) != -1) {
 		if (++line > MAXLINES) {
 			status = "too many lines";
 			break;
