@@ -1081,17 +1081,8 @@ int process_request(struct request *r)
 		log(L_ERROR, "cannot prepare reply for client");
 		return -1;
 	}
-	if (r->status_line && r->c) {
-		switch(r->c->loglevel) {
-		case 1:
-			break;
-		case 2:
-			if (r->status != 200)
-				break;
-		default:
+	if (r->status_line && r->c)
 			log_request(r);
-		}
-	}
 	return r->status > 0 ? 0 : -1;
 }
 

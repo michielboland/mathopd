@@ -88,7 +88,6 @@ static const char c_host[] =		"Host";
 static const char c_index_names[] =	"IndexNames";
 static const char c_location[] =	"Location";
 static const char c_log[] =		"Log";
-static const char c_loglevel[] =	"LogLevel";
 static const char c_name[] =		"Name";
 static const char c_num_connections[] =	"NumConnections";
 static const char c_off[] =		"Off";
@@ -435,7 +434,6 @@ static const char *config_control(struct control **as)
 		a->mimes = b->mimes;
 		a->symlinksok = b->symlinksok;
 		a->path_args_ok = b->path_args_ok;
-		a->loglevel = b->loglevel;
 		a->admin = b->admin;
 		a->refresh = b->refresh;
 		a->realm = b->realm;
@@ -450,7 +448,6 @@ static const char *config_control(struct control **as)
 		a->mimes = 0;
 		a->symlinksok = 0;
 		a->path_args_ok = 0;
-		a->loglevel = 0;
 		a->admin = 0;
 		a->refresh = 0;
 		a->realm = 0;
@@ -486,8 +483,6 @@ static const char *config_control(struct control **as)
 			t = config_flag(&a->symlinksok);
 		else if (!strcasecmp(tokbuf, c_path_args))
 			t = config_flag(&a->path_args_ok);
-		else if (!strcasecmp(tokbuf, c_loglevel))
-			t = config_int(&a->loglevel);
 		else if (!strcasecmp(tokbuf, c_index_names))
 			t = config_list(&a->index_names);
 		else if (!strcasecmp(tokbuf, c_access))
