@@ -546,8 +546,6 @@ void httpd_main(void)
 			break;
 		}
 		t = accepting ? (nconnections ? 60000 : INFTIM) : 1000;
-		if (debug)
-			log_d("httpd_main: starting poll, n=%d, t=%d", n, t);
 		rv = poll(pollfds, n, t);
 		current_time = time(0);
 		if (rv == -1) {
