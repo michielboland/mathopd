@@ -1,6 +1,6 @@
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.2b16";
+const char server_version[] = "Mathopd/1.2b17";
 
 volatile int gotsigterm;
 volatile int gotsighup;
@@ -105,6 +105,7 @@ int main(int argc, char *argv[])
 #ifndef NO_GETRLIMIT
 	struct rlimit rl;
 #endif
+	struct passwd *pwd;
 
 	progname = argv[0];
 
@@ -167,15 +168,16 @@ int main(int argc, char *argv[])
 	}
 
 	if (geteuid() == 0) {
-		if (user_id == 0)
+		if (user_name == 0)
 			die(0, "No user specified.");
-		if (group_id == 0)
-			die(0, "No group specified.");
-		if (initgroups(user_name, group_id) == -1)
+		pwd = getpwnam(user_name);
+		if (pwd == 0 || pwd->pw_uid == 0)
+			die(0, "Invalid user name.");
+		if (initgroups(user_name, pwd->pw_gid) == -1)
 			die("initgroups", 0);
-		if (setgid(group_id) == -1)
+		if (setgid(pwd->pw_gid) == -1)
 			die("setgid", 0);
-		if (setuid(user_id) == -1)
+		if (setuid(pwd->pw_uid) == -1)
 			die("setuid", 0);
 	}
 
