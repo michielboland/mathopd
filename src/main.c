@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
 	version = 0;
 	config_filename = 0;
 	tee = 0;
-	while ((c = getopt(argc, argv, "ndvf:t")) != EOF) {
+	while ((c = getopt(argc, argv, "ndvf:t")) != -1) {
 		switch(c) {
 		case 'n':
 			am_daemon = 0;
