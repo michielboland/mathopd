@@ -1,11 +1,3 @@
-/*
- * config.c - startup and configuration of Mathopd
- *
- * Copyright 1996, 1997, 1998, Michiel Boland
- */
-
-/* House of Games */
-
 #include "mathopd.h"
 
 int buf_size = DEFAULT_BUF_SIZE;
@@ -40,64 +32,64 @@ static int line = 1;
 static int num_servers = 0;
 static struct control *controls;
 
-static STRING(c_access) =		"Access";
-static STRING(c_address) =		"Address";
-static STRING(c_admin) =		"Admin";
-static STRING(c_alias) =		"Alias";
-static STRING(c_allow) =		"Allow";
-static STRING(c_apply) =		"Apply";
-static STRING(c_buf_size) =		"BufSize";
-static STRING(c_cern) =			"CERNStyle";
-static STRING(c_child_log) =		"ChildLog";
-static STRING(c_clients) =		"Clients";
-static STRING(c_control) =		"Control";
-static STRING(c_core_directory) =	"CoreDirectory";
-static STRING(c_default_name) =		"DefaultName";
-static STRING(c_deny) =			"Deny";
-static STRING(c_error) =		"ErrorLog";
-static STRING(c_exact) =		"Exact";
-static STRING(c_export) =		"Export";
-static STRING(c_group) =		"Group";
-static STRING(c_host) =			"Host";
-static STRING(c_index_names) =		"IndexNames";
-static STRING(c_location) =		"Location";
-static STRING(c_log) =			"Log";
-static STRING(c_loglevel) =		"LogLevel";
-static STRING(c_name) =			"Name";
-static STRING(c_num_connections) =	"NumConnections";
-static STRING(c_off) =			"Off";
-static STRING(c_on) =			"On";
-static STRING(c_path_args) =		"PathArgs";
-static STRING(c_pid) =			"PIDFile";
-static STRING(c_port) =			"Port";
-static STRING(c_refresh) =		"Refresh";
-static STRING(c_root_directory) =	"RootDirectory";
-static STRING(c_server) =		"Server";
-static STRING(c_specials) =		"Specials";
-static STRING(c_symlinks) =		"Symlinks";
-static STRING(c_timeout) =		"Timeout";
-static STRING(c_types) =		"Types";
-static STRING(c_virtual) =		"Virtual";
-static STRING(c_umask) =		"Umask";
-static STRING(c_user) =			"User";
+static const char c_access[] =		"Access";
+static const char c_address[] =		"Address";
+static const char c_admin[] =		"Admin";
+static const char c_alias[] =		"Alias";
+static const char c_allow[] =		"Allow";
+static const char c_apply[] =		"Apply";
+static const char c_buf_size[] =	"BufSize";
+static const char c_cern[] =		"CERNStyle";
+static const char c_child_log[] =	"ChildLog";
+static const char c_clients[] =		"Clients";
+static const char c_control[] =		"Control";
+static const char c_core_directory[] =	"CoreDirectory";
+static const char c_default_name[] =	"DefaultName";
+static const char c_deny[] =		"Deny";
+static const char c_error[] =		"ErrorLog";
+static const char c_exact[] =		"Exact";
+static const char c_export[] =		"Export";
+static const char c_group[] =		"Group";
+static const char c_host[] =		"Host";
+static const char c_index_names[] =	"IndexNames";
+static const char c_location[] =	"Location";
+static const char c_log[] =		"Log";
+static const char c_loglevel[] =	"LogLevel";
+static const char c_name[] =		"Name";
+static const char c_num_connections[] =	"NumConnections";
+static const char c_off[] =		"Off";
+static const char c_on[] =		"On";
+static const char c_path_args[] =	"PathArgs";
+static const char c_pid[] =		"PIDFile";
+static const char c_port[] =		"Port";
+static const char c_refresh[] =		"Refresh";
+static const char c_root_directory[] =	"RootDirectory";
+static const char c_server[] =		"Server";
+static const char c_specials[] =	"Specials";
+static const char c_symlinks[] =	"Symlinks";
+static const char c_timeout[] =		"Timeout";
+static const char c_types[] =		"Types";
+static const char c_virtual[] =		"Virtual";
+static const char c_umask[] =		"Umask";
+static const char c_user[] =		"User";
 
-static STRING(e_addr_set) =		"address already set";
-static STRING(e_bad_addr) =		"bad address";
-static STRING(e_bad_alias) =		"alias without matching location";
-static STRING(e_bad_group) =		"bad group name";
-static STRING(e_bad_user) =		"bad user name";
-static STRING(e_help) =			"unknown error (help)";
-static STRING(e_inval) =		"illegal quantity";
-static STRING(e_keyword) =		"unknown keyword";
-static STRING(e_memory) =		"out of memory";
-static STRING(e_unknown_host) =		"no default hostname";
+static const char e_addr_set[] =	"address already set";
+static const char e_bad_addr[] =	"bad address";
+static const char e_bad_alias[] =	"alias without matching location";
+static const char e_bad_group[] =	"bad group name";
+static const char e_bad_user[] =	"bad user name";
+static const char e_help[] =		"unknown error (help)";
+static const char e_inval[] =		"illegal quantity";
+static const char e_keyword[] =		"unknown keyword";
+static const char e_memory[] =		"out of memory";
+static const char e_unknown_host[] =	"no default hostname";
 
-static STRING(t_close) =		"unexpected closing brace";
-static STRING(t_eof) =			"unexpected end of file";
-static STRING(t_open) =			"unexpected opening brace";
-static STRING(t_string) =		"unexpected string";
-static STRING(t_too_long) =		"token too long";
-static STRING(t_word) =			"unexpected word";
+static const char t_close[] =		"unexpected closing brace";
+static const char t_eof[] =		"unexpected end of file";
+static const char t_open[] =		"unexpected opening brace";
+static const char t_string[] =		"unexpected string";
+static const char t_too_long[] =	"token too long";
+static const char t_word[] =		"unexpected word";
 
 static const char *gettoken(void)
 {
@@ -236,9 +228,9 @@ static const char *config_int(int *i)
 static const char *config_flag(int *i)
 {
 	GETWORD();
-	if (strceq(tokbuf, c_off))
+	if (!strcasecmp(tokbuf, c_off))
 		*i = 0;
-	else if (strceq(tokbuf, c_on))
+	else if (!strcasecmp(tokbuf, c_on))
 		*i = 1;
 	else
 		return e_keyword;
@@ -351,11 +343,11 @@ static const char *config_access(struct access **ls)
 		MAKE(l, struct access);
 		l->next = *ls;
 		*ls = l;
-		if (strceq(tokbuf, c_allow))
+		if (!strcasecmp(tokbuf, c_allow))
 			l->type = ALLOW;
-		else if (strceq(tokbuf, c_deny))
+		else if (!strcasecmp(tokbuf, c_deny))
 			l->type = DENY;
-		else if (strceq(tokbuf, c_apply))
+		else if (!strcasecmp(tokbuf, c_apply))
 			l->type = APPLY;
 		else
 			return e_keyword;
@@ -363,7 +355,7 @@ static const char *config_access(struct access **ls)
 		if (*tokbuf == '*')
 			l->mask = l->addr = 0;
 		else {
-			if (strceq(tokbuf, c_exact))
+			if (!strcasecmp(tokbuf, c_exact))
 				l->mask = (unsigned long) -1;
 			else if ((l->mask = inet_addr(tokbuf))
 				 == (unsigned long) -1)
@@ -424,7 +416,7 @@ static const char *config_control(struct control **as)
 	GETOPEN();
 	while (NOTCLOSE()) {
 		REQWORD();
-		if (strceq(tokbuf, c_location)) {
+		if (!strcasecmp(tokbuf, c_location)) {
 			MAKE(l, struct simple_list);
 			GETSTRING();
 			chopslash(tokbuf);
@@ -437,30 +429,30 @@ static const char *config_control(struct control **as)
 				a->locations = l;
 			}
 		}
-		else if (strceq(tokbuf, c_alias)) {
+		else if (!strcasecmp(tokbuf, c_alias)) {
 			GETSTRING();
 			chopslash(tokbuf);
 			COPY(a->alias, tokbuf);
 		}
-		else if (strceq(tokbuf, c_symlinks))
+		else if (!strcasecmp(tokbuf, c_symlinks))
 			t = config_flag(&a->symlinksok);
-		else if (strceq(tokbuf, c_path_args))
+		else if (!strcasecmp(tokbuf, c_path_args))
 			t = config_flag(&a->path_args_ok);
-		else if (strceq(tokbuf, c_loglevel))
+		else if (!strcasecmp(tokbuf, c_loglevel))
 			t = config_int(&a->loglevel);
-		else if (strceq(tokbuf, c_index_names))
+		else if (!strcasecmp(tokbuf, c_index_names))
 			t = config_list(&a->index_names);
-		else if (strceq(tokbuf, c_access))
+		else if (!strcasecmp(tokbuf, c_access))
 			t = config_access(&a->accesses);
-		else if (strceq(tokbuf, c_clients))
+		else if (!strcasecmp(tokbuf, c_clients))
 			t = config_access(&a->clients);
-		else if (strceq(tokbuf, c_types))
+		else if (!strcasecmp(tokbuf, c_types))
 			t = config_mime(&a->mimes, M_TYPE);
-		else if (strceq(tokbuf, c_specials))
+		else if (!strcasecmp(tokbuf, c_specials))
 			t = config_mime(&a->mimes, M_SPECIAL);
-		else if (strceq(tokbuf, c_admin))
+		else if (!strcasecmp(tokbuf, c_admin))
 			t = config_string(&a->admin);
-		else if (strceq(tokbuf, c_refresh))
+		else if (!strcasecmp(tokbuf, c_refresh))
 			t = config_int(&a->refresh);
 		else
 			t = e_keyword;
@@ -492,9 +484,9 @@ static const char *config_virtual(struct virtual **vs, struct server *parent,
 	GETOPEN();
 	while (NOTCLOSE()) {
 		REQWORD();
-		if (strceq(tokbuf, c_host))
+		if (!strcasecmp(tokbuf, c_host))
 			t = config_string(&v->host);
-		else if (strceq(tokbuf, c_control))
+		else if (!strcasecmp(tokbuf, c_control))
 			t = config_control(&v->controls);
 		else
 			t = e_keyword;
@@ -524,15 +516,15 @@ static const char *config_server(struct server **ss)
 	GETOPEN();
 	while (NOTCLOSE()) {
 		REQWORD();
-		if (strceq(tokbuf, c_port))
+		if (!strcasecmp(tokbuf, c_port))
 			t = config_int(&s->port);
-		else if (strceq(tokbuf, c_name))
+		else if (!strcasecmp(tokbuf, c_name))
 			t = config_name(&s->name, &s->addr);
-		else if (strceq(tokbuf, c_address))
+		else if (!strcasecmp(tokbuf, c_address))
 			t = config_address(&s->name, &s->addr);
-		else if (strceq(tokbuf, c_virtual))
+		else if (!strcasecmp(tokbuf, c_virtual))
 			t = config_virtual(&s->children, s, 0);
-		else if (strceq(tokbuf, c_control))
+		else if (!strcasecmp(tokbuf, c_control))
 			t = config_control(&s->controls);
 		else
 			t = e_keyword;
@@ -585,39 +577,39 @@ static const char *config_main(void)
 
 	while (NOTEOF()) {
 		REQWORD();
-		if (strceq(tokbuf, c_root_directory))
+		if (!strcasecmp(tokbuf, c_root_directory))
 			t = config_string(&rootdir);
-		else if (strceq(tokbuf, c_core_directory))
+		else if (!strcasecmp(tokbuf, c_core_directory))
 			t = config_string(&coredir);
-		else if (strceq(tokbuf, c_default_name))
+		else if (!strcasecmp(tokbuf, c_default_name))
 			t = config_string(&fqdn);
-		else if (strceq(tokbuf, c_cern))
+		else if (!strcasecmp(tokbuf, c_cern))
 			t = config_flag(&cern);
-		else if (strceq(tokbuf, c_umask))
+		else if (!strcasecmp(tokbuf, c_umask))
 			t = config_int(&fcm);
-		else if (strceq(tokbuf, c_timeout))
+		else if (!strcasecmp(tokbuf, c_timeout))
 			t = config_int(&timeout);
-		else if (strceq(tokbuf, c_buf_size))
+		else if (!strcasecmp(tokbuf, c_buf_size))
 			t = config_int(&buf_size);
-		else if (strceq(tokbuf, c_num_connections))
+		else if (!strcasecmp(tokbuf, c_num_connections))
 			t = config_int(&num_connections);
-		else if (strceq(tokbuf, c_user))
+		else if (!strcasecmp(tokbuf, c_user))
 			t = config_user(&user_id);
-		else if (strceq(tokbuf, c_group))
+		else if (!strcasecmp(tokbuf, c_group))
 			t = config_group(&group_id);
-		else if (strceq(tokbuf, c_pid))
+		else if (!strcasecmp(tokbuf, c_pid))
 			t = config_string(&pid_filename);
-		else if (strceq(tokbuf, c_log))
+		else if (!strcasecmp(tokbuf, c_log))
 			t = config_string(&log_filename);
-		else if (strceq(tokbuf, c_error))
+		else if (!strcasecmp(tokbuf, c_error))
 			t = config_string(&error_filename);
-		else if (strceq(tokbuf, c_child_log))
+		else if (!strcasecmp(tokbuf, c_child_log))
 			t = config_string(&child_filename);
-		else if (strceq(tokbuf, c_export))
+		else if (!strcasecmp(tokbuf, c_export))
 			t = config_list(&exports);
-		else if (strceq(tokbuf, c_control))
+		else if (!strcasecmp(tokbuf, c_control))
 			t = config_control(&controls);
-		else if (strceq(tokbuf, c_server))
+		else if (!strcasecmp(tokbuf, c_server))
 			t = config_server(&servers);
 		else
 			t = e_keyword;
