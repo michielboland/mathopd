@@ -88,9 +88,10 @@ static int base64compare(const unsigned char *encoded,
 	return strcmp(tmp, decoded);
 }
 
-static int f_webuserok(const char *authorization, FILE *fp)
+static int f_webuserok(const char *authorization, FILE *fp,
+	char *username, int len)
 {
-	char buf[256];
+	char buf[256], *p;
 	register int c, bp, skipline;
 
 	bp = 0;
@@ -99,8 +100,15 @@ static int f_webuserok(const char *authorization, FILE *fp)
 		if (c == '\n') {
 			if (skipline == 0) {
 				buf[bp] = 0;
-				if (base64compare(authorization, buf) == 0)
+				if (base64compare(authorization, buf) == 0) {
+					if (username) {
+						p = strchr(buf, ':');
+						if (p)
+							*p = 0;
+						strncpy(username, buf, len);
+					}
 					return 1;
+				}
 			}
 			bp = 0;
 			skipline = 0;
@@ -115,7 +123,8 @@ static int f_webuserok(const char *authorization, FILE *fp)
 	return 0;
 }
 
-int webuserok(const char *authorization, const char *userfilename)
+int webuserok(const char *authorization, const char *userfilename,
+	char *username, int len)
 {
 	FILE *f;
 	int retval;
@@ -123,7 +132,7 @@ int webuserok(const char *authorization, const char *userfilename)
 	f = fopen(userfilename, "r");
 	if (f == 0)
 		return 0;
-	retval = f_webuserok(authorization, f);
+	retval = f_webuserok(authorization, f, username, len);
 	fclose(f);
 	return retval;
 }
