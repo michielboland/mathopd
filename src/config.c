@@ -625,6 +625,7 @@ static const char *config_run_scripts_as_owner(struct configuration *p, struct c
 static void chopslash(char *s)
 {
 	char *t;
+
 	t = s + strlen(s);
 	while (--t >= s && *t == '/')
 		*t = 0;
