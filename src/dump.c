@@ -188,9 +188,8 @@ int process_dump(struct request *r)
 	if (r->method == M_GET) {
 		lseek(fd, 0, SEEK_SET);
 		r->cn->rfd = fd;
-	} else {
+	} else
 		close(fd);
-	}
 	r->content_type = "text/plain";
 	r->num_content = 0;
 	return 200;
