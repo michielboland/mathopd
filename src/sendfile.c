@@ -37,11 +37,22 @@
 
 static const char rcsid[] = "$Id$";
 
-#if SENDFILE == 2
+#if defined LINUX_SENDFILE
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/sendfile.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <errno.h>
 #include "mathopd.h"
  
+int set_nopush(int sock, int onoff)
+{
+	if (debug)
+		log_d("set_nopush: %d %d", sock, onoff);
+	return setsockopt(sock, IPPROTO_TCP, TCP_CORK, &onoff, sizeof onoff);
+}
+
 off_t sendfile_connection(struct connection *cn)
 {
 	ssize_t s;
@@ -73,12 +84,19 @@ off_t sendfile_connection(struct connection *cn)
 	return s;
 }
 
-#elif SENDFILE == 3
+#elif defined FREEBSD_SENDFILE
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <errno.h>
 #include "mathopd.h"
+
+int set_nopush(int sock, int onoff)
+{
+	return setsockopt(sock, IPPROTO_TCP, TCP_NOPUSH, &onoff, sizeof onoff);
+}
 
 off_t sendfile_connection(struct connection *cn)
 {
@@ -114,6 +132,4 @@ off_t sendfile_connection(struct connection *cn)
 	return n;
 }
 
-#else
-#error SENDFILE must be 2 (Linux/Solaris) or 3 (FreeBSD)
 #endif
