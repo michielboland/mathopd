@@ -321,17 +321,28 @@ static void close_rfd(struct request *r)
 	r->cn->rfd = -1;
 }
 
+static int assign_rfd(struct request *r, int fd)
+{
+	if (r->cn->rfd != -1)
+		log_d("assign_rfd: rfd already assigned!?!?");
+	fcntl(fd, F_SETFD, FD_CLOEXEC);
+	if (fstat(fd, &r->finfo) == -1) {
+		lerror("fstat");
+		return -1;
+	}
+	close_rfd(r);
+	r->cn->rfd = fd;
+}
+
 static int get_path_info(struct request *r)
 {
 	char *p, *pa, *end, *cp, *start, *cds;
-	struct stat *s;
 	int fd, rv, first;
 	size_t m;
 
 	m = r->location_length;
 	if (m == 0)
 		return -1;
-	s = &r->finfo;
 	p = r->path_translated;
 	start = p + m;
 	end = p + strlen(p);
@@ -346,15 +357,10 @@ static int get_path_info(struct request *r)
 			*cp = 0;
 		fd = open(p, O_RDONLY | O_NONBLOCK);
 		if (fd != -1) {
-			fcntl(fd, F_SETFD, FD_CLOEXEC);
-			rv = fstat(fd, s);
-			if (rv == -1) {
-				lerror("fstat");
+			if (assign_rfd(r, fd) == -1) {
 				close(fd);
 				return -1;
 			}
-			close_rfd(r);
-			r->cn->rfd = fd;
 		}
  		if (debug)
  			log_d("get_path_info: open(\"%s\") = %d", p, fd);
@@ -368,7 +374,7 @@ static int get_path_info(struct request *r)
 			*cp = '/';
 		if (fd != -1) {
 			strcpy(pa, cp);
-			if (S_ISDIR(s->st_mode))
+			if (S_ISDIR(r->finfo.st_mode))
 				*cp++ = '/';
 			else if (first) {
 				cds = strrchr(r->curdir, '/');
@@ -460,7 +466,7 @@ static int append_indexes(struct request *r)
 {
 	char *p, *q;
 	struct simple_list *i;
-	int rv;
+	int fd, rv;
 
 	p = r->path_translated;
 	q = p + strlen(p);
@@ -468,9 +474,16 @@ static int append_indexes(struct request *r)
 	i = r->c->index_names;
 	while (i) {
 		strcpy(q, i->name);
-		rv = stat(p, &r->finfo);
-		if (rv != -1)
+		fd = open(p, O_RDONLY | O_NONBLOCK);
+		if (debug)
+			log_d("append_indexes: open(\"%s\") = %d", p, fd);
+		if (fd != -1) {
+			if (assign_rfd(r, fd) == -1) {
+				close(fd);
+				return -1;
+			}
 			break;
+		}
 		i = i->next;
 	}
 	if (i == 0) {
