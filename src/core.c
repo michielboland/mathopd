@@ -486,9 +486,11 @@ void httpd_main(void)
 		}
 		if (gotsigquit) {
 			gotsigquit = 0;
-			debug = debug == 0;
+			++debug;
+			if (debug > 2)
+				debug = 0;
 			if (debug)
-				log_d("debugging turned on");
+				log_d("debugging level set to %d", debug);
 			else
 				log_d("debugging turned off");
 		}
