@@ -16,7 +16,6 @@
 
 #define CGI_MAGIC_TYPE "CGI"
 #define IMAP_MAGIC_TYPE "Imagemap"
-#define DUMP_MAGIC_TYPE "Dump"
 
 #if defined SOLARIS
 
@@ -325,17 +324,13 @@ extern void construct_url(char *, char *, struct virtual *);
 extern void escape_url(char *);
 extern int unescape_url(char *, char *);
 
-/* extras */
+/* imap */
 
-#ifdef IMAP_MAGIC_TYPE
 extern int process_imap(struct request *);
-#endif
-#ifdef CGI_MAGIC_TYPE
+
+/* cgi */
+
 extern int process_cgi(struct request *);
-#endif
-#ifdef DUMP_MAGIC_TYPE
-extern int process_dump(struct request *);
-#endif
 
 #ifdef NEED_STRERROR
 /*
