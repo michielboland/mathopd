@@ -18,7 +18,7 @@ void base64initialize(void)
 	b64['='] = 0;
 }
 
-int base64decode(const unsigned char *encoded, unsigned char *decoded)
+static int base64decode(const unsigned char *encoded, unsigned char *decoded)
 {
 	register int c;
 	register unsigned char t1, t2, u1, u2, u3;
@@ -76,7 +76,8 @@ int base64decode(const unsigned char *encoded, unsigned char *decoded)
 
 }
 
-int base64compare(const unsigned char *encoded, const unsigned char *decoded)
+static int base64compare(const unsigned char *encoded,
+	const unsigned char *decoded)
 {
 	char tmp[256];
 
@@ -85,4 +86,44 @@ int base64compare(const unsigned char *encoded, const unsigned char *decoded)
 	if (base64decode(encoded, tmp) == -1)
 		return -1;
 	return strcmp(tmp, decoded);
+}
+
+static int f_webuserok(const char *authorization, FILE *fp)
+{
+	char buf[256];
+	register int c, bp, skipline;
+
+	bp = 0;
+	skipline = 0;
+	while ((c = getc(fp)) != EOF) {
+		if (c == '\n') {
+			if (skipline == 0) {
+				buf[bp] = 0;
+				if (base64compare(authorization, buf) == 0)
+					return 1;
+			}
+			bp = 0;
+			skipline = 0;
+			continue;
+		}
+		if (skipline == 0) {
+			buf[bp++] = c;
+			if (bp == sizeof buf)
+				skipline = 1;
+		}
+	}
+	return 0;
+}
+
+int webuserok(const char *authorization, const char *userfilename)
+{
+	FILE *f;
+	int retval;
+
+	f = fopen(userfilename, "r");
+	if (f == 0)
+		return 0;
+	retval = f_webuserok(authorization, f);
+	fclose(f);
+	return retval;
 }
