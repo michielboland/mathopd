@@ -918,9 +918,11 @@ static int process_headers(struct request *r)
 	int multiple_range;
 	unsigned long cl;
 
-	l = getline(r->cn->input, 0);
-	if (l == 0)
-		return -1;
+	do {
+		l = getline(r->cn->input, 0);
+		if (l == 0)
+			return -1;
+	} while (*l == 0);
 	u = strchr(l, ' ');
 	if (u == 0)
 		return -1;
