@@ -196,6 +196,13 @@ Desc:    The 'Control' keyword starts a so-called control block. As the name
 Keyword: CoreDirectory
 Where:   Global
 Type:    String
+Desc:    Normally, for practical reasons, the server changes its current
+         directory to the root directory "/". If this is undesirable for
+         whatever reason, you can specify an alternate directory here.
+         As a side effect, if mathopd dumps core for whatever reason, the
+         core file will be in this directory. Actually if the server is
+         started by root it will never dump core for security reasons, so
+         this feature is a bit useless.
 
 Keyword: Ctime
 Where:   LogFormat
@@ -205,6 +212,16 @@ Keyword: DNSLookups
 Where:   Control
 Type:    Flag
 Default: On
+Desc:    By default, when processing CGI scripts and external programs,
+         mathopd will do a reverse DNS lookup to retrieve the fully
+         qualified domain name of the client. That name, if found, is
+         then passed to child processes via the REMOTE_HOST environment
+         variable. If this behaviour is not wanted, you can turn it off
+         by doing somehing like this at the start of the config file.
+
+           Control {
+             DNSLookups Off
+           }
 
 Keyword: Deny
 Where:   Access
