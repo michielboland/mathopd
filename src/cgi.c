@@ -211,6 +211,8 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 		if (add(tmp, r->headers[n].rh_value, 0, cp) == -1)
 			return -1;
 	}
+	if (add("GATEWAY_INTERFACE", "CGI/1.1", 0, cp) == -1)
+		return -1;
 	if (add("CONTENT_LENGTH", r->in_content_length, 0, cp) == -1)
 		return -1;
 	if (add("CONTENT_TYPE", r->in_content_type, 0, cp) == -1)
