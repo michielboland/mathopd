@@ -869,6 +869,8 @@ static int process_path_translated(struct request *r)
 		if (append_indexes(r) == -1) {
 			if (r->path_args[1] == 0 && r->c->auto_index_command) {
 				if (r->method == M_POST) {
+					if (debug)
+						log_d("POST to AutoIndexCommand rejected");
 					r->status = 405;
 					return 0;
 				}
