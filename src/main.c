@@ -293,8 +293,10 @@ int fork_request(struct request *r, int (*f)(struct request *))
 {
 	pid_t pid;
 
-	if (r->forked)
-		_exit(1);
+	if (r->forked) {
+		log_d("fork_request: loop detected");
+		return -1;
+	}
 	if (r->c->child_filename == 0) {
 		log_d("ChildLog must be set");
 		return 500;
