@@ -193,7 +193,9 @@ struct virtual {
 	char *fullname;
 	struct server *parent;
 	struct control *controls;
-	long nrequests;
+	unsigned long nrequests;
+	unsigned long nread;
+	unsigned long nwritten;
 	struct virtual *next;
 };
 
@@ -208,8 +210,8 @@ struct server {
 #ifdef POLL
 	int pollno;
 #endif
-	long naccepts;
-	long nhandled;
+	unsigned long naccepts;
+	unsigned long nhandled;
 };
 
 struct request {
@@ -276,10 +278,12 @@ extern volatile int gotsigterm;
 extern volatile int gotsighup;
 extern volatile int gotsigusr1;
 extern volatile int gotsigusr2;
+extern volatile int gotsigwinch;
 extern volatile int numchildren;
 extern time_t startuptime;
 extern int debug;
 extern int fcm;
+extern int my_pid;
 extern void die(const char *, const char *, ...);
 extern int fork_request(struct request *, int (*)(struct request *));
 
@@ -335,6 +339,10 @@ extern int process_imap(struct request *);
 /* cgi */
 
 extern int process_cgi(struct request *);
+
+/* dump */
+
+extern void dump(void);
 
 #ifdef NEED_STRERROR
 extern const char *strerror(int);
