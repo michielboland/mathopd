@@ -15,8 +15,9 @@ if neither variable is set and the server is run as root.
 
 LogFormat keyword has been added to generate custom log
 formats. See config.c for details. Additional keywords
-BytesRead, BytesWritten, ContentLength, Ctime, Method,
-Referer, Status, Uri, UserAgent, Version are also added.
+Ctime, RemoteUser, RemoteAddress, RemotePort, ServerName,
+Method, Uri, Version, Status, ContentLength, Referer,
+UserAgent, BytesRead, BytesWritten are also added.
 The HTTP version can now also be logged.
 Thans to Peter Leven for suggesting these changes.
 
@@ -28,8 +29,6 @@ this safely so we might as well dump it.
 
 Do not log a timeout if a client disconnects after the
 timeout period.
-
-Add debugging info to get_path_info.
 
 Always open() any file requested. If a file's mtime is
 equal to or less then the If-Modified-Since value, but
@@ -55,10 +54,10 @@ If mathopd is started with the -n flag, diagnostic
 messages are logged to standard error as well as the
 ErrorLog.
 
-The Refresh: keyword has been removed while I search
-for something better.
+The Refresh keyword has been removed. The Refresh:
+header is not defined in HTTP/1.1.
 
-The DefaultName: keyword has been removed.
+The DefaultName keyword has been removed.
 
 REMOTE_PORT and SERVER_ADDR environment variables are
 available to CGI scripts.
@@ -86,3 +85,8 @@ Modified get_path_info to not search path the beginning
 of the assigned server directory.
 
 A new keyword, AllowDotfiles, has been added.
+
+A new keyword, AnyHost, has been added. AnyHost can be used
+to indicate that a virtual server matches any host name sent
+by a client. Virtual servers that explicitly match servers
+with a host name take precedence of course.
