@@ -545,13 +545,62 @@ static int scanlflf(struct pipe_params *p)
 	return 0;
 }
 
-static void pipe_run(struct pipe_params *p)
+static void copychunk(struct pipe_params *p)
 {
-	short cevents, pevents;
 	size_t room;
 	size_t bytestocopy;
 	char chunkbuf[16];
 	size_t chunkheaderlen;
+
+	if (p->nocontent)
+		p->pstart = p->ipp = 0;
+	else {
+		room = p->osize - p->otop;
+		bytestocopy = p->ipp - p->pstart;
+		if (bytestocopy > room)
+			bytestocopy = room;
+		if (bytestocopy && p->chunkit) {
+			chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
+			if (chunkheaderlen + 2 >= room)
+				bytestocopy = 0;
+			else {
+				if (bytestocopy + chunkheaderlen + 2 > room) {
+					bytestocopy -= chunkheaderlen + 2;
+					chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
+				}
+				memcpy(p->obuf + p->otop, chunkbuf, chunkheaderlen);
+				p->otop += chunkheaderlen;
+			}
+		}
+		if (bytestocopy) {
+			memcpy(p->obuf + p->otop, p->pbuf + p->pstart, bytestocopy);
+			p->otop += bytestocopy;
+			p->pstart += bytestocopy;
+			if (p->pstart == p->ipp)
+				p->pstart = p->ipp = 0;
+			if (p->chunkit) {
+				memcpy(p->obuf + p->otop, "\r\n", 2);
+				p->otop += 2;
+			}
+		}
+	}
+}
+
+static void copylastchunk(struct pipe_params *p)
+{
+	if (p->chunkit && p->nocontent == 0) {
+		if (p->osize - p->otop >= 5) {
+			memcpy(p->obuf + p->otop, "0\r\n\r\n", 5);
+			p->otop += 5;
+			p->pstate = 3;
+		}
+	} else
+		p->pstate = 3;
+}
+
+static void pipe_run(struct pipe_params *p)
+{
+	short cevents, pevents;
 
 	cevents = p->cpollno != -1 ? pollfds[p->cpollno].revents : 0;
 	pevents = p->ppollno != -1 ? pollfds[p->ppollno].revents : 0;
@@ -581,50 +630,10 @@ static void pipe_run(struct pipe_params *p)
 		if (scanlflf(p) == -1)
 			return;
 	}
-	if (p->state == 2 && p->pstart < p->ipp) {
-		if (p->nocontent)
-			p->pstart = p->ipp = 0;
-		else {
-			room = p->osize - p->otop;
-			bytestocopy = p->ipp - p->pstart;
-			if (bytestocopy > room)
-				bytestocopy = room;
-			if (bytestocopy && p->chunkit) {
-				chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
-				if (chunkheaderlen + 2 >= room)
-					bytestocopy = 0;
-				else {
-					if (bytestocopy + chunkheaderlen + 2 > room) {
-						bytestocopy -= chunkheaderlen + 2;
-						chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
-					}
-					memcpy(p->obuf + p->otop, chunkbuf, chunkheaderlen);
-					p->otop += chunkheaderlen;
-				}
-			}
-			if (bytestocopy) {
-				memcpy(p->obuf + p->otop, p->pbuf + p->pstart, bytestocopy);
-				p->otop += bytestocopy;
-				p->pstart += bytestocopy;
-				if (p->pstart == p->ipp)
-					p->pstart = p->ipp = 0;
-				if (p->chunkit) {
-					memcpy(p->obuf + p->otop, "\r\n", 2);
-					p->otop += 2;
-				}
-			}
-		}
-	}
-	if (p->pstate == 2) {
-		if (p->chunkit && p->nocontent == 0) {
-			if (p->osize - p->otop >= 5) {
-				memcpy(p->obuf + p->otop, "0\r\n\r\n", 5);
-				p->otop += 5;
-				p->pstate = 3;
-			}
-		} else
-			p->pstate = 3;
-	}
+	if (p->state == 2 && p->pstart < p->ipp)
+		copychunk(p);
+	if (p->pstate == 2)
+		copylastchunk(p);
 	if (cevents & POLLOUT && p->otop > p->obp) {
 		if (writetoclient(p) == -1)
 			return;
