@@ -15,6 +15,12 @@ base64.c:
 	A #define that could be used to link mathopd without
 	the crypt() function has been removed.
 
+	The base64initialize function has been removed;
+	base64 decoding is now done with the aid of a macro.
+
+	The server now processes password files that have
+	CR LF line endings correctly.
+
 cgi.c:
 
 	Code was rewritten to get rid of macros that make
@@ -69,6 +75,9 @@ config.c:
 		RunScriptsAsOwner
 		ScriptUser
 		UserDirectory
+
+	In addition to these, many keywords have been added
+	that have to do with logging - see below.
 
 	The folling keywords have been removed:-
 
@@ -147,10 +156,20 @@ log.c:
 	rather than the name of the virtual server that is
 	used.
 
+	Mathopd can now log the client HTTP version and the
+	query string.
+
 main.c:
 
 	The variables in signal handlers are now sig_atomic_t
 	rather than int.
+
+	A new command-line option (-f) has been added.
+	This can be used to read a configuration file from
+	somewhere other than standard input.
+
+	The server now emits a message if it cannot open any
+	log files. In earlier versions it would exit silently.
 
 request.c:
 
@@ -217,4 +236,7 @@ request.c:
 
 	The UserDirectory keyword has been added to create
 	web space for any user on the system, if needed.
+
+	Dates before 1970 are allowed in If-Modified-Since
+	headers.
 
