@@ -50,9 +50,7 @@ static const char rcsid[] = "$Id$";
 #include <stdarg.h>
 #include <stdio.h>
 #include <time.h>
-#ifdef POLL
 #include <poll.h>
-#endif
 #include "mathopd.h"
 
 int nconnections;
@@ -143,13 +141,6 @@ static void accept_connection(struct server *s)
 			break;
 		}
 		s->naccepts++;
-#ifndef POLL
-		if (fd >= FD_SETSIZE) {
-			log_d("accept_connection: dropped fd %d past FD_SETSIZE", fd);
-			close(fd);
-			break;
-		}
-#endif
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		fcntl(fd, F_SETFL, O_NONBLOCK);
 		lsa = sizeof sa_local;
@@ -457,10 +448,8 @@ static void reap_children(void)
 		lerror("waitpid");
 }
 
-#ifdef POLL
 #ifndef INFTIM
 #define INFTIM -1
-#endif
 #endif
 
 void httpd_main(void)
@@ -470,13 +459,8 @@ void httpd_main(void)
 	int first;
 	int error;
 	int rv;
-#ifdef POLL
 	int n;
 	short r;
-#else
-	fd_set rfds, wfds;
-	int m;
-#endif
 
 	first = 1;
 	error = 0;
@@ -515,25 +499,13 @@ void httpd_main(void)
 			else
 				log_d("debugging turned off");
 		}
-#ifdef POLL
 		n = 0;
-#else
-		m = -1;
-		FD_ZERO(&rfds);
-		FD_ZERO(&wfds);
-#endif
 		s = servers;
 		while (s) {
 			if (s->fd != -1) {
-#ifdef POLL
 				pollfds[n].events = POLLIN;
 				pollfds[n].fd = s->fd;
 				s->pollno = n++;
-#else
-				FD_SET(s->fd, &rfds);
-				if (s->fd > m)
-					m = s->fd;
-#endif
 			}
 			s = s->next;
 		}
@@ -543,58 +515,28 @@ void httpd_main(void)
 				switch (cn->action) {
 				case HC_WAITING:
 				case HC_READING:
-#ifdef POLL
 					pollfds[n].events = POLLIN;
-#else
-					FD_SET(cn->fd, &rfds);
-#endif
 					break;
 				default:
-#ifdef POLL
 					pollfds[n].events = POLLOUT;
-#else
-					FD_SET(cn->fd, &wfds);
-#endif
 					break;
 				}
-#ifdef POLL
 				pollfds[n].fd = cn->fd;
 				cn->pollno = n++;
-#else
-				if (cn->fd > m)
-					m = cn->fd;
-#endif
 			}
-#ifdef POLL
 			else
 				cn->pollno = -1;
-#endif
 			cn = cn->next;
 		}
-#ifdef POLL
 		if (n == 0) {
 			log_d("no more sockets to poll from");
 			break;
 		}
-#else
-		if (m == -1) {
-			log_d("no more sockets to select from");
-			break;
-		}
-#endif
-#ifdef POLL
 		rv = poll(pollfds, n, INFTIM);
-#else
-		rv = select(m + 1, &rfds, &wfds, 0, 0);
-#endif
 		current_time = time(0);
 		if (rv == -1) {
 			if (errno != EINTR) {
-#ifdef POLL
 				lerror("poll");
-#else
-				lerror("select");
-#endif
 				if (error++) {
 					log_d("whoops");
 					break;
@@ -606,11 +548,7 @@ void httpd_main(void)
 				s = servers;
 				while (s) {
 					if (s->fd != -1) {
-#ifdef POLL
 						if (pollfds[s->pollno].revents & POLLIN)
-#else
-						if (FD_ISSET(s->fd, &rfds))
-#endif
 							accept_connection(s);
 					}
 					s = s->next;
@@ -618,7 +556,6 @@ void httpd_main(void)
 				cn = connections;
 				while (cn) {
 					if (cn->state == HC_ACTIVE) {
-#ifdef POLL
 						if (cn->pollno != -1) {
 							r = pollfds[cn->pollno].revents;
 							if (r & POLLIN)
@@ -630,12 +567,6 @@ void httpd_main(void)
 								cn->action = HC_CLOSING;
 							}
 						}
-#else
-						if (FD_ISSET(cn->fd, &rfds))
-							read_connection(cn);
-						else if (FD_ISSET(cn->fd, &wfds))
-							write_connection(cn);
-#endif
 					}
 					cn = cn->next;
 				}

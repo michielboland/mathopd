@@ -44,9 +44,7 @@ static const char rcsid[] = "$Id$";
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef POLL
 #include <poll.h>
-#endif
 #include "mathopd.h"
 
 #ifndef TOKEN_LENGTH
@@ -66,9 +64,7 @@ struct server *servers;
 
 char *user_name;
 
-#ifdef POLL
 struct pollfd *pollfds;
-#endif
 
 int log_columns;
 int *log_column;
@@ -977,11 +973,9 @@ const char *config(const char *config_filename)
 	s = fill_servernames();
 	if (s)
 		return s;
-#ifdef POLL
 	pollfds = malloc((tuning.num_connections + num_servers) * sizeof *pollfds);
 	if (pollfds == 0)
 		return e_memory;
-#endif
 	for (n = 0; n < tuning.num_connections; n++) {
 		if ((cn = malloc(sizeof *cn)) == 0)
 			return e_memory;
