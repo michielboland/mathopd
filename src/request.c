@@ -720,9 +720,11 @@ static size_t expand_hostname(char *dest, const char *source, const char *host, 
 		c = *source++;
 		switch (c) {
 		case '*':
-			dest += l = sprintf(dest, "%.*s", n, host);
-			n -= l;
-			break;
+			if (host) {
+				dest += l = sprintf(dest, "%.*s", n, host);
+				n -= l;
+				break;
+			}
 		default:
 			*dest++ = c;
 			--n;
@@ -752,10 +754,7 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update, int 
 			s = c->exact_match ? exactmatch(x, c->alias) : dirmatch(x, c->alias);
 			if (s && (c->clients == 0 || evaluate_access(r->cn->peer.sin_addr.s_addr, c->clients) == APPLY)) {
 				if (c->user_directory == 0) {
-					if (r->host)
-						l = expand_hostname(y, c->locations->name, r->host, maxlen - 1);
-					else
-						l = sprintf(y, "%.*s", maxlen - 1, c->locations->name);
+					l = expand_hostname(y, c->locations->name, r->host, maxlen - 1);
 					r->location_length = l;
 					if (c->locations->name[0] == '/' || !c->path_args_ok)
 						sprintf(y + l, "%.*s", maxlen - (l + 1), s);
