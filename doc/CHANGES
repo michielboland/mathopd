@@ -55,6 +55,8 @@ dump.c:
 
 	Take the new connections states into account.
 
+	Mark the `current' connection.
+
 log.c:
 
 	New global function: open_log().
