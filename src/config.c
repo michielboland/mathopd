@@ -590,15 +590,6 @@ static const char *config_clients(struct configuration *p, struct access **ls)
 	return config_acccl(p, ls, APPLYNOAPPLY);
 }
 
-static void chopslash(char *s)
-{
-	char *t;
-
-	t = s + strlen(s);
-	while (--t >= s && *t == '/')
-		*t = 0;
-}
-
 static const char *config_script_user(struct configuration *p, struct control *c)
 {
 	const char *t;
@@ -627,6 +618,14 @@ static const char *config_run_scripts_as_owner(struct configuration *p, struct c
 	if (o)
 		c->script_identity = SI_CHANGETOOWNER;
 	return 0;
+}
+
+static void chopslash(char *s)
+{
+	char *t;
+	t = s + strlen(s);
+	while (--t >= s && *t == '/')
+		*t = 0;
 }
 
 static const char *config_control(struct configuration *p, struct control **as)
