@@ -98,6 +98,17 @@ core.c:
 	is detected by a request line containing three or more words,
 	which does not really work.
 
+	The connections are now stored in several linked lists, rather
+	than just one. This causes a significant speed increase,
+	especially if the server is run with NumConnections set to a
+	very high number. (It is not very efficient to loop over 1000
+	idle connections every time.)
+
+	As a side-effect of the above, if a connection comes in, and no
+	free connections are available, mathopd clobbers the connection
+	that has been idle for the longest period of time. Previously
+	a more or less random connection would be clobbered.
+
 dump.c:
 
 	Adjust the formatting slightly.
