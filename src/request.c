@@ -571,6 +571,7 @@ static int process_fd(struct request *r)
 		return 1;
 	}
 	r->content_length = r->finfo.st_size;
+	r->cn->file_offset = 0;
 	if (r->status == 0) {
 		r->last_modified = r->finfo.st_mtime;
 		if (r->last_modified > current_time) {
@@ -606,8 +607,10 @@ static int process_fd(struct request *r)
 				return 0;
 			}
 			if (r->range) {
-				if (r->range_floor)
+				if (r->range_floor) {
 					lseek(fd, r->range_floor, SEEK_SET);
+					r->cn->file_offset = r->range_floor;
+				}
 				r->content_length = r->range_ceiling - r->range_floor + 1;
 				if (debug)
 					log_d("returning partial content");
