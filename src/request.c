@@ -805,11 +805,6 @@ static int process_headers(struct request *r)
 		r->args = s + 1;
 		*s = 0;
 	}
-	s = strchr(u, ';');
-	if (s) {
-		r->params = s + 1;
-		*s = 0;
-	}
 	while ((l = getline(r->cn->input)) != 0) {
 		s = strchr(l, ':');
 		if (s == 0)
@@ -849,8 +844,6 @@ static int process_headers(struct request *r)
 			log_d("url = \"%.80s\"", r->url);
 		if (r->args)
 			log_d("args = \"%.80s\"", r->args);
-		if (r->params)
-			log_d("params = \"%.80s\"", r->params);
 		if (r->user_agent)
 			log_d("user_agent = \"%.80s\"", r->user_agent);
 		if (r->referer)

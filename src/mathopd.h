@@ -226,7 +226,6 @@ struct request {
 	char *method_s;
 	char *url;
 	char *args;
-	char *params;
 	char *version;
 	int protocol_major;
 	int protocol_minor;
