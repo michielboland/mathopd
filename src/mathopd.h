@@ -358,7 +358,6 @@ extern int process_dump(struct request *);
 
 /* base64 */
 
-extern void base64initialize(void);
 extern int webuserok(const char *, const char *, char *, int, int);
 
 /* redirect */

@@ -291,7 +291,6 @@ int main(int argc, char *argv[])
 	gotsigquit = 0;
 	time(&startuptime);
 	time(&current_time);
-	base64initialize();
 	httpd_main();
 	return 0;
 }
