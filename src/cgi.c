@@ -414,5 +414,7 @@ int process_cgi(struct request *r)
 	fcntl(p[0], F_SETFL, O_NONBLOCK);
 	init_child(pp, r, p[0]);
 	destroy_parameters(cp);
+	if (debug)
+		log_d("process_cgi: %d", p[0]);
 	return -1;
 }

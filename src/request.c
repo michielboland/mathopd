@@ -567,6 +567,8 @@ static int process_fd(struct request *r)
 	if (r->method == M_POST)
 		return 405;
 	fd = open(r->path_translated, O_RDONLY | O_NONBLOCK);
+	if (debug)
+		log_d("process_fd: %d %s", fd, r->path_translated);
 	if (fd == -1) {
 		log_d("cannot open %s", r->path_translated);
 		lerror("open");
@@ -626,6 +628,8 @@ static int add_fd(struct request *r, const char *filename)
 	if (r->class != CLASS_FILE)
 		return -1;
 	fd = open(filename, O_RDONLY | O_NONBLOCK);
+	if (debug)
+		log_d("add_fd: %d %s", fd, filename);
 	if (fd == -1)
 		return -1;
 	if (fstat(fd, &s) == -1) {

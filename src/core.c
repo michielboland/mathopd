@@ -238,8 +238,6 @@ static void close_connection(struct connection *cn)
 		log_request(cn->r);
 	}
 	--nconnections;
-	if (debug)
-		log_d("close_connection: %d", cn->fd);
 	close(cn->fd);
 	if (cn->rfd != -1) {
 		close(cn->rfd);
@@ -369,6 +367,8 @@ static int fill_connection(struct connection *cn)
 		return 0;
 	cn->left -= n;
 	m = read(cn->rfd, p->end, n);
+	if (debug)
+		log_d("fill_connection: %d %d %d %d", cn->rfd, p->end - p->floor, n, m);
 	if (m != n) {
 		if (m == -1)
 			lerror("read");
