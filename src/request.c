@@ -357,15 +357,13 @@ static int get_path_info(struct request *r)
 		if (cp != end)
 			*cp = 0;
 		fd = open(p, O_RDONLY | O_NONBLOCK);
+ 		if (debug)
+ 			log_d("get_path_info: open(\"%s\") = %d", p, fd);
 		if (fd != -1) {
 			if (assign_rfd(r, fd) == -1) {
 				close(fd);
 				return -1;
 			}
-		}
- 		if (debug)
- 			log_d("get_path_info: open(\"%s\") = %d", p, fd);
-		if (fd != -1) {
 			if (r->curdir[0] == 0) {
 				first = 1;
 				strcpy(r->curdir, p);
