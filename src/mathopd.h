@@ -395,6 +395,7 @@ extern void close_connection(struct connection *);
 extern void log_socket_error(int, const char *);
 extern void httpd_main(void);
 extern int init_pollfds(size_t);
+extern int new_pool(struct pool *, size_t);
 extern int init_connections(size_t);
 
 /* request */
