@@ -327,7 +327,7 @@ extern char *coredir;
 extern struct connection *connections;
 extern struct server *servers;
 extern char *user_name;
-extern const char *config(void);
+extern const char *config(const char *);
 
 extern int log_columns;
 extern int *log_column;
