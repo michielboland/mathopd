@@ -186,7 +186,6 @@ static int init_log_d(char *name, int *fdp)
 	char converted_name[PATHLEN], *n;
 	struct tm *tp;
 
-	dup2(*fdp, *fdp);
 	if (name) {
 		n = name;
 		if (strchr(name, '%')) {
