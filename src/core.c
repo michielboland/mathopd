@@ -872,7 +872,7 @@ int init_pollfds(size_t n)
 	return 0;
 }
 
-int new_pool(struct pool *p, size_t s)
+static int new_pool(struct pool *p, size_t s)
 {
 	char *t;
 
