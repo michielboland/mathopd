@@ -787,6 +787,32 @@ static void reap_children(void)
 #define INFTIM -1
 #endif
 
+static void dump_pollfds(int n, int r)
+{
+	char *buf, *b;
+	int i;
+
+	buf = malloc(6 * n + 10);
+	if (buf == 0)
+		return;
+	if (r == 0) {
+		b = buf + sprintf(buf, "fds:     ");
+		for (i = 0; i < n; i++)
+			b += sprintf(b, " %5d", pollfds[i].fd);
+		log_d(buf);
+		b = buf + sprintf(buf, "events:  ");
+		for (i = 0; i < n; i++)
+			b += sprintf(b, " %5hd", pollfds[i].events);
+		log_d(buf);
+	} else {
+		b = buf + sprintf(buf, "revents: ");
+		for (i = 0; i < n; i++)
+			b += sprintf(b, " %5hd", pollfds[i].revents);
+		log_d(buf);
+	}
+	free(buf);
+}
+
 void httpd_main(void)
 {
 	int rv, n, t, accepting;
@@ -840,8 +866,16 @@ void httpd_main(void)
 			break;
 		}
 		t = accepting ? (stats.nconnections ? 60000 : INFTIM) : 1000;
+		if (debug) {
+			log_d("--------");
+			dump_pollfds(n, 0);
+		}
 		rv = poll(pollfds, n, t);
 		current_time = time(0);
+		if (debug) {
+			dump_pollfds(n, 1);
+			log_d("--------");
+		}
 		if (rv == -1) {
 			if (errno != EINTR) {
 				lerror("poll");
