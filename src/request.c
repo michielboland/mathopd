@@ -751,8 +751,8 @@ static int process_path(struct request *r)
 		return 404;
 	}
 	if (get_path_info(r) == -1) {
-		log_d("get_path_info failed for %s", r->path_translated);
-		return 500;
+		r->error_file = r->c->error_404_file;
+		return 404;
 	}
 	if (S_ISDIR(r->finfo.st_mode)) {
 		if (r->path_args[0] != '/')
