@@ -165,7 +165,7 @@ static void write_connection(struct connection *cn)
 	struct pool *p = cn->output;
 	int m, n;
 
-	while (1) {
+	do {
 		n = p->end - p->start;
 		if (n == 0) {
 			init_pool(p);
@@ -194,7 +194,7 @@ static void write_connection(struct connection *cn)
 			}
 		}
 		p->start += m;
-	}
+	} while (n == m);
 }
 
 static void read_connection(struct connection *cn)
