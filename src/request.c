@@ -401,22 +401,55 @@ static int get_path_info(struct request *r)
 
 static int check_path(struct request *r)
 {
-	char *p;
+	register char *p;
+	register char c;
+	register enum {
+		s_normal,
+		s_slash,
+		s_slashdot,
+		s_slashdotdot,
+		s_forbidden,
+	} s;
 
 	p = r->path;
-	if (*p != '/')
-		return -1;
-	while (1)
-		switch (*p++) {
-		case 0:
-			return 0;
-		case '/':
-			switch (*p) {
-			case '.':
-			case '/':
-				return -1;
-			}
+	s = s_normal;
+	do {
+		c = *p++;
+		switch (s) {
+		case s_normal:
+			if (c == '/')
+				s = s_slash;
+			break;
+		case s_slash:
+			if (c == '/')
+				s = s_forbidden;
+			else if (c == '.')
+				s = r->c->allow_dotfiles ? s_slashdot : s_forbidden;
+			else
+				s = s_normal;
+			break;
+		case s_slashdot:
+			if (c == 0 || c == '/')
+				s = s_forbidden;
+			else if (c == '.')
+				s = s_slashdotdot;
+			else
+				s = s_normal;
+			break;
+		case s_slashdotdot:
+			if (c == 0 || c == '/')
+				s = s_forbidden;
+			else
+				s = s_normal;
+			break;
+		case s_forbidden:
+			c = 0;
+			break;
 		}
+	} while (c);
+	if (debug)
+		log_d("check_path: path=%s state=%d", r->path, s);
+	return s == s_forbidden ? -1 : 0;
 }
 
 static int makedir(struct request *r)
