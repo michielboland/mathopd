@@ -265,10 +265,10 @@ static int output_headers(struct pool *p, struct request *r)
 	if (r->cn->assbackwards)
 		return 0;
 	b = tmp_outbuf;
-	b += sprintf(b, "HTTP/%d.%d %s\r\n"
+	b += sprintf(b, "HTTP/1.1 %s\r\n"
 		"Server: %s\r\n"
 		"Date: %s\r\n",
-		r->protocol_major, r->protocol_minor, r->status_line,
+		r->status_line,
 		server_version,
 		rfctime(current_time, gbuf));
 	if (r->allowedmethods)
