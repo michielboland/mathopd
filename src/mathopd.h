@@ -127,6 +127,7 @@ struct pool {
 	char *middle;
 	char *end;
 	char state;
+	size_t size;
 };
 
 struct mime {
