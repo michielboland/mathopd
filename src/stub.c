@@ -564,6 +564,7 @@ static void pipe_run(struct pipe_params *p)
 				p->error_condition = STUB_ERROR_CLIENT;
 				return;
 			}
+			break;
 		default:
 			p->t = current_time;
 			p->cn->nwritten += r;
@@ -587,6 +588,7 @@ static void pipe_run(struct pipe_params *p)
 				p->error_condition = STUB_ERROR_PIPE;
 				return;
 			}
+			break;
 		default:
 			p->t = current_time;
 			p->opp += r;
