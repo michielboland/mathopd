@@ -103,9 +103,9 @@ static const char c_control[] =		"Control";
 static const char c_core_directory[] =	"CoreDirectory";
 static const char c_ctime[] =		"Ctime";
 static const char c_deny[] =		"Deny";
-static const char c_dns[] =		"DNSLookups";
-static const char c_do_crypt[] =	"EncryptedUserFile";
-static const char c_error[] =		"ErrorLog";
+static const char c_dns_lookups[] =	"DNSLookups";
+static const char c_encrypted_user_file[] = "EncryptedUserFile";
+static const char c_error_log[] =	"ErrorLog";
 static const char c_error_401_file[] =	"Error401File";
 static const char c_error_403_file[] =	"Error403File";
 static const char c_error_404_file[] =	"Error404File";
@@ -126,7 +126,7 @@ static const char c_num_connections[] =	"NumConnections";
 static const char c_off[] =		"Off";
 static const char c_on[] =		"On";
 static const char c_path_args[] =	"PathArgs";
-static const char c_pid[] =		"PIDFile";
+static const char c_pid_file[] =	"PIDFile";
 static const char c_port[] =		"Port";
 static const char c_realm[] =		"Realm";
 static const char c_referer[] =		"Referer";
@@ -140,7 +140,7 @@ static const char c_server[] =		"Server";
 static const char c_server_name[] =	"ServerName";
 static const char c_specials[] =	"Specials";
 static const char c_status[] =		"Status";
-static const char c_stayroot[] =	"StayRoot";
+static const char c_stay_root[] =	"StayRoot";
 static const char c_timeout[] =		"Timeout";
 static const char c_tuning[] =		"Tuning";
 static const char c_types[] =		"Types";
@@ -148,8 +148,8 @@ static const char c_virtual[] =		"Virtual";
 static const char c_umask[] =		"Umask";
 static const char c_uri[] =		"Uri";
 static const char c_user[] =		"User";
-static const char c_useragent[] =	"UserAgent";
-static const char c_userfile[] =	"UserFile";
+static const char c_user_agent[] =	"UserAgent";
+static const char c_user_file[] =	"UserFile";
 static const char c_version[] =		"Version";
 
 static const char e_bad_addr[] =	"bad address";
@@ -410,7 +410,7 @@ static const char *config_log(struct configuration *p, int **colsp, int *numcols
 			ml = ML_CONTENT_LENGTH;
 		else if (!strcasecmp(p->tokbuf, c_referer))
 			ml = ML_REFERER;
-		else if (!strcasecmp(p->tokbuf, c_useragent))
+		else if (!strcasecmp(p->tokbuf, c_user_agent))
 			ml = ML_USER_AGENT;
 		else if (!strcasecmp(p->tokbuf, c_bytes_read))
 			ml = ML_BYTES_READ;
@@ -671,7 +671,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_string(p, &a->admin);
 		else if (!strcasecmp(p->tokbuf, c_realm))
 			t = config_string(p, &a->realm);
-		else if (!strcasecmp(p->tokbuf, c_userfile))
+		else if (!strcasecmp(p->tokbuf, c_user_file))
 			t = config_string(p, &a->userfile);
 		else if (!strcasecmp(p->tokbuf, c_error_401_file))
 			t = config_string(p, &a->error_401_file);
@@ -679,11 +679,11 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_string(p, &a->error_403_file);
 		else if (!strcasecmp(p->tokbuf, c_error_404_file))
 			t = config_string(p, &a->error_404_file);
-		else if (!strcasecmp(p->tokbuf, c_do_crypt))
+		else if (!strcasecmp(p->tokbuf, c_encrypted_user_file))
 			t = config_flag(p, &a->do_crypt);
 		else if (!strcasecmp(p->tokbuf, c_child_log))
 			t = config_string(p, &a->child_filename);
-		else if (!strcasecmp(p->tokbuf, c_dns))
+		else if (!strcasecmp(p->tokbuf, c_dns_lookups))
 			t = config_flag(p, &a->dns);
 		else if (!strcasecmp(p->tokbuf, c_export))
 			t = config_list(p, &a->exports);
@@ -878,15 +878,15 @@ static const char *config_main(struct configuration *p)
 			t = config_string(p, &coredir);
 		else if (!strcasecmp(p->tokbuf, c_umask))
 			t = config_int(p, &fcm);
-		else if (!strcasecmp(p->tokbuf, c_stayroot))
+		else if (!strcasecmp(p->tokbuf, c_stay_root))
 			t = config_flag(p, &stayroot);
 		else if (!strcasecmp(p->tokbuf, c_user))
 			t = config_string(p, &user_name);
-		else if (!strcasecmp(p->tokbuf, c_pid))
+		else if (!strcasecmp(p->tokbuf, c_pid_file))
 			t = config_string(p, &pid_filename);
 		else if (!strcasecmp(p->tokbuf, c_log))
 			t = config_string(p, &log_filename);
-		else if (!strcasecmp(p->tokbuf, c_error))
+		else if (!strcasecmp(p->tokbuf, c_error_log))
 			t = config_string(p, &error_filename);
 		else if (!strcasecmp(p->tokbuf, c_tuning))
 			t = config_tuning(p, &tuning);
