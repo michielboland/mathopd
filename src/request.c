@@ -694,7 +694,6 @@ static int process_path(struct request *r)
 		return 302;
 	}
 	if (check_path(r) == -1) {
-		log_d("bad path: %s", r->path);
 		r->error_file = r->c->error_404_file;
 		return 404;
 	}
