@@ -329,38 +329,11 @@ static char *dirmatch(char *s, char *t)
 {
 	int n;
 
+	log(L_DEBUG, "dirmatch(\"%s\", \"%s\")", s, t);
 	if ((n = strlen(t)) == 0)
 		return s;
 	return strneq(s, t, n) &&
 		(s[n] == '/' || s[n] == '\0' || s[n-1] == '~') ? s + n : 0;
-}
-
-static int findcontrol(struct request *r)
-{
-	char *p = r->path_translated;
-	struct control *a, *b;
-	char *m, *t;
-
-	a = r->vs->controls;
-	b = 0;
-	m = 0;
-
-	while (a) {
-		if (a->locations == 0) {
-			if (b == 0)
-				b = a;
-		}
-		else if ((t = dirmatch(p, a->locations->name)) != 0) {
-			if (m == 0 || m < t) {
-				m = t;
-				b = a;
-			}
-		}
-		a = a->next;
-	}
-	r->c = b;
-
-	return b ? 0 : -1;
 }
 
 static int evaluate_access(struct request *r)
@@ -646,18 +619,13 @@ static int process_path(struct request *r)
 		return 500;
 	}
 	log(L_DEBUG, " faketoreal,");
-	if (faketoreal(r->path, r->path_translated, r, 1) == 0) {
+	if ((r->c = faketoreal(r->path, r->path_translated, r, 1)) == 0) {
 		r->error = se_alias;
 		return 500;
 	}
 	log(L_DEBUG, " empty path check,");
 	if (r->path_translated[0] == 0) {
 		r->error = se_alias;
-		return 500;
-	}
-	log(L_DEBUG, " findcontrol,");
-	if (findcontrol(r) == -1) {
-		r->error = se_no_control;
 		return 500;
 	}
 	log(L_DEBUG, " redirect check,");
@@ -679,11 +647,6 @@ static int process_path(struct request *r)
 	log(L_DEBUG, " get_path_info,");
 	if (get_path_info(r) == -1) {
 		r->error = se_get_path_info;
-		return 500;
-	}
-	log(L_DEBUG, " findcontrol,");
-	if (r->path_args[0] && r->path_args[1] && findcontrol(r) == -1) {
-		r->error = se_no_control;
 		return 500;
 	}
 	log(L_DEBUG, " sanity check,");
@@ -1109,10 +1072,9 @@ int process_request(struct request *r)
 
 struct control *faketoreal(char *x, char *y, struct request *r, int update)
 {
+	unsigned long ip = r->cn->peer.s_addr;
 	struct control *c;
-	char *s;
-	char *m = 0;
-	struct control *cc = 0;
+	char *s = 0;
 
 	if (r->vs == 0) {
 		log(L_ERROR, "virtualhost not initialized!");
@@ -1123,19 +1085,18 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 		if (c->locations
 		    && c->alias
 		    && (s = dirmatch(x, c->alias)) != 0
-		    && (m == 0 || s > m)) {
-			m = s;
-			cc = c;
-		}
+		    && (c->clients == 0 ||
+			(ip & c->clients->mask) == c->clients->addr))
+			break;
 		c = c->next;
 	}
-	if (cc) {
+	if (c) {
 		if (update)
-			cc->locations = cc->locations->next;
-		strcpy(y, cc->locations->name);
-		strcat(y, m);
+			c->locations = c->locations->next;
+		strcpy(y, c->locations->name);
+		strcat(y, s);
 	}
-	return cc;
+	return c;
 }
 
 void construct_url(char *d, char *s, struct virtual *v)
