@@ -68,7 +68,6 @@ unsigned long fcm; /* should be mode_t */
 int stayroot;
 int my_pid;
 int am_daemon;
-static int forked;
 
 static char *progname;
 
@@ -294,7 +293,7 @@ int fork_request(struct request *r, int (*f)(struct request *))
 {
 	pid_t pid;
 
-	if (forked)
+	if (r->forked)
 		_exit(1);
 	if (r->c->child_filename == 0) {
 		log_d("ChildLog must be set");
@@ -304,7 +303,6 @@ int fork_request(struct request *r, int (*f)(struct request *))
 	switch (pid) {
 	case 0:
 		my_pid = getpid();
-		forked = 1;
 		_exit(cgi_stub(r, f));
 		break;
 	case -1:
@@ -313,7 +311,7 @@ int fork_request(struct request *r, int (*f)(struct request *))
 	default:
 		if (debug)
 			log_d("fork_request: child process %d created", pid);
-		r->status_line = "---";
+		r->forked = 1;
 	}
 	return -1;
 }
