@@ -94,7 +94,7 @@ int process_imap(struct request *r)
 		return 204;
 	else if (r->method != M_GET) {
 		r->error = "invalid method for imagemap";
-		return 501;
+		return 405;
 	}
 	s = r->path_translated;
 	testpoint.x = 0;
@@ -333,11 +333,16 @@ static int make_cgi_envp(struct request *r)
 	ADD("SCRIPT_NAME", r->path);
 	ADD("SERVER_NAME", r->vs->host ? r->vs->host : sv->name);
 	ADD("SERVER_PORT", t);
-	ADD("SERVER_PROTOCOL", r->protocol);
 	ADD("SERVER_SOFTWARE", server_version);
-	if (r->cn->keepalive) {
-		ADD("HTTP_CONNECTION", magic_word);
-	}
+
+	if (r->protocol_major) {
+		sprintf(t, "HTTP/%d.%d",
+			r->protocol_major,
+			r->protocol_minor);
+		ADD("SERVER_PROTOCOL", t);
+	} else
+		ADD("SERVER_PROTOCOL", "HTTP/0.9");
+
 	while (e) {
 		ADD(e->name, getenv(e->name));
 		e = e->next;
@@ -431,7 +436,7 @@ int process_dump(struct request *r)
 
 	if (r->method != M_GET) {
 		r->error = "invalid method for dump";
-		return 501;
+		return 405;
 	}
 
 	tmp_file = tmpfile();
