@@ -298,11 +298,8 @@ int main(int argc, char *argv[])
 pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd, int efd, uid_t u, gid_t g, const char *curdir)
 {
 	pid_t pid;
-	sigset_t set, oset;
 	struct rlimit rl;
 
-	sigfillset(&set);
-	sigprocmask(SIG_SETMASK, &set, &oset);
 #ifdef HAVE_VFORK
 	pid = vfork();
 #else
@@ -310,12 +307,10 @@ pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd,
 #endif
 	switch (pid) {
 	default:
-		sigprocmask(SIG_SETMASK, &oset, 0);
 		if (debug)
 			log_d("child process %d created", pid);
 		return pid;
 	case -1:
-		sigprocmask(SIG_SETMASK, &oset, 0);
 		lerror("spawn: failed to create child process");
 		return -1;
 	case 0:
@@ -333,7 +328,6 @@ pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd,
 			rl.rlim_cur = rl.rlim_max = 0;
 			setrlimit(RLIMIT_CORE, &rl);
 		}
-		sigprocmask(SIG_SETMASK, &oset, 0);
 		dup2(fd, 0);
 		dup2(fd, 1);
 		if (efd != -1)
