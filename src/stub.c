@@ -635,9 +635,13 @@ void pipe_run(struct connection *p)
 		if (writetochild(p) == -1)
 			return;
 	if (childisfinished(p)) {
-		if (p->keepalive)
-			reinit_connection(p);
-		else
+		if (p->keepalive) {
+			if (p->client_input.end > p->client_input.start) {
+				log_d("client_input is not empty");
+				close_connection(p);
+			} else
+				reinit_connection(p);
+		} else
 			close_connection(p);
 	}
 }
@@ -645,6 +649,7 @@ void pipe_run(struct connection *p)
 void init_child(struct connection *p, int fd)
 {
 	struct request *r;
+	size_t bytestomove, bytestoshift;
 
 	r = p->r;
 	p->client_input.start = p->client_input.end = p->client_input.floor;
@@ -662,6 +667,27 @@ void init_child(struct connection *p, int fd)
 	if (r->method == M_POST) {
 		p->client_input.state = 1;
 		p->pipe_params.imax = r->in_mblen;
+		bytestomove = p->header_input.end - p->header_input.middle;
+		if (bytestomove > p->pipe_params.imax) {
+			bytestoshift = p->pipe_params.imax;
+			bytestomove = p->pipe_params.imax;
+		} else
+			bytestoshift = 0;
+		if (bytestomove) {
+			if (p->client_input.start + bytestomove > p->client_input.ceiling) {
+				log_d("init_child: script buffer too small!");
+				close(fd);
+				close_connection(p);
+				return;
+			}
+			memmove(p->client_input.start, p->header_input.middle, bytestomove);
+			p->client_input.end += bytestomove;
+			p->pipe_params.imax -= bytestomove;
+			if (bytestoshift)
+				p->header_input.middle += bytestoshift;
+			else
+				p->header_input.end = p->header_input.middle;
+		}
 	} else {
 		p->client_input.state = 0;
 		p->pipe_params.imax = 0;
