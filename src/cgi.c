@@ -323,11 +323,18 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 
 static int make_cgi_argv(struct request *r, char *b, struct cgi_parameters *cp)
 {
-	char *a, *w;
+	const char *a, *w;
 
-	if (r->class == CLASS_EXTERNAL)
-		if (add_argv(r->content_type, 0, 0, cp) == -1)
-			return -1;
+	if (r->class == CLASS_EXTERNAL) {
+		a = r->content_type;
+		do {
+			w = strchr(a, ' ');
+			if (add_argv(a, w, 0, cp) == -1)
+				return -1;
+			if (w)
+				a = w + 1;
+		} while (w);
+	}
 	if (add_argv(b, 0, 0, cp) == -1)
 		return -1;
 	a = r->args;
