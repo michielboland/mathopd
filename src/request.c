@@ -1217,6 +1217,7 @@ void init_request(struct request *r)
 	r->ius_s = 0;
 	r->ius = 0;
 	r->rhost[0] = 0;
+	r->forked = 0;
 }
 
 int process_request(struct request *r)
