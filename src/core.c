@@ -54,6 +54,7 @@ static const char rcsid[] = "$Id$";
 #include "poll-emul.h"
 #endif
 #include <stdlib.h>
+#include <string.h>
 #include "mathopd.h"
 
 #ifdef NEED_SOCKLEN_T
@@ -173,7 +174,6 @@ void set_connection_state(struct connection *c, enum connection_state state)
 
 static void init_connection(struct connection *cn)
 {
-	cn->header_input.start = cn->header_input.end = cn->header_input.floor;
 	cn->header_input.state = 0;
 	cn->output.start = cn->output.end = cn->output.floor;
 	init_request(cn->r);
@@ -185,8 +185,12 @@ static void init_connection(struct connection *cn)
 	cn->pid = 0;
 }
 
-void reinit_connection(struct connection *cn)
+static int scan_request(struct connection *cn);
+
+int reinit_connection(struct connection *cn)
 {
+	char *s;
+
 	++nrequests;
 	log_request(cn->r);
 	cn->logged = 1;
@@ -196,6 +200,13 @@ void reinit_connection(struct connection *cn)
 	}
 	init_connection(cn);
 	set_connection_state(cn, HC_WAITING);
+	s = cn->header_input.middle;
+	if (s == cn->header_input.end) {
+		cn->header_input.start = cn->header_input.middle = cn->header_input.end = cn->header_input.floor;
+		return 0;
+	}
+	cn->header_input.start = s;
+	return scan_request(cn);
 }
 
 void close_connection(struct connection *cn)
@@ -320,6 +331,7 @@ static int accept_connection(struct server *s)
 				maxconnections = nconnections;
 			init_connection(cn);
 			cn->logged = 0;
+			cn->header_input.start = cn->header_input.middle = cn->header_input.end = cn->header_input.floor;
 			set_connection_state(cn, HC_WAITING);
 		}
 	} while (tuning.accept_multi);
@@ -395,25 +407,29 @@ static void write_connection(struct connection *cn)
 	} while (n == m);
 }
 
-static void read_connection(struct connection *cn)
+static int read_connection(struct connection *cn)
 {
-	int i, nr, fd;
-	char c;
-	struct pool *p;
-	char state;
+	size_t bytestoread, bytestomove, offset;
+	ssize_t nr;
 
-	p = &cn->header_input;
-	state = p->state;
-	fd = cn->fd;
-	i = p->ceiling - p->end;
-	if (i == 0) {
-		log_d("input buffer full");
-		close_connection(cn);
-		return;
+	bytestoread = cn->header_input.ceiling - cn->header_input.end;
+	if (bytestoread == 0) {
+		offset = cn->header_input.start - cn->header_input.floor;
+		if (offset == 0) {
+			log_d("input buffer full");
+			close_connection(cn);
+			return -1;
+		}
+		bytestomove = cn->header_input.end - cn->header_input.start;
+		memmove(cn->header_input.floor, cn->header_input.start, bytestomove);
+		cn->header_input.start -= offset;
+		cn->header_input.middle -= offset;
+		cn->header_input.end -= offset;
+		bytestoread = cn->header_input.ceiling - cn->header_input.end;
 	}
-	nr = recv(fd, p->end, i, MSG_PEEK);
+	nr = recv(cn->fd, cn->header_input.end, bytestoread, 0);
 	if (debug)
-		log_d("read_connection (peek): %d %d %d %d", fd, p->end - p->floor, i, nr);
+		log_d("read_connection: %d %d %d %d", cn->fd, cn->header_input.end - cn->header_input.floor, bytestoread, nr);
 	if (nr == -1) {
 		switch (errno) {
 		default:
@@ -422,21 +438,34 @@ static void read_connection(struct connection *cn)
 		case ECONNRESET:
 		case EPIPE:
 			close_connection(cn);
+			return -1;
 		case EAGAIN:
-			return;
+			return 0;
 		}
 	}
 	if (nr == 0) {
 		close_connection(cn);
-		return;
+		return -1;
 	}
-	i = 0;
-	while (i < nr && state < 8) {
-		c = p->end[i++];
+	cn->nread += nr;
+	cn->header_input.end += nr;
+	cn->t = current_time;
+	return 0;
+}
+
+static int scan_request(struct connection *cn)
+{
+	char *s;
+	int c, state;
+
+	s = cn->header_input.middle;
+	state = cn->header_input.state;
+	while (state != 8 && s < cn->header_input.end) {
+		c = *s++;
 		if (c == 0) {
 			log_d("read_connection: NUL in headers");
 			close_connection(cn);
-			return;
+			return -1;
 		}
 		switch (state) {
 		case 0:
@@ -555,37 +584,24 @@ static void read_connection(struct connection *cn)
 			break;
 		}
 	}
-	nr = recv(fd, p->end, i, 0);
-	if (debug)
-		log_d("read_connection: %d %d %d %d", fd, p->end - p->floor, i, nr);
-	if (nr != i) {
-		if (nr == -1) {
-			log_d("error reading from %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
-			lerror("recv");
-		} else {
-			cn->nread += nr;
-			log_d("read_connection: %d != %d!", nr, i);
-		}
-		close_connection(cn);
-		return;
-	}
-	cn->nread += nr;
-	p->end += i;
-	p->state = state;
-	cn->t = current_time;
+	cn->header_input.state = state;
+	cn->header_input.middle = s;
 	if (state == 8) {
 		if (process_request(cn->r) == -1) {
-			if (cn->connection_state != HC_FORKED)
+			if (cn->connection_state != HC_FORKED) {
 				close_connection(cn);
-			return;
+				return -1;
+			}
+			return 0;
 		}
 		cn->left = cn->r->content_length;
 		if (fill_connection(cn) == -1) {
 			close_connection(cn);
-			return;
+			return -1;
 		}
 		set_connection_state(cn, HC_WRITING);
 	}
+	return 0;
 }
 
 static int setup_server_pollfds(int n)
@@ -684,7 +700,8 @@ static void run_rconnection(struct connection *cn)
 		return;
 	}
 	if (r & POLLIN) {
-		read_connection(cn);
+		if (read_connection(cn) == -1 || scan_request(cn) == -1)
+			return;
 		r &= ~POLLIN;
 		if (cn->connection_state == HC_WRITING)
 			r |= POLLOUT;
@@ -893,7 +910,7 @@ int new_pool(struct pool *p, size_t s)
 	t = malloc(s);
 	if (t == 0)
 		return -1;
-	p->floor = t;
+	p->floor = p->start = p->middle = p->end = t;
 	p->ceiling = t + s;
 	return 0;
 }
