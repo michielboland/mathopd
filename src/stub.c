@@ -626,8 +626,8 @@ void init_child(struct connection *p, int fd)
 	p->script_input.start = p->script_input.end = p->script_input.floor;
 	p->script_input.state = 1;
 	p->pipe_params.state = 1;
-	if (p->rfd != -1)
-		abort();
+	if (p->rfd != -1) /* this should never happen */
+		close(p->rfd);
 	p->rfd = fd;
 	p->pipe_params.chunkit = r->protocol_minor > 0;
 	p->pipe_params.nocontent = r->method == M_HEAD;
