@@ -200,7 +200,7 @@ struct server {
 	int fd;
 	int port;
 	struct in_addr addr;
-	char *name;
+	char *s_name;
 	struct virtual *children;
 	struct control *controls;
 	struct server *next;
