@@ -302,7 +302,6 @@ static int accept_connection(struct server *s)
 		}
 		if (debug)
 			log_d("accept_connection: %d", fd);
-		s->naccepts++;
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		fcntl(fd, F_SETFL, O_NONBLOCK);
 		l = sizeof sa_local;
@@ -316,7 +315,6 @@ static int accept_connection(struct server *s)
 			log_d("connection to %s[%hu] dropped", inet_ntoa(sa_remote.sin_addr), ntohs(sa_remote.sin_port));
 			close(fd);
 		} else {
-			s->nhandled++;
 			cn->s = s;
 			cn->fd = fd;
 			cn->rfd = -1;

@@ -197,8 +197,6 @@ struct server {
 	struct control *controls;
 	struct server *next;
 	int pollno;
-	unsigned long naccepts;
-	unsigned long nhandled;
 	struct vserver *vservers;
 	unsigned long backlog;
 };
