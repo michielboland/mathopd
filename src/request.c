@@ -917,7 +917,7 @@ static int parse_http_version(struct request *r)
 
 	v = r->version;
 	if (v == 0)
-		return -1;
+		return 0;
 	if (strncmp(v, "HTTP", 4))
 		return -1;
 	v += 4;
@@ -986,16 +986,16 @@ static int process_headers(struct request *r)
 		}
 		r->version = s;
 		s[-1] = 0;
-		if (parse_http_version(r) == -1) {
-			r->cn->keepalive = 0;
-			return 400;
-		}
 	}
 	r->url = u;
 	s = strchr(u, '?');
 	if (s) {
 		r->args = s + 1;
 		*s = 0;
+	}
+	if (parse_http_version(r) == -1) {
+		r->cn->keepalive = 0;
+		return 400;
 	}
 	n = 0;
 	multiple_range = 0;
