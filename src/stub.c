@@ -68,10 +68,6 @@ struct pipe_params {
 	int pstate;
 	size_t pstart;
 	int state;
-	unsigned long cir;
-	unsigned long cow;
-	unsigned long cpr;
-	unsigned long cpw;
 	int ifd;
 	int ofd;
 	int fd;
@@ -343,7 +339,6 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		default:
 			cn->nread += r;
 			p->ibp += r;
-			p->cir += r;
 			break;
 		}
 	}
@@ -358,7 +353,6 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 			break;
 		default:
 			cn->nwritten += r;
-			p->cow += r;
 			p->obp += r;
 			break;
 		}
@@ -378,7 +372,6 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 			p->pstate = 2;
 			break;
 		default:
-			p->cpr += r;
 			p->ipp += r;
 			break;
 		}
@@ -392,7 +385,6 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 			lerror("pipe_loop: error writing to pipe");
 			return 1;
 		default:
-			p->cpw += r;
 			p->opp += r;
 			break;
 		}
@@ -489,10 +481,6 @@ static int pipe_loop(int fd, struct connection *cn, int timeout)
 	p.pstate = 1;
 	p.pstart = 0;
 	p.state = 0;
-	p.cir = 0;
-	p.cow = 0;
-	p.cpr = 0;
-	p.cpw = 0;
 	p.ifd = cn->fd;
 	p.ofd = cn->fd;
 	p.fd = fd;
