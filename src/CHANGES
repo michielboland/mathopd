@@ -1,4 +1,4 @@
-CHANGES between mathopd-1.3pl2 and mathopd-1.4b2
+CHANGES between mathopd-1.3pl2 and mathopd-1.4b3
 
 A ScriptUser can be defined in a control block. Mathopd will
 change its identity to that of the ScriptUser right before
@@ -13,3 +13,12 @@ for RunScriptsAsOwner, and that no scripts will be run
 if neither variable is set and the server is run as root.
 
 All debugging hooks have been removed for now.
+
+1.4b3:
+
+LogFormat keyword has been added to generate custom log
+formats. See config.c for details. Additional keywords
+BytesRead, BytesWritten, ContentLength, Ctime, Method,
+Referer, Status, Uri, UserAgent, Version are also added.
+The HTTP version can now also be logged.
+Thans to Peter Leven for suggesting these changes.
