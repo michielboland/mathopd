@@ -299,7 +299,6 @@ extern int stayroot;
 extern int my_pid;
 extern int fork_request(struct request *, int (*)(struct request *));
 extern int am_daemon;
-extern int forked;
 
 /* config */
 

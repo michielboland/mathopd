@@ -68,7 +68,7 @@ unsigned long fcm; /* should be mode_t */
 int stayroot;
 int my_pid;
 int am_daemon;
-int forked;
+static int forked;
 
 static char *progname;
 
