@@ -179,8 +179,6 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 	char path_translated[PATHLEN];
 	char *tmp;
 
-	cp->cgi_envc = 0;
-	cp->cgi_envp = 0;
 	if (add("CONTENT_LENGTH", r->in_content_length, 0, cp) == -1)
 		return -1;
 	if (add("CONTENT_TYPE", r->in_content_type, 0, cp) == -1)
@@ -275,8 +273,6 @@ static int make_cgi_argv(struct request *r, char *b, struct cgi_parameters *cp)
 {
 	char *a, *w;
 
-	cp->cgi_argc = 0;
-	cp->cgi_argv = 0;
 	if (r->class == CLASS_EXTERNAL) {
 		if (add_argv(r->content_type, 0, 0, cp) == -1)
 			return -1;
@@ -391,6 +387,25 @@ static int set_uids(uid_t uid, gid_t gid)
 	return 0;
 }
 
+static void destroy_parameters(struct cgi_parameters *cp)
+{
+	int i;
+
+	if (cp->cgi_envp) {
+		for (i = 0; i < cp->cgi_envc; i++)
+			if (cp->cgi_envp[i])
+				free(cp->cgi_envp[i]);
+		free(cp->cgi_envp);
+	}
+	if (cp->cgi_argv) {
+		for (i = 0; i < cp->cgi_argc; i++)
+			if (cp->cgi_argv[i])
+				free(cp->cgi_argv[i]);
+		free(cp->cgi_argv);
+	}
+	free(cp);
+}
+
 static int exec_cgi(struct request *r)
 {
 	struct cgi_parameters *cp;
@@ -414,8 +429,12 @@ static int exec_cgi(struct request *r)
 	cp = malloc(sizeof *cp);
 	if (cp == 0)
 		return cgi_error(r, 500);
+	cp->cgi_envc = 0;
+	cp->cgi_envp = 0;
+	cp->cgi_argc = 0;
+	cp->cgi_argv = 0;
 	if (init_cgi_env(r, cp) == -1) {
-		free(cp);
+		destroy_parameters(cp);
 		return cgi_error(r, 500);
 	}
 	if (r->class == CLASS_EXTERNAL)
@@ -424,6 +443,7 @@ static int exec_cgi(struct request *r)
 		log_d("executing %s", cp->cgi_argv[0]);
 	if (execve(cp->cgi_argv[0], (char **) cp->cgi_argv, cp->cgi_envp) == -1) {
 		lerror("execve");
+		destroy_parameters(cp);
 		return cgi_error(r, 404);
 	}
 	return 0;
