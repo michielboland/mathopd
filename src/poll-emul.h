@@ -47,6 +47,7 @@ extern int poll(struct pollfd *, unsigned, int);
 #define POLLIN 1
 #define POLLOUT 4
 #define POLLERR 8
+#define POLLHUP 16
 #define INFTIM -1
 
 #endif
