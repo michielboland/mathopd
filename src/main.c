@@ -193,8 +193,9 @@ int main(int argc, char *argv[])
 		die("getrlimit", 0);
 	n = rl.rlim_cur = rl.rlim_max;
 	setrlimit(RLIMIT_NOFILE, &rl);
-	for (i = 3; i < n; i++)
-		close(i);
+	if (am_daemon)
+		for (i = 3; i < n; i++)
+			close(i);
 	null_fd = open(devnull, O_RDWR);
 	if (null_fd == -1)
 		die("open", "Cannot open %s", devnull);
