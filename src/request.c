@@ -318,6 +318,14 @@ static char *dirmatch(char *s, char *t)
 	return !strncmp(s, t, n) && (s[n] == '/' || s[n] == 0 || s[n-1] == '~') ? s + n : 0;
 }
 
+static char *exactmatch(char *s, char *t)
+{
+	int n;
+
+	n = strlen(t);
+	return !strncmp(s, t, n) && s[n] == '/' && s[n + 1] == 0 ? s + n : 0;
+}
+
 static int evaluate_access(unsigned long ip, struct access *a)
 {
 	while (a && ((ip & a->mask) != a->addr))
@@ -607,13 +615,20 @@ static int add_fd(struct request *r, const char *filename)
 
 static int hostmatch(const char *s, const char *t)
 {
-	register char c, d;
+	int l;
 
-	while (c = *s++, d = *t++, c && c != ':' && d) {
-		if (toupper(c) != toupper(d))
-			return 0;
+	l = strlen(t);
+	if (strncasecmp(s, t, l))
+		return 0;
+	switch (s[l]) {
+	case 0:
+	case ':':
+		return 1;
+	case '.':
+		if (s[l + 1] == 0)
+			return 1;
 	}
-	return (c == 0 || c == ':') && d == '\0';
+	return 0;
 }
 
 static int find_vs(struct request *r)
@@ -1143,7 +1158,7 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 	c = r->vs->controls;
 	while (c) {
 		if (c->locations && c->alias) {
-			s = dirmatch(x, c->alias);
+			s = c->exact_match ? exactmatch(x, c->alias) : dirmatch(x, c->alias);
 			if (s && (c->clients == 0 || evaluate_access(ip, c->clients) == APPLY))
 				break;
 		}
