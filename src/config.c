@@ -955,7 +955,7 @@ const char *config(const char *config_filename)
 	} else
 		p->config_file = stdin;
 	tuning.buf_size = DEFAULT_BUF_SIZE;
-	tuning.input_buf_size = INPUT_BUF_SIZE;
+	tuning.input_buf_size = DEFAULT_INPUT_BUF_SIZE;
 	tuning.num_connections = DEFAULT_NUM_CONNECTIONS;
 	tuning.timeout = DEFAULT_TIMEOUT;
 	tuning.accept_multi = 1;
