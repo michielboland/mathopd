@@ -118,6 +118,7 @@ static const char c_name[] =			"Name";
 static const char c_no_apply[] =		"NoApply";
 static const char c_no_host[] =			"NoHost";
 static const char c_num_connections[] =		"NumConnections";
+static const char c_num_headers[] =		"NumHeaders";
 static const char c_off[] =			"Off";
 static const char c_on[] =			"On";
 static const char c_path_args[] =		"PathArgs";
@@ -858,6 +859,8 @@ static const char *config_tuning(struct configuration *p, struct tuning *tp)
 			t = config_int(p, &tp->num_connections);
 		else if (!strcasecmp(p->tokbuf, c_accept_multi))
 			t = config_flag(p, &tp->accept_multi);
+		else if (!strcasecmp(p->tokbuf, c_num_headers))
+			t = config_int(p, &tp->num_headers);
 		else
 			t = e_keyword;
 		if (t)
@@ -956,6 +959,7 @@ const char *config(const char *config_filename)
 	tuning.num_connections = DEFAULT_NUM_CONNECTIONS;
 	tuning.timeout = DEFAULT_TIMEOUT;
 	tuning.accept_multi = 1;
+	tuning.num_headers = DEFAULT_NUM_HEADERS;
 	fcm = DEFAULT_UMASK;
 	stayroot = 0;
 	log_columns = 0;
@@ -988,6 +992,8 @@ const char *config(const char *config_filename)
 		if ((cn = malloc(sizeof *cn)) == 0)
 			return e_memory;
 		if ((cn->r = malloc(sizeof *cn->r)) == 0)
+			return e_memory;
+		if ((cn->r->headers = malloc(tuning.num_headers * sizeof *cn->r->headers)) == 0)
 			return e_memory;
 		if ((cn->input = new_pool(tuning.input_buf_size)) == 0)
 			return e_memory;

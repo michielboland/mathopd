@@ -53,6 +53,7 @@
 #define DEFAULT_NUM_CONNECTIONS 64
 #define DEFAULT_TIMEOUT 60
 #define DEFAULT_UMASK 022
+#define DEFAULT_NUM_HEADERS 100
 
 #define STRLEN 400
 #define PATHLEN (2 * STRLEN)
@@ -190,6 +191,11 @@ struct server {
 	struct vserver *vservers;
 };
 
+struct request_header {
+	const char *rh_name;
+	const char *rh_value;
+};
+
 struct request {
 	struct connection *cn;
 	struct virtual *vs;
@@ -230,6 +236,8 @@ struct request {
 	char newloc[PATHLEN];
 	const char *allowedmethods;
 	size_t location_length;
+	size_t nheaders;
+	struct request_header *headers;
 };
 
 struct connection {
@@ -260,6 +268,7 @@ struct tuning {
 	unsigned long num_connections;
 	unsigned long timeout;
 	int accept_multi;
+	unsigned long num_headers;
 };
 
 /* main */

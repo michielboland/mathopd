@@ -786,6 +786,7 @@ static int process_headers(struct request *r)
 {
 	char *l, *u, *s;
 	time_t i;
+	size_t n;
 
 	l = getline(r->cn->input);
 	if (l == 0)
@@ -811,6 +812,7 @@ static int process_headers(struct request *r)
 		r->args = s + 1;
 		*s = 0;
 	}
+	n = 0;
 	while ((l = getline(r->cn->input)) != 0) {
 		s = strchr(l, ':');
 		if (s == 0)
@@ -820,6 +822,10 @@ static int process_headers(struct request *r)
 			++s;
 		if (*s == 0)
 			continue;
+		if (n < tuning.num_headers) {
+			r->headers[n].rh_name = l;
+			r->headers[n++].rh_value = s;
+		}
 		if (!strcasecmp(l, "User-agent"))
 			r->user_agent = s;
 		else if (!strcasecmp(l, "Referer"))
@@ -839,6 +845,7 @@ static int process_headers(struct request *r)
 		else if (!strcasecmp(l, "Content-length"))
 			r->in_content_length = s;
 	}
+	r->nheaders = n;
 	s = r->method_s;
 	if (strcmp(s, m_get) == 0)
 		r->method = M_GET;
@@ -1035,6 +1042,7 @@ void init_request(struct request *r)
 	r->servername = 0;
 	r->allowedmethods = 0;
 	r->location_length = 0;
+	r->nheaders = 0;
 }
 
 int process_request(struct request *r)
