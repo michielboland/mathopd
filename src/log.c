@@ -52,7 +52,7 @@ void log_request(struct request *r)
 	if (log_columns <= 0) {
 		if (l1 == 0) {
 			l1 = 1;
-			log_d("log_trans: nothing to log!");
+			log_d("log_request: nothing to log!");
 		}
 		return;
 	}
@@ -60,7 +60,7 @@ void log_request(struct request *r)
 	if (left < 0) {
 		if (l2 == 0) {
 			l2 = 1;
-			log_d("log_trans: buffer too small!?!?");
+			log_d("log_request: buffer too small!?!?");
 		}
 		return;
 	}
@@ -134,7 +134,7 @@ void log_request(struct request *r)
 	b[-1] = '\n';
 	if (write(log_file, buf, b - buf) == -1) {
 		gotsigterm = 1;
-		log_d("cannot write to log file");
+		log_d("log_request: cannot write to log file");
 		lerror("write");
 	}
 	return;
