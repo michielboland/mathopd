@@ -360,6 +360,8 @@ static int readfromclient(struct pipe_params *p)
 		return -1;
 	}
 	r = recv(p->cfd, p->ibuf + p->ibp, bytestoread, 0);
+	if (debug)
+		log_d("readfromclient: fd=%d, ibp=%d, bytestoread=%d, r=%d", p->cfd, p->ibp, bytestoread, r);
 	switch (r) {
 	case -1:
 		switch (errno) {
@@ -401,6 +403,8 @@ static int readfromchild(struct pipe_params *p)
 		return -1;
 	}
 	r = recv(p->pfd, p->pbuf + p->ipp, bytestoread, 0);
+	if (debug)
+		log_d("readfromchild: fd=%d, ipp=%d, bytestoread=%d, r=%d", p->pfd, p->ipp, bytestoread, r);
 	switch (r) {
 	case -1:
 		switch (errno) {
@@ -446,6 +450,8 @@ static int writetoclient(struct pipe_params *p)
 	ssize_t r;
 
 	r = send(p->cfd, p->obuf + p->obp, p->otop - p->obp, 0);
+	if (debug)
+		log_d("writetoclient: fd=%d, obp=%d, otop=%d, r=%d", p->cfd, p->obp, p->otop, r);
 	switch (r) {
 	case -1:
 		switch (errno) {
@@ -475,6 +481,8 @@ static int writetochild(struct pipe_params *p)
 	ssize_t r;
 
 	r = send(p->pfd, p->ibuf + p->opp, p->ibp - p->opp, 0);
+	if (debug)
+		log_d("writetochild: fd=%d, opp=%d, ibp=%d, r=%d", p->pfd, p->opp, p->ibp, r);
 	switch (r) {
 	case -1:
 		switch (errno) {
