@@ -281,12 +281,6 @@ int main(int argc, char *argv[])
 		write(pid_fd, buf, strlen(buf));
 		close(pid_fd);
 	}
-	gotsighup = 0;
-	gotsigterm = 0;
-	gotsigusr1 = 0;
-	gotsigusr2 = 0;
-	gotsigchld = 0;
-	gotsigquit = 0;
 	httpd_main();
 	return 0;
 }
