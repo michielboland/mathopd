@@ -105,7 +105,8 @@
 
 enum {
 	ALLOW,
-	DENY
+	DENY,
+	APPLY
 };
 
 enum {
