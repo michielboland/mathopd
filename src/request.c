@@ -786,8 +786,6 @@ static int process_path(struct request *r)
 {
 	int rv;
 
-	if (r->host)
-		sanitize_host(r->host);
 	switch (find_vs(r)) {
 	case -1:
 		return 500;
@@ -1020,9 +1018,10 @@ static int process_headers(struct request *r)
 			r->referer = s;
 		else if (!strcasecmp(l, "Authorization"))
 			r->authorization = s;
-		else if (!strcasecmp(l, "Host"))
+		else if (!strcasecmp(l, "Host")) {
+			sanitize_host(s);
 			r->host = s;
-		else if (!strcasecmp(l, "If-Modified-Since"))
+		} else if (!strcasecmp(l, "If-Modified-Since"))
 			r->ims_s = s;
 		else if (!strcasecmp(l, "If-Unmodified-Since"))
 			r->ius_s = s;
