@@ -567,6 +567,13 @@ static int process_fd(struct request *r)
 	r->content_length = r->finfo.st_size;
 	if (r->status == 0) {
 		r->last_modified = r->finfo.st_mtime;
+		if (r->last_modified > current_time) {
+			current_time = time(0);
+			if (r->last_modified > current_time) {
+				log_d("file %s has modification time in the future", r->path_translated);
+				r->last_modified = current_time;
+			}
+		}
 		if (r->last_modified <= r->ims) {
 			close(fd);
 			r->num_content = -1;
