@@ -788,6 +788,10 @@ static int process_path(struct request *r)
 	}
 	if ((r->c = faketoreal(r->path, r->path_translated, r, 1, sizeof r->path_translated)) == 0)
 		return 500;
+	if (check_path(r) == -1) {
+		r->error_file = r->c->error_404_file;
+		return 404;
+	}
 	if (r->c->accesses && evaluate_access(r->cn->peer.sin_addr.s_addr, r->c->accesses) == DENY) {
 		r->error_file = r->c->error_403_file;
 		return 403;
@@ -801,10 +805,6 @@ static int process_path(struct request *r)
 	if (r->path_translated[0] != '/') {
 		r->location = r->path_translated;
 		return 302;
-	}
-	if (check_path(r) == -1) {
-		r->error_file = r->c->error_404_file;
-		return 404;
 	}
 	if (get_path_info(r) == -1) {
 		r->error_file = r->c->error_404_file;
