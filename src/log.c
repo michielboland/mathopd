@@ -118,8 +118,7 @@ void log_request(struct request *r)
 			s = tmp;
 			break;
 		case ML_SERVERNAME:
-			if (r->vs)
-				s = r->vs->fullname;
+			s = r->host;
 			break;
 		case ML_METHOD:
 			s = r->method_s;
