@@ -5,19 +5,10 @@ Mathopd in a production environment, and you are not the same
 person as the author, you should stay away from this code, and
 use the stable version instead.
 
-Mathopd 1.3b1 was a private release for testing purposes; so I've
-jumped straight to 1.3b2.
+We are currently at 1.3b3. Changes relative to the previous
+beta release:
 
-Differences between 1.2pl6 and 1.3b2: (not much, really)
- 
-  - support for poll() has been removed. This is not because I
-    do not like poll(), on the contrary, but I do not like the
-    mess it has created in the code. I decided that either
-    select() or poll() had to go. Since poll() is not quite
-    so common I'm afraid we're now stuck with select() for a
-    while.
- 
-  - support for encrypted userfiles is back again for the time
-    being.
+  - ChildLog is now a control item, so you can have different
+    childlogs for different servers, etc.
  
 Michiel Boland <boland@diva.nl>
