@@ -788,7 +788,7 @@ static int process_path(struct request *r)
 	case -1:
 		return 500;
 	case 1:
-		return 404;
+		return 400;
 	}
 	if ((r->c = faketoreal(r->path, r->path_translated, r, 1, sizeof r->path_translated)) == 0)
 		return 500;
