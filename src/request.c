@@ -817,7 +817,7 @@ static int process_path(struct request *r)
 		if (r->path_args[0] != '/')
 			return makedir(r);
 		if (append_indexes(r) == -1) {
-			if (r->c->auto_index_command && *r->c->auto_index_command == '/') {
+			if (r->path_args[1] == 0 && r->c->auto_index_command && *r->c->auto_index_command == '/') {
 				if (r->method == M_POST)
 					return 405;
 				r->content_type = r->c->auto_index_command;
