@@ -591,6 +591,10 @@ static int process_fd(struct request *r)
 		r->num_content = -1;
 		return 304;
 	}
+	if (r->ius && r->last_modified > r->ius) {
+		close(fd);
+		return 412;
+	}
 	if (r->range) {
 		if (satisfy_range(r) == -1) {
 			close(fd);
@@ -959,8 +963,10 @@ static int process_headers(struct request *r)
 			r->host = s;
 		else if (!strcasecmp(l, "Connection"))
 			r->connection = s;
-		else if (!strcasecmp(l, "If-modified-since"))
+		else if (!strcasecmp(l, "If-Modified-Since"))
 			r->ims_s = s;
+		else if (!strcasecmp(l, "If-Unmodified-Since"))
+			r->ius_s = s;
 		else if (!strcasecmp(l, "Content-type"))
 			r->in_content_type = s;
 		else if (!strcasecmp(l, "Content-length"))
@@ -1023,11 +1029,14 @@ static int process_headers(struct request *r)
 		s = r->ims_s;
 		if (s) {
 			i = timerfc(s);
-			if (i == -1) {
-				log_d("illegal date \"%s\" in If-Modified-Since", s);
-				return 400;
-			}
-			r->ims = i;
+			if (i != -1)
+				r->ims = i;
+		}
+		s = r->ius_s;
+		if (s) {
+			i = timerfc(s);
+			if (i != -1)
+				r->ius = i;
 		}
 		s = r->if_range_s;
 		if (s) {
@@ -1093,6 +1102,9 @@ int prepare_reply(struct request *r)
 		r->status_line = "405 Method Not Allowed";
 		r->allowedmethods = "GET, HEAD";
 		break;
+	case 412:
+		r->status_line = "412 Precondition Failed";
+		break;
 	case 416:
 		r->status_line = "416 Requested Range Not Satisfiable";
 		break;
@@ -1138,12 +1150,6 @@ int prepare_reply(struct request *r)
 			break;
 		case 503:
 			b += sprintf(b, "The server is temporarily busy.\n");
-			break;
-		case 416:
-			b += sprintf(b, "The requested range is not satisfiable.\n");
-			break;
-		default:
-			b += sprintf(b, "An internal server error has occurred.\n");
 			break;
 		}
 		if (r->c && r->c->admin)
@@ -1203,6 +1209,8 @@ void init_request(struct request *r)
 	r->range_ceiling = 0;
 	r->range_suffix = 0;
 	r->range_total = 0;
+	r->ius_s = 0;
+	r->ius = 0;
 }
 
 int process_request(struct request *r)
