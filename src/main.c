@@ -221,6 +221,8 @@ int main(int argc, char *argv[])
 			die("dup", 0);
 	}
 	message = config(config_filename);
+	if (2 * tuning.num_connections >= n)
+		fprintf(stderr, "Warning: NumConnections may be set too high (only room for %d fds)\n", n);
 	if (message)
 		die(0, "%s", message);
 	s = servers;
