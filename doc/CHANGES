@@ -98,6 +98,11 @@ dump.c:
 
 	Mark the `current' connection.
 
+imap.c:
+
+	Replace the strtok() function with something that is a
+	little bit quicker.
+
 log.c:
 
 	New global function: open_log().
