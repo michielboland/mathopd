@@ -11,6 +11,9 @@ SBINDIR = $(PREFIX)/sbin
 # CPPFLAGS = -DNEED_INET_ATON -DHAVE_CRYPT_H
 # LIBS = -lsocket -lnsl
 
+# On Linux, uncomment the following
+# CPPFLAGS = -DHAVE_CRYPT_H
+
 OBJS = base64.o cgi.o config.o core.o dump.o imap.o log.o main.o \
 	redirect.o request.o util.o
 DEPENDS = mathopd.h Makefile
