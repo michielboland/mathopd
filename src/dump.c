@@ -51,19 +51,6 @@ static const char rcsid[] = "$Id$";
 #include <fcntl.h>
 #include "mathopd.h"
 
-static void dump_servers(FILE *f, struct server *s)
-{
-	char tmp[32];
-
-	fprintf(f, "server                 accepts  handled\n");
-	while (s) {
-		sprintf(tmp, "%s:%lu", inet_ntoa(s->addr), s->port);
-		fprintf(f, "%-21s %8lu %8lu\n", tmp, s->naccepts, s->nhandled);
-		s = s->next;
-	}
-	fprintf(f, "\n");
-}
-
 static void dump_connections(FILE *f, struct connection *currcon)
 {
 	int i, n_reading, n_writing, n_waiting, n_forked;
@@ -130,7 +117,6 @@ static void fdump(FILE *f, struct request *r)
 	getrusage(RUSAGE_CHILDREN, &ru);
 	fprintf(f, "                     children: %11.2f user %11.2f system\n\n", ru.ru_utime.tv_sec + 1e-6 * ru.ru_utime.tv_usec, ru.ru_stime.tv_sec + 1e-6 * ru.ru_stime.tv_usec);
 	stats.maxconnections = stats.nconnections;
-	dump_servers(f, servers);
 	dump_connections(f, r ? r->cn : 0);
 	fprintf(f, "*** End of dump\n");
 }
