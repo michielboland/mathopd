@@ -203,7 +203,7 @@ struct server {
 	struct virtual *children;
 	struct control *controls;
 	struct server *next;
-	int pollindex;
+	int pollno;
 	struct vserver *vservers;
 	unsigned long backlog;
 };
@@ -284,14 +284,20 @@ struct pipe_params {
 	size_t pmax;
 };
 
+struct connection_fd {
+	int fd;
+	int pollindex;
+	short events;
+};
+
 struct connection {
 	struct connection *next;
 	struct connection *prev;
 	enum connection_state connection_state;
 	struct request *r;
 	struct server *s;
-	int fd;
-	int rfd;
+	struct connection_fd client;
+	struct connection_fd request;
 	struct sockaddr_in peer;
 	struct sockaddr_in sock;
 	time_t t;
@@ -300,8 +306,6 @@ struct connection {
 	struct pool client_input;
 	struct pool script_input;
 	int keepalive;
-	int pollindex;
-	int rpollindex;
 	unsigned long nread;
 	unsigned long nwritten;
 	long left;
@@ -377,7 +381,6 @@ extern time_t current_time;
 extern struct pollfd *pollfds;
 extern struct connection *connection_array;
 extern void set_connection_state(struct connection *, enum connection_state);
-extern int allocate_pollindex(int, short);
 extern int reinit_connection(struct connection *);
 extern void close_connection(struct connection *);
 extern void log_socket_error(int, const char *);
