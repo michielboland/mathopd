@@ -288,9 +288,6 @@ static void read_connection(struct connection *cn)
 			case '\r':
 				state = 1;
 				break;
-			case '\n':
-				state = 9;
-				break;
 			}
 			break;
 		case 1:
@@ -302,7 +299,7 @@ static void read_connection(struct connection *cn)
 			case '\r':
 				break;
 			case '\n':
-				state = 9;
+				state = 0;
 				break;
 			}
 			break;
@@ -314,7 +311,7 @@ static void read_connection(struct connection *cn)
 				state = 3;
 				break;
 			case '\n':
-				state = 9;
+				state = 8;
 				break;
 			}
 			break;
@@ -386,11 +383,6 @@ static void read_connection(struct connection *cn)
 		if (nr == -1)
 			log_d("error reading from %s", cn->ip);
 			lerror("recv");
-		cn->action = HC_CLOSING;
-		return;
-	}
-	if (state == 9) {
-		log_d("bad message from %s", cn->ip);
 		cn->action = HC_CLOSING;
 		return;
 	}
