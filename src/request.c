@@ -709,32 +709,31 @@ static int check_realm(struct request *r)
 	return -1;
 }
 
-static size_t expand_hostname(char *dest, const char *source, const char *host, int m)
+static size_t expand_hostname(char *dest, const char *source, const char *host, size_t m)
 {
-	int c, l, n;
+	int c, l;
+	size_t n;
 
-	if (m <= 0) /* should never happen */
-		return 0;
-	n = m;
-	do {
+	n = 0;
+	while (n < m) {
 		c = *source++;
+		if (c == 0)
+			break;
 		switch (c) {
 		case '*':
 			if (host) {
-				dest += l = sprintf(dest, "%.*s", n, host);
-				n -= l;
+				dest += l = sprintf(dest, "%.*s", m - n, host);
+				n += l;
 				break;
 			}
 		default:
 			*dest++ = c;
-			--n;
-			break;
-		case 0:
-			*dest = 0;
+			++n;
 			break;
 		}
-	} while (n && c);
-	return m - n;
+	}
+	*dest = 0;
+	return n;
 }
 
 struct control *faketoreal(char *x, char *y, struct request *r, int update, int maxlen)
