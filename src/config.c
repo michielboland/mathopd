@@ -66,7 +66,7 @@ char *user_name;
 
 #ifdef POLL
 struct pollfd *pollfds;
-#endif 
+#endif
 
 int log_columns;
 int *log_column;
@@ -155,7 +155,6 @@ static const char e_illegalport[] =	"Illegal port number";
 static const char e_noinput[] =		"no input";
 static const char e_unknown_user[] =	"unknown user";
 static const char e_unknown_group[] =	"unknown group";
-
 
 static const char t_close[] =		"unexpected closing brace";
 static const char t_eof[] =		"unexpected end of file";
