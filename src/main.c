@@ -65,7 +65,6 @@ int debug;
 unsigned long fcm; /* should be mode_t */
 int stayroot;
 int my_pid;
-int fork_failed;
 
 static int am_daemon;
 static char *progname;
@@ -309,7 +308,6 @@ pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd,
 		return pid;
 	case -1:
 		sigprocmask(SIG_SETMASK, &oset, 0);
-		fork_failed = 1;
 		lerror("spawn: failed to create child process");
 		return -1;
 	case 0:
