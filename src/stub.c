@@ -384,12 +384,17 @@ static void pipe_run(struct pipe_params *p)
 			r = recv(p->cfd, p->ibuf + p->ibp, bytestoread, 0);
 			switch (r) {
 			case -1:
-				if (errno == EAGAIN)
-					break;
-				if (errno != ECONNRESET && errno != EPIPE)
+				switch (errno) {
+				default:
 					lerror("pipe_run: error reading from client");
-				p->error_condition = STUB_ERROR_CLIENT;
-				return;
+				case ECONNRESET:
+				case EPIPE:
+					p->error_condition = STUB_ERROR_CLIENT;
+					return;
+				case EAGAIN:
+					break;
+				}
+				break;
 			case 0:
 				log_d("pipe_run: client went away while posting data");
 				p->error_condition = STUB_ERROR_CLIENT;
@@ -399,23 +404,6 @@ static void pipe_run(struct pipe_params *p)
 				p->cn->nread += r;
 				p->ibp += r;
 				p->imax -= r;
-				break;
-			}
-		}
-		if (revents & POLLOUT) {
-			r = send(p->cfd, p->obuf + p->obp, p->otop - p->obp, 0);
-			switch (r) {
-			case -1:
-				if (errno == EAGAIN)
-					break;
-				if (errno != ECONNRESET && errno != EPIPE)
-					lerror("pipe_run: error writing to client");
-				p->error_condition = STUB_ERROR_CLIENT;
-				return;
-			default:
-				p->t = current_time;
-				p->cn->nwritten += r;
-				p->obp += r;
 				break;
 			}
 		}
@@ -444,11 +432,17 @@ static void pipe_run(struct pipe_params *p)
 			r = recv(p->pfd, p->pbuf + p->ipp, bytestoread, 0);
 			switch (r) {
 			case -1:
-				if (errno == EAGAIN)
+				switch (errno) {
+				default:
+					lerror("pipe_run: error reading from script");
+				case ECONNRESET:
+				case EPIPE:
+					p->error_condition = STUB_ERROR_PIPE;
+					return;
+				case EAGAIN:
 					break;
-				lerror("pipe_run: error reading from script");
-				p->error_condition = STUB_ERROR_PIPE;
-				return;
+				}
+				break;
 			case 0:
 				if (p->state != 2) {
 					log_d("pipe_run: premature end of script headers");
@@ -471,26 +465,7 @@ static void pipe_run(struct pipe_params *p)
 				break;
 			}
 		}
-		if (revents & POLLOUT) {
-			r = send(p->pfd, p->ibuf + p->opp, p->ibp - p->opp, 0);
-			switch (r) {
-			case -1:
-				if (errno == EAGAIN)
-					break;
-				lerror("pipe_run: error writing to script");
-				p->error_condition = STUB_ERROR_PIPE;
-				return;
-			default:
-				p->t = current_time;
-				p->opp += r;
-				break;
-			}
-		}
 	}
-	if (p->opp && p->opp == p->ibp)
-		p->opp = p->ibp = 0;
-	if (p->obp && p->obp == p->otop)
-		p->obp = p->otop = 0;
 	if (p->ipp && p->state != 2) {
 		while (p->pstart < p->ipp && p->state != 2) {
 			c = p->pbuf[p->pstart++];
@@ -573,6 +548,51 @@ static void pipe_run(struct pipe_params *p)
 			memcpy(p->obuf + p->otop, "0\r\n\r\n", 5);
 			p->otop += 5;
 			p->pstate = 3;
+		}
+	}
+	if (p->otop > p->obp) {
+		r = send(p->cfd, p->obuf + p->obp, p->otop - p->obp, 0);
+		switch (r) {
+		case -1:
+			switch (errno) {
+			case EAGAIN:
+				break;
+			default:
+				lerror("pipe_run: error writing to client");
+			case EPIPE:
+			case ECONNRESET:
+				p->error_condition = STUB_ERROR_CLIENT;
+				return;
+			}
+		default:
+			p->t = current_time;
+			p->cn->nwritten += r;
+			p->obp += r;
+			if (p->obp == p->otop)
+				p->obp = p->otop = 0;
+			break;
+		}
+	}
+	if (p->ibp > p->opp) {
+		r = send(p->pfd, p->ibuf + p->opp, p->ibp - p->opp, 0);
+		switch (r) {
+		case -1:
+			switch (errno) {
+			case EAGAIN:
+				break;
+			default:
+				lerror("pipe_run: error writing to script");
+			case EPIPE:
+			case ECONNRESET:
+				p->error_condition = STUB_ERROR_PIPE;
+				return;
+			}
+		default:
+			p->t = current_time;
+			p->opp += r;
+			if (p->opp == p->ibp)
+				p->opp = p->ibp = 0;
+			break;
 		}
 	}
 }
