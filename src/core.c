@@ -97,32 +97,12 @@ static void nuke_connections(void)
 	}
 }
 
-static int thrash(void)
-{
-	log(L_LOG, "thrashing");
-
-	switch (fork()) {
-	case -1:
-		lerror("fork");
-		return -1;
-	case 0:
-		log(L_LOG, "*** forked pid %d ***", getpid());
-		nuke_servers();
-		break;
-	default:
-		nuke_connections();
-		break;
-	}
-	return 0;
-}
-
 static void accept_connection(struct server *s)
 {
 	struct sockaddr_in sa;
-	int lsa, fd, do_thrash;
+	int lsa, fd;
 	struct connection *cn, *cw;
 
-	do_thrash = 0;
 	lsa = sizeof sa;
 	while ((fd = accept(s->fd, (struct sockaddr *) &sa, &lsa)) != -1) {
 		s->naccepts++;
@@ -144,15 +124,13 @@ static void accept_connection(struct server *s)
 			init_connection(cw, s, fd, sa.sin_addr);
 		}
 		else {
-			log(L_ERROR, "had to drop connection");
+			log(L_ERROR, "connection to %s dropped",
+			    inet_ntoa(sa.sin_addr));
 			close(fd);
-			do_thrash = 1;
 		}
 	}
 	if (errno != M_AGAIN)
 		lerror("accept");
-	if (do_thrash)
-		thrash();
 }
 
 static int fill_connection(struct connection *cn)
