@@ -83,11 +83,6 @@ core.c:
 	of one minute, rather than infinity. This should take
 	care of connections that remain stuck after shutdown.
 
-	Besides connections we now have `children'. (The struct
-	pipe_params thingies.) We loop over these in httpd_main.
-	The code that deals with reading from and writing to
-	children is in stub.c
-
 	Do not poll server sockets or try to accept() if there is no
 	room for any new connection. Previously mathopd would accept
 	and then immediately drop a connection. That does not make
@@ -172,8 +167,8 @@ request.c:
 
 	Print extra headers, if defined by the ExtraHeaders keyword.
 
-	Add satisfy_range(). In process_fd(), seek to the correct
-	file offset if "Range" header is present in the request. Return
+	Add satisfy_range(). In process_fd(), set the correct file
+	offset if "Range" header is present in the request. Return
 	200, 206 or 416 status based on range headers. Deal with "If-Range"
 	headers. Added process_range_header(). Ignore (and log) multiple
 	Range headers and requests for multiple ranges.
@@ -199,9 +194,6 @@ request.c:
 	(Thus for the time being we refuse POST requests with a chunked
 	message body.)
 
-	In get_path_info(), if the first call to stat() fails and
-	path_info_ok is not set, return an error immediately.
-
 	If the AutoIndexCommand is set for a control block, execute that
 	command if the request is for a directory and there is no index,
 	as specified by IndexNames. (The command may be a CGI script or
@@ -226,6 +218,15 @@ request.c:
 	versions would call stat() first, which is a time-consuming process.
 	As a side-effect, all files that are served by Mathopd must now
 	be readable, including compiled CGI programs.
+
+	If the request included an "Expect: 100-continue" header, the
+	client is apparently sending a request-body next, and no part
+	of the request-body has been received, send a "100-continue"
+	response. This is required by RFC2616.
+
+	Mathopd now closes the connection after it has processed a
+	GET or HEAD request that contained a message body. Previous
+	versions would treat the message body as a new request.
 
 stub.c:
 
