@@ -115,7 +115,6 @@ static const char c_log[] =			"Log";
 static const char c_log_format[] =		"LogFormat";
 static const char c_log_gmt[] =			"LogGMT";
 static const char c_method[] =			"Method";
-static const char c_name[] =			"Name";
 static const char c_no_apply[] =		"NoApply";
 static const char c_no_host[] =			"NoHost";
 static const char c_num_connections[] =		"NumConnections";
@@ -794,7 +793,6 @@ static const char *config_server(struct configuration *p, struct server **ss)
 		return e_memory;
 	s->port = 80;
 	s->addr.s_addr = 0;
-	s->s_name = 0;
 	s->children = 0;
 	s->vservers= 0;
 	s->controls = controls;
@@ -807,8 +805,6 @@ static const char *config_server(struct configuration *p, struct server **ss)
 			return t;
 		if (!strcasecmp(p->tokbuf, c_port))
 			t = config_int(p, &s->port);
-		else if (!strcasecmp(p->tokbuf, c_name))
-			t = config_string(p, &s->s_name);
 		else if (!strcasecmp(p->tokbuf, c_address))
 			t = config_address(p, &s->addr);
 		else if (!strcasecmp(p->tokbuf, c_virtual))
