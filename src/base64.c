@@ -43,15 +43,16 @@ static unsigned char b64[256];
 
 void base64initialize(void)
 {
-	int i;
+	int i, j;
 
 	memset(b64, 64, sizeof b64);
+	j = 0;
 	for (i = 'A'; i <= 'Z'; i++)
-		b64[i] = i - 'A';
+		b64[i] = j++;
 	for (i = 'a'; i <= 'z'; i++)
-		b64[i] = i - 'a' + 26;
+		b64[i] = j++;
 	for (i = '0'; i <= '9'; i++)
-		b64[i] = i - '0' + 52;
+		b64[i] = j++;
 	b64['+'] = 62;
 	b64['/'] = 63;
 	b64['='] = 0;
@@ -107,10 +108,17 @@ static int base64decode(const unsigned char *encoded, unsigned char *decoded)
 static int pwok(const char *good, const char *guess, int do_crypt)
 {
 #ifdef MATHOPD_CRYPT
-	return strcmp(good, do_crypt ? crypt(guess, good) : guess) == 0;
-#else
-	return do_crypt ? 0 : strcmp(good, guess) == 0;
+	char *cs;
+
 #endif
+	if (do_crypt == 0)
+		return strcmp(good, guess) == 0;
+#ifdef MATHOPD_CRYPT
+	cs = crypt(guess, good);
+	if (cs)
+		return strcmp(good, cs) == 0;
+#endif
+	return 0;
 }
 
 static int f_webuserok(const char *authorization, FILE *fp, char *username, int len, int do_crypt)
