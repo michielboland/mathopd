@@ -207,8 +207,7 @@ static int accept_connection(struct server *s)
 				maxconnections = nconnections;
 			init_connection(cn);
 			cn->logged = 0;
-			cn->action = HC_READING;
-			--available_connections;
+			cn->action = HC_WAITING;
 		}
 	} while (tuning.accept_multi);
 	return 0;
