@@ -229,10 +229,10 @@ static char *getline(struct pool *p)
 
 static int putstring(struct pool *p, char *s)
 {
-	int l;
+	size_t l;
 
 	l = strlen(s);
-	if (l > p->ceiling - p->end) {
+	if (p->end + l > p->ceiling) {
 		log_d("no more room to put string!?!?");
 		return -1;
 	}
@@ -241,15 +241,11 @@ static int putstring(struct pool *p, char *s)
 	return 0;
 }
 
-/*
- * XXX: location gets trimmed after 512 characters
- */
-
 static int output_headers(struct pool *p, struct request *r)
 {
 	long cl;
 	char tmp_outbuf[2048], gbuf[40], *b;
-	int port;
+	unsigned long port;
 
 	if (r->cn->assbackwards)
 		return 0;
@@ -265,9 +261,9 @@ static int output_headers(struct pool *p, struct request *r)
 	if (r->c) {
 		if (r->status == 200) {
 			if (r->c->refresh)
-				b += sprintf(b, "Refresh: %d\r\n", r->c->refresh);
-			if (r->c->max_age >= 0)
-				b += sprintf(b, "Cache-Control: max-age=%d\n", r->c->max_age);
+				b += sprintf(b, "Refresh: %lu\r\n", r->c->refresh);
+			if (r->c->max_age)
+				b += sprintf(b, "Cache-Control: max-age=%lu\n", r->c->max_age);
 		} else if (r->status == 401 && r->c->realm)
 			b += sprintf(b, "WWW-Authenticate: Basic realm=\"%s\"\r\n", r->c->realm);
 	}
@@ -282,10 +278,10 @@ static int output_headers(struct pool *p, struct request *r)
 	if (r->location) {
 		if (r->location[0] == '/') {
 			port = r->cn->s->port;
-			if (port == DEFAULT_PORT)
+			if (port == 80)
 				b += sprintf(b, "Location: http://%s%.512s\r\n", r->servername, r->location);
 			else
-				b += sprintf(b, "Location: http://%s:%d%.512s\r\n", r->servername, port, r->location);
+				b += sprintf(b, "Location: http://%s:%lu%.512s\r\n", r->servername, port, r->location);
 		} else
 			b += sprintf(b, "Location: %.512s\r\n", r->location);
 	}
@@ -300,17 +296,17 @@ static int output_headers(struct pool *p, struct request *r)
 
 static char *dirmatch(char *s, char *t)
 {
-	int n;
+	size_t n;
 
 	n = strlen(t);
 	if (n == 0)
 		return s;
-	return !strncmp(s, t, n) && (s[n] == '/' || s[n] == 0 || s[n-1] == '~') ? s + n : 0;
+	return !strncmp(s, t, n) && (s[n] == '/' || s[n] == 0 || s[n - 1] == '~') ? s + n : 0;
 }
 
 static char *exactmatch(char *s, char *t)
 {
-	int n;
+	size_t n;
 
 	n = strlen(t);
 	return !strncmp(s, t, n) && s[n] == '/' && s[n + 1] == 0 ? s + n : 0;
@@ -575,7 +571,7 @@ static int add_fd(struct request *r, const char *filename)
 
 static int hostmatch(const char *s, const char *t)
 {
-	int l;
+	size_t l;
 
 	l = strlen(t);
 	if (strncasecmp(s, t, l))
