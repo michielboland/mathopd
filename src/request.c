@@ -1037,7 +1037,7 @@ static int process_headers(struct request *r)
 		r->status = 400;
 		return 0;
 	}
-	if (r->protocol_major)
+	if (r->protocol_major && r->protocol_minor)
 		r->cn->keepalive = 1;
 	n = 0;
 	multiple_range = 0;
