@@ -283,6 +283,11 @@ struct pipe_params {
 	size_t pmax;
 };
 
+struct addrport {
+	char ap_address[58];
+	char ap_port[6];
+};
+
 struct connection {
 	struct connection *next;
 	struct connection *prev;
@@ -291,6 +296,8 @@ struct connection {
 	struct server *s;
 	int fd;
 	int rfd;
+	struct addrport peer;
+	struct addrport sock;
 	time_t t;
 	struct pool header_input;
 	struct pool output;
