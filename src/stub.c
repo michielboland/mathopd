@@ -399,7 +399,7 @@ static void pipe_run(struct pipe_params *p)
 			return;
 		}
 		if (revents & POLLIN) {
-			bytestoread = p->isize - p->ibp;
+			bytestoread = p->psize - p->ipp;
 			if (p->haslen && bytestoread > p->pmax)
 				bytestoread = p->pmax;
 			r = read(p->pfd, p->pbuf + p->ipp, bytestoread);
