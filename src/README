@@ -11,4 +11,11 @@ beta release:
   - ChildLog is now a control item, so you can have different
     childlogs for different servers, etc.
  
+  - A 'dummy' specialty has been added. Request for dummies always
+    return 404 errors. This can be used to hide certain files that
+    you don't want people to see.
+
+  - A handler for SIGQUIT has been added. Use this signal to
+    toggle debugging on a live server.
+
 Michiel Boland <boland@diva.nl>
