@@ -50,6 +50,7 @@ static const char c_error_403_file[] =	"Error403File";
 static const char c_error_404_file[] =	"Error404File";
 static const char c_exact[] =		"Exact";
 static const char c_export[] =		"Export";
+static const char c_external[] =	"External";
 static const char c_group[] =		"Group";
 static const char c_host[] =		"Host";
 static const char c_index_names[] =	"IndexNames";
@@ -197,12 +198,12 @@ char *strdup(const char *s)
 {
 	char *t;
 
-	return (t = (char *) malloc(strlen(s) + 1)) ? strcpy(t,s) : 0;
+	return (t = malloc(strlen(s) + 1)) ? strcpy(t,s) : 0;
 }
 #endif
 
-#define NEW(x) (x *) malloc(sizeof (x))
-#define MAKE(x, y) if (((x) = (y *) malloc(sizeof (y))) == 0) return e_memory
+#define NEW(x) malloc(sizeof (x))
+#define MAKE(x, y) if (((x) = malloc(sizeof (y))) == 0) return e_memory
 #define COPY(x, y) if (((x) = strdup(y)) == 0) return e_memory
 #define GETWORD() if (gettoken() != t_word) return err
 #define GETSTRING() if (gettoken() != t_string && err != t_word) return err
@@ -299,7 +300,7 @@ static const char *config_list(struct simple_list **ls)
 	return 0;
 }
 
-static const char *config_mime(struct mime **ms, int type)
+static const char *config_mime(struct mime **ms, int class)
 {
 	struct mime *m;
 	char *name;
@@ -312,7 +313,7 @@ static const char *config_mime(struct mime **ms, int type)
 		while (NOTCLOSE()) {
 			REQSTRING();
 			MAKE(m, struct mime);
-			m->type = type;
+			m->class = class;
 			m->name = name;
 			if (*tokbuf == '*')
 				m->ext = 0;
@@ -460,9 +461,11 @@ static const char *config_control(struct control **as)
 		else if (!strcasecmp(tokbuf, c_clients))
 			t = config_access(&a->clients);
 		else if (!strcasecmp(tokbuf, c_types))
-			t = config_mime(&a->mimes, M_TYPE);
+			t = config_mime(&a->mimes, CLASS_FILE);
 		else if (!strcasecmp(tokbuf, c_specials))
-			t = config_mime(&a->mimes, M_SPECIAL);
+			t = config_mime(&a->mimes, CLASS_SPECIAL);
+		else if (!strcasecmp(tokbuf, c_external))
+			t = config_mime(&a->mimes, CLASS_EXTERNAL);
 		else if (!strcasecmp(tokbuf, c_admin))
 			t = config_string(&a->admin);
 		else if (!strcasecmp(tokbuf, c_refresh))
@@ -647,7 +650,7 @@ static struct pool *new_pool(size_t s)
 
 	p = NEW(struct pool);
 	if (p) {
-		t = (char *) malloc(s);
+		t = malloc(s);
 		if (t) {
 			p->floor = t;
 			p->ceiling = t + s;
@@ -679,7 +682,7 @@ void config(void)
 		die(0, "%s", s);
 
 #ifdef POLL
-	pollfds = (struct pollfd *) malloc((num_connections + num_servers)
+	pollfds = malloc((num_connections + num_servers)
 					   * sizeof (struct pollfd));
 	if (pollfds == 0)
 		die(0, e_memory);
