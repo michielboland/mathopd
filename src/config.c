@@ -44,8 +44,6 @@ static const char rcsid[] = "$Id$";
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pwd.h>
-#include <grp.h>
 #ifdef POLL
 #include <poll.h>
 #endif
