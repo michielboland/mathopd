@@ -64,18 +64,11 @@
 #include <sys/wait.h>
 #include <pwd.h>
 #include <grp.h>
-
-#ifdef NEED_MEMORY_H
-#include <memory.h>
-#endif
+#include <sys/resource.h>
 
 #ifdef POLL
 #include <stropts.h>
 #include <poll.h>
-#endif
-
-#ifndef NO_GETRLIMIT
-#include <sys/resource.h>
 #endif
 
 #ifndef SA_RESTART
@@ -358,35 +351,4 @@ extern int webuserok(const char *, const char *, char *, int);
 
 extern int process_redirect(struct request *);
 
-#ifdef NEED_STRERROR
-extern const char *strerror(int);
 #endif
-
-#ifdef NEED_STRDUP
-extern char *strdup(const char *);
-#endif
-
-#ifdef NEED_PROTOTYPES
-int accept(int, struct sockaddr *, int *);
-int bind(int, struct sockaddr *, int);
-void bzero(char *, int);
-int ftruncate(int, off_t);
-int getopt(int, char * const *, const char *);
-int initgroups(const char *, gid_t);
-int listen(int, int);
-int lstat(const char *, struct stat *);
-int recv(int, char *, int, int);
-int select(int, fd_set *, fd_set *, fd_set *, struct timeval *);
-int send(int, const char *, int, int);
-int setsockopt(int, int, int, const char *, int);
-int socket(int, int , int);
-int strcasecmp(const char *, const char *);
-
-#ifndef NO_GETRLIMIT
-int getrlimit(int, struct rlimit *);
-int setrlimit(int, const struct rlimit *);
-#endif
-
-#endif
-
-#endif /* NEED_PROTOTYPES */
