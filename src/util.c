@@ -42,7 +42,7 @@ static const char rcsid[] = "$Id$";
 
 static const char hex[] = "0123456789abcdef";
 
-#define hexdigit(x) (((x) <= '9') ? (x) - '0' : ((x) & 7) + 9)
+#define HEXDIGIT(x) (((x) <= '9') ? (x) - '0' : ((x) & 7) + 9)
 
 void escape_url(const char *from, char *to)
 {
@@ -69,7 +69,8 @@ void escape_url(const char *from, char *to)
 
 int unescape_url(const char *from, char *to)
 {
-	int c, x1, x2;
+	char c;
+	int x1, x2;
 
 	while ((c = *from++) != 0) {
 		if (c == '%') {
@@ -79,7 +80,7 @@ int unescape_url(const char *from, char *to)
 			x2 = *from++;
 			if (!isxdigit(x2))
 				return -1;
-			*to++ = (hexdigit(x1) << 4) + hexdigit(x2);
+			*to++ = (HEXDIGIT(x1) << 4) + HEXDIGIT(x2);
 		} else
 			*to++ = c;
 	}
@@ -99,7 +100,7 @@ int unescape_url_n(const char *from, char *to, size_t n)
 			x2 = *from++;
 			if (!isxdigit(x2))
 				return -1;
-			*to++ = (hexdigit(x1) << 4) + hexdigit(x2);
+			*to++ = (HEXDIGIT(x1) << 4) + HEXDIGIT(x2);
 		} else
 			*to++ = c;
 	}
