@@ -108,6 +108,11 @@ enum {
 	ML_QUERY_STRING
 };
 
+enum {
+	STUB_ERROR_CLIENT = 1,
+	STUB_ERROR_PIPE
+};
+
 struct pool {
 	char *floor;
 	char *ceiling;
@@ -271,6 +276,36 @@ struct connection {
 	int logged;
 };
 
+struct pipe_params {
+	char *ibuf;
+	char *obuf;
+	char *pbuf;
+	size_t isize;
+	size_t osize;
+	size_t psize;
+	size_t ibp;
+	size_t obp;
+	size_t ipp;
+	size_t opp;
+	size_t otop;
+	int istate;
+	int pstate;
+	size_t pstart;
+	int state;
+	int cfd;
+	int pfd;
+	size_t imax;
+	int chunkit;
+	int nocontent;
+	int haslen;
+	size_t pmax;
+	int cpollno;
+	int ppollno;
+	int error_condition;
+	struct connection *cn;
+	struct pipe_params *next;
+};
+
 struct tuning {
 	unsigned long buf_size;
 	unsigned long input_buf_size;
@@ -320,6 +355,7 @@ extern int log_gmt;
 
 /* core */
 
+extern struct pollfd *pollfds;
 extern int nconnections;
 extern int maxconnections;
 extern time_t current_time;
@@ -371,6 +407,7 @@ extern int open_log(const char *);
 
 /* stub */
 
+extern int init_children(size_t);
 extern int cgi_stub(struct request *, int (*)(struct request *));
 
 #endif

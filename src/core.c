@@ -67,7 +67,7 @@ int maxconnections;
 time_t startuptime;
 time_t current_time;
 
-static struct pollfd *pollfds;
+struct pollfd *pollfds;
 
 static void init_pool(struct pool *p)
 {
@@ -430,6 +430,89 @@ static void read_connection(struct connection *cn)
 	}
 }
 
+static int setup_server_pollfds(int n)
+{
+	struct server *s;
+
+	s = servers;
+	while (s) {
+		if (s->fd != -1) {
+			pollfds[n].events = POLLIN;
+			pollfds[n].fd = s->fd;
+			s->pollno = n++;
+		} else
+			s->pollno = -1;
+		s = s->next;
+	}
+	return n;
+}
+
+static int setup_connection_pollfds(int n)
+{
+	struct connection *cn;
+	short e;
+
+	cn = connections;
+	while (cn) {
+		e = 0;
+		if (cn->state == HC_ACTIVE) {
+			switch (cn->action) {
+			case HC_WAITING:
+			case HC_READING:
+				e = POLLIN;
+				break;
+			default:
+				e = POLLOUT;
+				break;
+			}
+		}
+		if (e) {
+			pollfds[n].fd = cn->fd;
+			pollfds[n].events = e;
+			cn->pollno = n++;
+		} else
+			cn->pollno = -1;
+		cn = cn->next;
+	}
+	return n;
+}
+
+static int run_servers(void)
+{
+	struct server *s;
+
+	s = servers;
+	while (s) {
+		if (s->pollno != -1)
+			if (pollfds[s->pollno].revents & POLLIN)
+				if (accept_connection(s) == -1)
+					return -1;
+		s = s->next;
+	}
+	return 0;
+}
+
+static void run_connections(void)
+{
+	struct connection *cn;
+	short r;
+	cn = connections;
+	while (cn) {
+		if (cn->pollno != -1) {
+			r = pollfds[cn->pollno].revents;
+			if (r & POLLIN)
+				read_connection(cn);
+			else if (r & POLLOUT)
+				write_connection(cn);
+			else if (r) {
+				log_d("poll: unexpected event %hd", r);
+				cn->action = HC_CLOSING;
+			}
+		}
+		cn = cn->next;
+	}
+}
+
 static void cleanup_connections(void)
 {
 	struct connection *cn;
@@ -479,11 +562,8 @@ static void reap_children(void)
 
 void httpd_main(void)
 {
-	struct server *s;
-	struct connection *cn;
 	int rv;
 	int n, t;
-	short r;
 	time_t hours;
 	int accepting;
 	time_t last_time;
@@ -522,34 +602,9 @@ void httpd_main(void)
 				log_d("debugging turned off");
 		}
 		n = 0;
-		s = servers;
-		while (s) {
-			if (accepting && s->fd != -1) {
-				pollfds[n].events = POLLIN;
-				pollfds[n].fd = s->fd;
-				s->pollno = n++;
-			} else
-				s->pollno = -1;
-			s = s->next;
-		}
-		cn = connections;
-		while (cn) {
-			if (cn->state == HC_ACTIVE) {
-				switch (cn->action) {
-				case HC_WAITING:
-				case HC_READING:
-					pollfds[n].events = POLLIN;
-					break;
-				default:
-					pollfds[n].events = POLLOUT;
-					break;
-				}
-				pollfds[n].fd = cn->fd;
-				cn->pollno = n++;
-			} else
-				cn->pollno = -1;
-			cn = cn->next;
-		}
+		if (accepting)
+			n = setup_server_pollfds(n);
+		n = setup_connection_pollfds(n);
 		if (n == 0 && accepting) {
 			log_d("no more sockets to poll from");
 			break;
@@ -576,29 +631,9 @@ void httpd_main(void)
 			}
 		}
 		if (rv) {
-			s = servers;
-			while (s) {
-				if (s->pollno != -1)
-					if (pollfds[s->pollno].revents & POLLIN)
-						if (accept_connection(s) == -1)
-							accepting = 0;
-				s = s->next;
-			}
-			cn = connections;
-			while (cn) {
-				if (cn->pollno != -1) {
-					r = pollfds[cn->pollno].revents;
-					if (r & POLLIN)
-						read_connection(cn);
-					else if (r & POLLOUT)
-						write_connection(cn);
-					else if (r) {
-						log_d("poll: unexpected event %hd", r);
-						cn->action = HC_CLOSING;
-					}
-				}
-				cn = cn->next;
-			}
+			if (accepting && run_servers() == -1)
+				accepting = 0;
+			run_connections();
 		}
 		cleanup_connections();
 	}

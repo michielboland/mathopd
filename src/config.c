@@ -975,7 +975,9 @@ const char *config(const char *config_filename)
 		log_column = default_log_column;
 		log_columns = sizeof default_log_column / sizeof default_log_column[0];
 	}
-	if (init_pollfds(tuning.num_connections + num_servers) == -1)
+	if (init_pollfds(2 * tuning.num_connections + num_servers) == -1)
+		return e_memory;
+	if (init_children(tuning.num_connections) == -1)
 		return e_memory;
 	for (n = 0; n < tuning.num_connections; n++) {
 		if ((cn = malloc(sizeof *cn)) == 0)

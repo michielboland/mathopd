@@ -55,38 +55,38 @@ static const char rcsid[] = "$Id$";
 #define PLBUFSIZE 4080
 #define STUB_NHEADERS 100
 
-struct pipe_params {
-	char *ibuf;
-	char *obuf;
-	char *pbuf;
-	size_t isize;
-	size_t osize;
-	size_t psize;
-	size_t ibp;
-	size_t obp;
-	size_t ipp;
-	size_t opp;
-	size_t otop;
-	int istate;
-	int pstate;
-	size_t pstart;
-	int state;
-	int cfd;
-	int pfd;
-	int timeout;
-	size_t imax;
-	int chunkit;
-	int nocontent;
-	int haslen;
-	size_t pmax;
-};
-
 struct cgi_header {
 	const char *name;
 	size_t namelen;
 	const char *value;
 	size_t len;
 };
+
+static struct pipe_params *children;
+
+int init_children(size_t n)
+{
+	size_t i;
+	struct pipe_params *p;
+
+	for (i = 0; i < n; i++){
+		if ((p = malloc(sizeof *p)) == 0)
+			return -1;
+		p->isize = PLBUFSIZE;
+		p->osize = PLBUFSIZE + 16;
+		p->psize = PLBUFSIZE;
+		if ((p->ibuf = malloc(p->isize)) == 0)
+			return -1;
+		if ((p->obuf = malloc(p->osize)) == 0)
+			return -1;
+		if ((p->pbuf = malloc(p->psize)) == 0)
+			return -1;
+		p->cn = 0;
+		p->next = children;
+		children = p;
+	}
+	return 0;
+}
 
 static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 {
@@ -350,157 +350,116 @@ static int stub_reap(void)
 	return 0;
 }
 
-static int pipe_run(struct pipe_params *p, struct connection *cn)
+static void pipe_run(struct pipe_params *p)
 {
-	int done;
-	struct pollfd pollfds[2];
+	short revents;
 	char c;
 	ssize_t r;
 	size_t room;
 	size_t bytestocopy;
-	int n;
 	int convert_result;
 	size_t bytestoread;
 	char chunkbuf[16];
 	size_t chunkheaderlen;
 
-	done = 1;
-	pollfds[0].fd = -1;
-	pollfds[1].fd = -1;
-	pollfds[0].events = 0;
-	pollfds[1].events = 0;
-	pollfds[0].revents = 0;
-	pollfds[1].revents = 0;
-	if (p->haslen && p->pmax == 0)
-		p->pstate = 2;
-	if (p->istate == 1 && p->ibp < p->isize && p->imax) {
-		done = 0;
-		pollfds[0].fd = p->cfd;
-		pollfds[0].events |= POLLIN;
-	}
-	if (p->otop > p->obp) {
-		done = 0;
-		pollfds[0].fd = p->cfd;
-		pollfds[0].events |= POLLOUT;
-	}
-	if (p->pstate == 1 && p->ipp < p->psize && (p->chunkit || p->haslen == 0 || p->pmax)) {
-		done = 0;
-		pollfds[1].fd = p->pfd;
-		pollfds[1].events |= POLLIN;
-	}
-	if (p->ibp > p->opp) {
-		done = 0;
-		pollfds[1].fd = p->pfd;
-		pollfds[1].events |= POLLOUT;
-	}
-	if (done)
-		return 1;
-	if (gotsigchld) {
-		gotsigchld = 0;
-		if (stub_reap() == -1)
-			return 1;
-	}
-	n = poll(pollfds, 2, p->timeout);
-	current_time = time(0);
-	if (gotsigchld) {
-		gotsigchld = 0;
-		if (stub_reap() == -1)
-			return 1;
-	}
-	if (n == -1) {
-		if (errno == EINTR)
-			return 0;
-		lerror("poll");
-		return 1;
-	}
-	if (n == 0) {
-		log_d("pipe_run: timeout");
-		return 1;
-	}
-	if (pollfds[0].revents & ~(POLLIN | POLLOUT)) {
-		log_d("pipe_run: pollfds[%d].revents=%d", 0, pollfds[0].revents);
-		return 1;
-	}
-	if (pollfds[1].revents & ~(POLLIN | POLLOUT)) {
-		log_d("pipe_run: pollfds[%d].revents=%d", 1, pollfds[1].revents);
-		return 1;
-	}
-	if (pollfds[0].revents & POLLIN) {
-		bytestoread = p->isize - p->ibp;
-		if (bytestoread > p->imax)
-			bytestoread = p->imax;
-		r = read(p->cfd, p->ibuf + p->ibp, bytestoread);
-		switch (r) {
-		case -1:
-			if (errno == EAGAIN)
-				break;
-			lerror("pipe_run: error reading from client");
-			return 1;
-		case 0:
-			log_d("pipe_run: client went away while posting data");
-			return 1;
-		default:
-			cn->nread += r;
-			p->ibp += r;
-			p->imax -= r;
-			break;
+	if (p->cpollno != -1) {
+		revents = pollfds[p->cpollno].revents;
+		if (revents & ~(POLLIN | POLLOUT)) {
+			log_d("pipe_run: revents=%hd", revents);
+			p->error_condition = STUB_ERROR_CLIENT;
+			return;
 		}
-	}
-	if (pollfds[0].revents & POLLOUT) {
-		r = write(p->cfd, p->obuf + p->obp, p->otop - p->obp);
-		switch (r) {
-		case -1:
-			if (errno == EAGAIN)
+		if (revents & POLLIN) {
+			bytestoread = p->isize - p->ibp;
+			if (bytestoread > p->imax)
+				bytestoread = p->imax;
+			r = read(p->cfd, p->ibuf + p->ibp, bytestoread);
+			switch (r) {
+			case -1:
+				if (errno == EAGAIN)
+					break;
+				lerror("pipe_run: error reading from client");
+				p->error_condition = STUB_ERROR_CLIENT;
+				return;
+			case 0:
+				log_d("pipe_run: client went away while posting data");
+				p->error_condition = STUB_ERROR_CLIENT;
+				return;
+			default:
+				p->cn->nread += r;
+				p->ibp += r;
+				p->imax -= r;
 				break;
-			lerror("pipe_run: error writing to client");
-			return 1;
-		default:
-			cn->nwritten += r;
-			p->obp += r;
-			break;
-		}
-	}
-	if (pollfds[1].revents & POLLIN) {
-		bytestoread = p->isize - p->ibp;
-		if (p->haslen && bytestoread > p->pmax)
-			bytestoread = p->pmax;
-		r = read(p->pfd, p->pbuf + p->ipp, bytestoread);
-		switch (r) {
-		case -1:
-			if (errno == EAGAIN)
-				break;
-			lerror("pipe_run: error reading from script");
-			p->pstate = 2;
-			break;
-		case 0:
-			if (p->state == 0) {
-				log_d("pipe_run: premature end of script headers");
-				return 1;
 			}
-			if (p->haslen) {
-				log_d("pipe_run: script went away");
-				return 1;
+		}
+		if (revents & POLLOUT) {
+			r = write(p->cfd, p->obuf + p->obp, p->otop - p->obp);
+			switch (r) {
+			case -1:
+				if (errno == EAGAIN)
+					break;
+				lerror("pipe_run: error writing to client");
+				p->error_condition = STUB_ERROR_CLIENT;
+				return;
+			default:
+				p->cn->nwritten += r;
+				p->obp += r;
+				break;
 			}
-			p->pstate = 2;
-			break;
-		default:
-			p->ipp += r;
-			if (p->haslen)
-				p->pmax -= r;
-			break;
 		}
 	}
-	if (pollfds[1].revents & POLLOUT) {
-		r = write(p->pfd, p->ibuf + p->opp, p->ibp - p->opp);
-		switch (r) {
-		case -1:
-			if (errno == EAGAIN)
+	if (p->ppollno != -1) {
+		revents = pollfds[p->ppollno].revents;
+		if (revents & ~(POLLIN | POLLOUT)) {
+			log_d("pipe_run: revents=%hd", revents);
+			p->error_condition = STUB_ERROR_PIPE;
+			return;
+		}
+		if (revents & POLLIN) {
+			bytestoread = p->isize - p->ibp;
+			if (p->haslen && bytestoread > p->pmax)
+				bytestoread = p->pmax;
+			r = read(p->pfd, p->pbuf + p->ipp, bytestoread);
+			switch (r) {
+			case -1:
+				if (errno == EAGAIN)
+					break;
+				lerror("pipe_run: error reading from script");
+				p->pstate = 2;
 				break;
-			lerror("pipe_run: error writing to script");
-			return 1;
-		default:
-			p->opp += r;
-			break;
+			case 0:
+				if (p->state == 0) {
+					log_d("pipe_run: premature end of script headers");
+					p->error_condition = STUB_ERROR_PIPE;
+					return;
+				}
+				if (p->haslen) {
+					log_d("pipe_run: script went away");
+					p->error_condition = STUB_ERROR_PIPE;
+					return;
+				}
+				p->pstate = 2;
+				break;
+			default:
+				p->ipp += r;
+				if (p->haslen)
+					p->pmax -= r;
+				break;
+			}
+		}
+		if (revents & POLLOUT) {
+			r = write(p->pfd, p->ibuf + p->opp, p->ibp - p->opp);
+			switch (r) {
+			case -1:
+				if (errno == EAGAIN)
+					break;
+				lerror("pipe_run: error writing to script");
+				p->error_condition = STUB_ERROR_PIPE;
+				return;
+			default:
+				p->opp += r;
+				break;
+			}
 		}
 	}
 	if (p->opp && p->opp == p->ibp)
@@ -530,21 +489,24 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 			}
 		}
 		if (p->state == 2) {
-			convert_result = convert_cgi_headers(p, &cn->r->status);
+			convert_result = convert_cgi_headers(p, &p->cn->r->status);
 			if (convert_result == -1) {
 				log_d("pipe_run: problem in convert_cgi_headers");
-				return 1;
+				p->error_condition = STUB_ERROR_PIPE;
+				return;
 			}
 			if (p->haslen && p->pstart < p->ipp) {
 				if (p->ipp > p->pstart + p->pmax) {
 					log_d("extra garbage from script ignored");
+					p->ipp = p->pstart + p->pmax;
 					p->pmax = 0;
 				} else
 					p->pmax -= p->ipp - p->pstart;
 			}
 		} else if (p->pstart == p->psize) {
 			log_d("pipe_run: too many headers");
-			return 1;
+			p->error_condition = STUB_ERROR_PIPE;
+			return;
 		}
 	}
 	if (p->state == 2 && p->pstart < p->ipp) {
@@ -588,59 +550,158 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 			p->pstate = 3;
 		}
 	}
-	return 0;
 }
 
-static int pipe_loop(int fd, struct request *r, int timeout)
+static void init_child(struct pipe_params *p, struct request *r, int fd)
 {
-	char ibuf[PLBUFSIZE];
-	char obuf[PLBUFSIZE + 16]; /* room for chunk-header */
-	char pbuf[PLBUFSIZE];
-	struct pipe_params p;
-	int rv;
-
-	p.ibuf = ibuf;
-	p.obuf = obuf;
-	p.pbuf = pbuf;
-	p.isize = sizeof ibuf;
-	p.osize = sizeof obuf;
-	p.psize = sizeof pbuf;
-	p.ibp = 0;
-	p.obp = 0;
-	p.ipp = 0;
-	p.opp = 0;
-	p.otop = 0;
-	p.istate = 1;
-	p.pstate = 1;
-	p.pstart = 0;
-	p.state = 0;
-	p.cfd = r->cn->fd;
-	p.pfd = fd;
-	timeout *= 1000;
-	p.timeout = timeout;
-	p.chunkit = r->protocol_minor > 0;
-	p.nocontent = r->method == M_HEAD;
-	p.haslen = 0;
-	p.pmax = 0;
+	p->ibp = 0;
+	p->obp = 0;
+	p->ipp = 0;
+	p->opp = 0;
+	p->otop = 0;
+	p->istate = 1;
+	p->pstate = 1;
+	p->pstart = 0;
+	p->state = 0;
+	p->cfd = r->cn->fd;
+	p->pfd = fd;
+	p->chunkit = r->protocol_minor > 0;
+	p->nocontent = r->method == M_HEAD;
+	p->haslen = 0;
+	p->pmax = 0;
 	if (r->method == M_POST) {
-		p.istate = 1;
-		p.imax = r->in_mblen;
+		p->istate = 1;
+		p->imax = r->in_mblen;
 	} else {
-		p.istate = 0;
-		p.imax = 0;
+		p->istate = 0;
+		p->imax = 0;
 	}
-	do
-		rv = pipe_run(&p, r->cn);
-	while (rv == 0);
-	return rv;
+	p->cn = r->cn;
+	p->error_condition = 0;
+}
+
+static int setup_child_pollfds(int n)
+{
+	struct pipe_params *p;
+	short e;
+
+	p = children;
+	while (p) {
+		if (p->cn && p->error_condition == 0) {
+			if (p->haslen && p->pmax == 0)
+				p->pstate = 2;
+			e = 0;
+			if (p->istate == 1 && p->ibp < p->isize && p->imax)
+				e |= POLLIN;
+			if (p->otop > p->obp)
+				e |= POLLOUT;
+			if (e) {
+				pollfds[n].fd = p->cfd;
+				pollfds[n].events = e;
+				p->cpollno = n++;
+			} else
+				p->cpollno = -1;
+			e = 0;
+			if (p->pstate == 1 && p->ipp < p->psize && (p->chunkit || p->haslen == 0 || p->pmax))
+				e |= POLLIN;
+			if (p->ibp > p->opp)
+				e |= POLLOUT;
+			if (e) {
+				pollfds[n].fd = p->pfd;
+				pollfds[n].events = e;
+				p->ppollno = n++;
+			} else
+				p->ppollno = -1;
+		}
+		p = p->next;
+	}
+	return n;
+}
+
+static void close_child(struct pipe_params *p)
+{
+	log_d("close_child");
+	log_request(p->cn->r);
+	close(p->pfd);
+	p->cn = 0;
+}
+
+static void cleanup_children(void)
+{
+	struct pipe_params *p;
+	int f;
+
+	p = children;
+	while (p) {
+		if (p->cn) {
+			if (p->error_condition) {
+				log_d("cleanup_children: error condition %d detected", p->error_condition);
+				close_child(p);
+			} else {
+				f = 0;
+				if (p->istate == 1 && p->ibp < p->isize && p->imax) /* see above */
+					f = 1;
+				if (p->otop > p->obp)
+					f = 1;
+				if (p->pstate == 1 && p->ipp < p->psize && (p->chunkit || p->haslen == 0 || p->pmax))
+					f = 1;
+				if (p->ibp > p->opp)
+					f = 1;
+				if (f == 0)
+					close_child(p);
+			}
+		}
+		p = p->next;
+	}
+}
+
+static int pipe_loop(void)
+{
+	int t, n;
+	struct pipe_params *p;
+
+	while (1) {
+		t = setup_child_pollfds(0);
+		n = poll(pollfds, t, 60);
+		current_time = time(0);
+		if (gotsigchld) {
+			gotsigchld = 0;
+			if (stub_reap() == -1)
+				return 1;
+		}
+		if (n == -1) {
+			if (errno == EINTR)
+				continue;
+			lerror("poll");
+			break;
+		}
+		p = children;
+		while (p) {
+			if (p->cn)
+				pipe_run(p);
+			p = p->next;
+		}
+		cleanup_children();
+	}
+	return 0;
 }
 
 int cgi_stub(struct request *r, int (*f)(struct request *))
 {
 	int p[2], efd, rv;
 	pid_t pid;
+	struct pipe_params *pp;
 
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, p) == -1) {
+	pp = children;
+	while (pp) {
+		if (pp->cn == 0)
+			break;
+		pp = pp->next;
+	}
+	if (pp == 0) {
+		log_d("cgi_stub: out of children");
+		rv = -1;
+	} else if (socketpair(AF_UNIX, SOCK_STREAM, 0, p) == -1) {
 		lerror("socketpair");
 		rv = -1;
 	} else {
@@ -668,10 +729,10 @@ int cgi_stub(struct request *r, int (*f)(struct request *))
 				log_d("cgi_stub: child process %d created", pid);
 			close(p[1]);
 			fcntl(p[0], F_SETFL, O_NONBLOCK);
-			rv = pipe_loop(p[0], r, 3600);
+			init_child(pp, r, p[0]);
+			rv = pipe_loop();
 			break;
 		}
 	}
-	log_request(r);
 	return rv;
 }
