@@ -341,8 +341,10 @@ int process_cgi(struct request *r)
 	char curdir[PATHLEN], *s;
 
 	s = strrchr(r->path_translated, '/');
-	if (s == 0)
-		return 500;
+	if (s == 0) {
+		r->status = 500;
+		return 0;
+	}
 	sprintf(curdir, "%.*s", s - r->path_translated, r->path_translated);
 	switch (r->c->script_identity) {
 	case SI_CHANGETOFIXED:
@@ -360,12 +362,14 @@ int process_cgi(struct request *r)
 	}
 	if (amroot && u == server_uid) {
 		log_d("cannot run scripts withouth changing identity");
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	cp = malloc(sizeof *cp);
 	if (cp == 0) {
 		log_d("process_cgi: out of memory");
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	cp->cgi_envc = 0;
 	cp->cgi_envp = 0;
@@ -374,12 +378,14 @@ int process_cgi(struct request *r)
 	if (init_cgi_env(r, cp) == -1) {
 		log_d("process_cgi: out of memory");
 		destroy_parameters(cp);
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, p) == -1) {
 		lerror("socketpair");
 		destroy_parameters(cp);
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	fcntl(p[0], F_SETFD, FD_CLOEXEC);
 	fcntl(p[1], F_SETFD, FD_CLOEXEC);
@@ -389,7 +395,8 @@ int process_cgi(struct request *r)
 			close(p[0]);
 			close(p[1]);
 			destroy_parameters(cp);
-			return 500;
+			r->status = 500;
+			return 0;
 		}
 		fcntl(efd, F_SETFD, FD_CLOEXEC);
 	} else
@@ -402,7 +409,8 @@ int process_cgi(struct request *r)
 		close(p[0]);
 		destroy_parameters(cp);
 		r->cn->keepalive = 0;
-		return 503;
+		r->status = 503;
+		return 0;
 	}
 	r->cn->pid = pid;
 	fcntl(p[0], F_SETFL, O_NONBLOCK);

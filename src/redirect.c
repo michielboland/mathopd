@@ -49,31 +49,39 @@ int process_redirect(struct request *r)
 	int fd;
 	ssize_t l;
 
-	if (r->method != M_GET && r->method != M_HEAD)
-		return 405;
+	if (r->status)
+		return 0;
+	if (r->method != M_GET && r->method != M_HEAD) {
+		r->status = 405;
+		return 0;
+	}
 	fd = open(r->path_translated, O_RDONLY | O_NONBLOCK);
 	if (fd == -1) {
 		log_d("process_redirect: cannot open %s", r->path_translated);
 		lerror("open");
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	l = read(fd, r->newloc, PATHLEN - 1);
 	if (l == -1) {
 		log_d("process_redirect: cannot read %s", r->path_translated);
 		lerror("read");
 		close(fd);
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	r->newloc[l] = 0;
 	close(fd);
 	c = strchr(r->newloc, '\n');
 	if (c == 0) {
 		log_d("process_redirect: no newline in %s", r->path_translated);
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	*c = 0;
 	if (c > r->newloc && c[-1] == '\r')
 		c[-1] = 0;
 	r->location = r->newloc;
-	return 302;
+	r->status = 302;
+	return 0;
 }

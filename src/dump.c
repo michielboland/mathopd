@@ -127,28 +127,37 @@ int process_dump(struct request *r)
 	int fd, fd2;
 	char name[32];
 
-	if (r->method != M_GET && r->method != M_HEAD)
-		return 405;
+	if (r->status)
+		return 0;
+	if (r->method != M_GET && r->method != M_HEAD) {
+		r->status = 405;
+		return 0;
+	}
 	if (r->path_args[0]) {
 		r->error_file = r->c->error_404_file;
-		return 404;
+		r->status = 404;
+		return 1;
 	}
 	strcpy(name, "/tmp/mathop-dump.XXXXXXXX");
 	fd = mkstemp(name);
-	if (fd == -1)
-		return 500;
+	if (fd == -1) {
+		r->status = 500;
+		return 0;
+	}
 	fcntl(fd, F_SETFD, FD_CLOEXEC);
 	if (remove(name) == -1) {
 		log_d("cannot remove temporary file %s", name);
 		lerror("remove");
 		close(fd);
-		return -1;
+		r->status = 500;
+		return 0;
 	}
 	fd2 = dup(fd);
 	if (fd2 == -1) {
 		lerror("dup");
 		close(fd);
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	fcntl(fd2, F_SETFD, FD_CLOEXEC);
 	f = fdopen(fd2, "a+");
@@ -156,19 +165,22 @@ int process_dump(struct request *r)
 		log_d("dump: failed to associate stream with descriptor %d", fd2);
 		close(fd2);
 		close(fd);
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	fdump(f, r);
 	if (fclose(f) == EOF) {
 		lerror("fclose");
 		close(fd2);
 		close(fd);
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	if (fstat(fd, &r->finfo) == -1) {
 		lerror("fstat");
 		close(fd);
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	r->content_length = r->finfo.st_size;
 	r->last_modified = r->finfo.st_mtime;
@@ -179,7 +191,8 @@ int process_dump(struct request *r)
 		close(fd);
 	r->content_type = "text/plain";
 	r->num_content = 0;
-	return 200;
+	r->status = 200;
+	return 0;
 }
 
 void internal_dump(void)

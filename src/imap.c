@@ -187,8 +187,10 @@ static int f_process_imap(struct request *r, FILE *fp)
 	text = 1;
 	if (r->args) {
 		t = strchr(r->args, ',');
-		if (t == 0 || *++t == 0)
-			return 400;
+		if (t == 0 || *++t == 0) {
+			r->status = 400;
+			return 0;
+		}
 		testpoint.x = atol(r->args);
 		testpoint.y = atol(t);
 		if (testpoint.x || testpoint.y)
@@ -290,7 +292,8 @@ static int f_process_imap(struct request *r, FILE *fp)
 	if (status) {
 		log_d("imagemap: error on line %d of %s", line, r->path_translated);
 		log_d("imagemap: %s", status);
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	if (url == 0)
 		if (*default_url)
@@ -299,12 +302,15 @@ static int f_process_imap(struct request *r, FILE *fp)
 		l = snprintf(r->newloc, PATHLEN, "%s", url);
 		if (l >= PATHLEN) {
 			log_d("imagemap: url too large");
-			return 500;
+			r->status = 500;
+			return 0;
 		}
 		r->location = r->newloc;
-		return 302;
+		r->status = 302;
+		return 0;
 	}
-	return 204;
+	r->status = 204;
+	return 0;
 }
 
 int process_imap(struct request *r)
@@ -313,22 +319,29 @@ int process_imap(struct request *r)
 	int fd;
 	int retval;
 
-	if (r->method == M_HEAD)
-		return 204;
-	else if (r->method != M_GET)
-		return 405;
+	if (r->status)
+		return 0;
+	if (r->method == M_HEAD) {
+		r->status = 204;
+		return 0;
+	} else if (r->method != M_GET) {
+		r->status = 405;
+		return 0;
+	}
 	fd = open(r->path_translated, O_RDONLY | O_NONBLOCK);
 	if (fd == -1) {
 		log_d("cannot open map file %s", r->path_translated);
 		lerror("open");
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	fcntl(fd, F_SETFD, FD_CLOEXEC);
 	fp = fdopen(fd, "r");
 	if (fp == 0) {
 		log_d("process_imap: fdopen failed");
 		close(fd);
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	retval = f_process_imap(r, fp);
 	fclose(fp);
