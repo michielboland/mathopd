@@ -72,7 +72,8 @@ Desc:    Control blocks that contain an Alias keyword are used in
 
          The above is an example of two aliases. Note that the order
          of the aliases matters: if you switch the two around, unexpected
-         things will happen.
+         things will happen (the more specific alias will be obscured by
+         the '/' alias.)
 
 Keyword: Allow
 Where:   Access
