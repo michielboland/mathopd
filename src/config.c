@@ -395,6 +395,42 @@ static const char *config_mime(struct mime **ms, int class)
 #define ALLOWDENY 0
 #define APPLYNOAPPLY 1
 
+static unsigned long masks[] = {
+	0,
+	0x80000000,
+	0xc0000000,
+	0xe0000000,
+	0xf0000000,
+	0xf8000000,
+	0xfc000000,
+	0xfe000000,
+	0xff000000,
+	0xff800000,
+	0xffc00000,
+	0xffe00000,
+	0xfff00000,
+	0xfff80000,
+	0xfffc0000,
+	0xfffe0000,
+	0xffff0000,
+	0xffff8000,
+	0xffffc000,
+	0xffffe000,
+	0xfffff000,
+	0xfffff800,
+	0xfffffc00,
+	0xfffffe00,
+	0xffffff00,
+	0xffffff80,
+	0xffffffc0,
+	0xffffffe0,
+	0xfffffff0,
+	0xfffffff8,
+	0xfffffffc,
+	0xfffffffe,
+	0xffffffff
+};
+
 static const char *config_acccl(struct access **ls, int t)
 {
 	struct access *l;
@@ -431,10 +467,7 @@ static const char *config_acccl(struct access **ls, int t)
 		sz = strtoul(sl, &e, 0);
 		if (*e || e == sl || sz > 32)
 			return e_inval;
-		if (sz == 0)
-			l->mask = 0;
-		else
-			l->mask = htonl(0xffffffff ^ ((1 << (32 - sz)) - 1));
+		l->mask = htonl(masks[sz]);
 		if (inet_aton(tokbuf, &ia) == 0)
 			return e_bad_addr;
 		l->addr = ia.s_addr;
