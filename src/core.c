@@ -139,13 +139,13 @@ static void close_connections(void)
 static int accept_connection(struct server *s)
 {
 	struct sockaddr_in sa_remote, sa_local;
-	socklen_t lsa;
+	socklen_t l;
 	int fd;
 	struct connection *cn, *cw;
 
 	do {
-		lsa = sizeof sa_remote;
-		fd = accept(s->fd, (struct sockaddr *) &sa_remote, &lsa);
+		l = sizeof sa_remote;
+		fd = accept(s->fd, (struct sockaddr *) &sa_remote, &l);
 		if (fd == -1) {
 			if (errno != EAGAIN) {
 				lerror("accept");
@@ -156,8 +156,8 @@ static int accept_connection(struct server *s)
 		s->naccepts++;
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		fcntl(fd, F_SETFL, O_NONBLOCK);
-		lsa = sizeof sa_local;
-		if (getsockname(fd, (struct sockaddr *) &sa_local, &lsa) == -1) {
+		l = sizeof sa_local;
+		if (getsockname(fd, (struct sockaddr *) &sa_local, &l) == -1) {
 			lerror("getsockname");
 			close(fd);
 			break;
