@@ -521,7 +521,7 @@ static int process_special(struct request *r)
 
 static int process_fd(struct request *r)
 {
-	if (r->path_args[0]) {
+	if (r->path_args[0] && r->c->path_args_ok == 0) {
 		if (r->path_args[1]) {
 			r->error = nf_path_info;
 			return 404;
