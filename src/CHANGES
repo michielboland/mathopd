@@ -11,3 +11,5 @@ to enable the old behaviour.)
 Note that ScriptUser overrides whatever value is active
 for RunScriptsAsOwner, and that no scripts will be run
 if neither variable is set and the server is run as root.
+
+All debugging hooks have been removed for now.
