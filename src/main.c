@@ -188,9 +188,6 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s\n", server_version);
 		return 0;
 	}
-	message = config(config_filename);
-	if (message)
-		die(0, "%s", message);
 	if (getrlimit(RLIMIT_NOFILE, &rl) == -1)
 		die("getrlimit", 0);
 	n = rl.rlim_cur = rl.rlim_max;
@@ -202,6 +199,9 @@ int main(int argc, char *argv[])
 		die("open", "Cannot open %s", devnull);
 	while (null_fd < 3)
 		null_fd = dup(null_fd);
+	message = config(config_filename);
+	if (message)
+		die(0, "%s", message);
 	s = servers;
 	while (s) {
 		startup_server(s);
