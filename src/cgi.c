@@ -362,7 +362,8 @@ static int become_user(const char *name)
 		lerror("setuid");
 		return -1;
 	}
-	log_d("now running as uid %d (%s)", u, name);
+	if (debug)
+		log_d("now running as uid %d (%s)", u, name);
 	return 0;
 }
 
@@ -384,7 +385,8 @@ static int set_uids(uid_t uid, gid_t gid)
 		lerror("setuid");
 		return -1;
 	}
-	log_d("set_uids: uid set to %d, gid set to %d", uid, gid);
+	if (debug)
+		log_d("set_uids: uid set to %d, gid set to %d", uid, gid);
 	return 0;
 }
 
@@ -438,10 +440,12 @@ static int exec_cgi(struct request *r)
 		destroy_parameters(cp);
 		return cgi_error(r, 500);
 	}
-	if (r->class == CLASS_EXTERNAL)
-		log_d("executing %s %s", cp->cgi_argv[0], cp->cgi_argv[1]);
-	else
-		log_d("executing %s", cp->cgi_argv[0]);
+	if (debug) {
+		if (r->class == CLASS_EXTERNAL)
+			log_d("executing %s %s", cp->cgi_argv[0], cp->cgi_argv[1]);
+		else
+			log_d("executing %s", cp->cgi_argv[0]);
+	}
 	execve(cp->cgi_argv[0], (char **) cp->cgi_argv, cp->cgi_envp);
 	lerror("execve");
 	destroy_parameters(cp);

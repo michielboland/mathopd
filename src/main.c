@@ -332,7 +332,8 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		lerror("fork");
 		return 503;
 	default:
-		log_d("child process %d created", pid);
+		if (debug)
+			log_d("child process %d created", pid);
 		r->status_line = "---";
 	}
 	return -1;
