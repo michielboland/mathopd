@@ -141,7 +141,7 @@ static void sigquit(int sig)
 
 int main(int argc, char *argv[])
 {
-	int c, i, n, daemon, version, pid_fd, null_fd;
+	int c, i, n, am_daemon, version, pid_fd, null_fd;
 	struct server *s;
 	char buf[10];
 	struct rlimit rl;
@@ -149,12 +149,12 @@ int main(int argc, char *argv[])
 	const char *message;
 
 	progname = argv[0];
-	daemon = 1;
+	am_daemon = 1;
 	version = 0;
 	while ((c = getopt(argc, argv, "ndv")) != EOF) {
 		switch(c) {
 		case 'n':
-			daemon = 0;
+			am_daemon = 0;
 			break;
 		case 'd':
 			debug = 1;
@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
 	dup2(null_fd, 1);
 	dup2(null_fd, 2);
 	close(null_fd);
-	if (daemon) {
+	if (am_daemon) {
 		if (fork())
 			_exit(0);
 		setsid();
