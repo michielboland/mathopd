@@ -351,6 +351,7 @@ static int get_mime(struct request *r, const char *s)
 		r->num_content = lm;
 		return 0;
 	}
+	log_d("don't know how to handle %s", s);
 	return -1;
 }
 
