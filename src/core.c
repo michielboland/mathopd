@@ -497,6 +497,7 @@ static void run_connections(void)
 {
 	struct connection *cn;
 	short r;
+
 	cn = connections;
 	while (cn) {
 		if (cn->pollno != -1) {
