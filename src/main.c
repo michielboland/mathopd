@@ -39,7 +39,7 @@
 
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.2b18";
+const char server_version[] = "Mathopd/1.2b19";
 
 volatile int gotsigterm;
 volatile int gotsighup;
