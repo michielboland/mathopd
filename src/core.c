@@ -69,6 +69,136 @@ struct pollfd *pollfds;
 
 int available_connections;
 unsigned long nrequests;
+struct connection *connection_array;
+
+static struct connection_list free_connections;
+static struct connection_list waiting_connections;
+static struct connection_list reading_connections;
+static struct connection_list writing_connections;
+static struct connection_list forked_connections;
+static struct connection_list reinit_connections;
+static struct connection_list closing_connections;
+
+static void c_unlink(struct connection *c, struct connection_list *l)
+{
+	struct connection *p, *n;
+
+	p = c->prev;
+	n = c->next;
+	if (p)
+		p->next = n;
+	if (n)
+		n->prev = p;
+	c->prev = 0;
+	c->next = 0;
+	if (c == l->head)
+		l->head = n;
+	if (c == l->tail)
+		l->tail = p;
+}
+
+static void c_link(struct connection *c, struct connection_list *l)
+{
+	struct connection *n;
+
+	n = l->head;
+	c->prev = 0;
+	c->next = n;
+	if (n == 0)
+		l->tail = c;
+	else
+		n->prev = c;
+	l->head = c;
+}
+
+void set_connection_state(struct connection *c, enum connection_state state)
+{
+	enum connection_state oldstate;
+	struct connection_list *o, *n;
+
+	if (debug)
+		log_d("set_connection_state: %d %d", c - connection_array, state);
+	oldstate = c->connection_state;
+	if (state == oldstate) {
+		log_d("set_connection_state: state == oldstate (%d)", state);
+		return;
+	}
+	switch (oldstate) {
+	case HC_UNATTACHED:
+		o = 0;
+		break;
+	case HC_FREE:
+		o = &free_connections;
+		break;
+	case HC_WAITING:
+		o = &waiting_connections;
+		break;
+	case HC_READING:
+		o = &reading_connections;
+		break;
+	case HC_WRITING:
+		o = &writing_connections;
+		break;
+	case HC_FORKED:
+		o = &forked_connections;
+		break;
+	case HC_REINIT:
+		o = &reinit_connections;
+		break;
+	case HC_CLOSING:
+		o = &closing_connections;
+		break;
+	default:
+		log_d("set_connection_state: unknown state: %d", state);
+		abort();
+	}
+	switch (state) {
+	case HC_UNATTACHED:
+		n = 0;
+		break;
+	case HC_FREE:
+		n = &free_connections;
+		break;
+	case HC_WAITING:
+		n = &waiting_connections;
+		break;
+	case HC_READING:
+		n = &reading_connections;
+		break;
+	case HC_WRITING:
+		n = &writing_connections;
+		break;
+	case HC_FORKED:
+		n = &forked_connections;
+		break;
+	case HC_REINIT:
+		n = &reinit_connections;
+		break;
+	case HC_CLOSING:
+		n = &closing_connections;
+		break;
+	default:
+		log_d("set_connection_state: unknown state: %d", state);
+		abort();
+	}
+	if (o)
+		c_unlink(c, o);
+	c->connection_state = state;
+	if (n)
+		c_link(c, n);
+	if (o) {
+		if (o->head && o->tail == 0)
+			abort();
+		if (o->tail && o->head == 0)
+			abort();
+	}
+	if (n) {
+		if (n->head && n->tail == 0)
+			abort();
+		if (n->tail && n->head == 0)
+			abort();
+	}
+}
 
 static void init_pool(struct pool *p)
 {
@@ -99,7 +229,7 @@ static void reinit_connection(struct connection *cn)
 		cn->rfd = -1;
 	}
 	init_connection(cn);
-	cn->action = HC_WAITING;
+	set_connection_state(cn, HC_WAITING);
 	++available_connections;
 }
 
@@ -117,9 +247,9 @@ static void close_connection(struct connection *cn)
 		close(cn->rfd);
 		cn->rfd = -1;
 	}
-	if (cn->action != HC_WAITING)
+	if (cn->connection_state != HC_WAITING)
 		++available_connections;
-	cn->state = HC_FREE;
+	set_connection_state(cn, HC_FREE);
 }
 
 static void close_servers(void)
@@ -136,36 +266,41 @@ static void close_servers(void)
 
 static void close_connections(void)
 {
-	struct connection *cn;
+	struct connection *c, *n;
 
-	cn = connections;
-	while (cn) {
-		if (cn->state != HC_FREE)
-			close_connection(cn);
-		cn = cn->next;
+	c = waiting_connections.head;
+	while (c) {
+		n = c->next;
+		close_connection(c);
+		c = n;
+	}
+	c = reading_connections.head;
+	while (c) {
+		n = c->next;
+		close_connection(c);
+		c = n;
+	}
+	c = writing_connections.head;
+	while (c) {
+		n = c->next;
+		close_connection(c);
+		c = n;
 	}
 }
 
 static struct connection *find_connection(void)
 {
-	struct connection *cn, *cw;
+	struct connection *c;
 
-	cn = connections;
-	cw = 0;
-	while (cn) {
-		if (cn->state == HC_FREE)
-			break;
-		if (cw == 0 && cn->action == HC_WAITING)
-			cw = cn;
-		cn = cn->next;
-	}
-	if (cn == 0 && cw) {
-		if (debug)
-			log_d("clobbering connection to %s[%hu]", inet_ntoa(cw->peer.sin_addr), ntohs(cw->peer.sin_port));
-		close_connection(cw);
-		cn = cw;
-	}
-	return cn;
+	if (free_connections.head)
+		return free_connections.head;
+	if (waiting_connections.tail == 0)
+		return 0;
+	c = waiting_connections.tail;
+	if (debug)
+		log_d("clobbering connection to %s[%hu]", inet_ntoa(c->peer.sin_addr), ntohs(c->peer.sin_port));
+	close_connection(c);
+	return c;
 }
 
 static int accept_connection(struct server *s)
@@ -204,7 +339,6 @@ static int accept_connection(struct server *s)
 			close(fd);
 		} else {
 			s->nhandled++;
-			cn->state = HC_ACTIVE;
 			cn->s = s;
 			cn->fd = fd;
 			cn->rfd = -1;
@@ -216,7 +350,7 @@ static int accept_connection(struct server *s)
 				maxconnections = nconnections;
 			init_connection(cn);
 			cn->logged = 0;
-			cn->action = HC_WAITING;
+			set_connection_state(cn, HC_WAITING);
 		}
 	} while (tuning.accept_multi);
 	return 0;
@@ -264,7 +398,7 @@ static void write_connection(struct connection *cn)
 				if (n == 0 && cn->keepalive)
 					reinit_connection(cn);
 				else
-					cn->action = HC_CLOSING;
+					set_connection_state(cn, HC_CLOSING);
 				return;
 			}
 		}
@@ -277,7 +411,7 @@ static void write_connection(struct connection *cn)
 				lerror("send");
 			case ECONNRESET:
 			case EPIPE:
-				cn->action = HC_CLOSING;
+				set_connection_state(cn, HC_CLOSING);
 			case EAGAIN:
 				return;
 			}
@@ -300,7 +434,7 @@ static void read_connection(struct connection *cn)
 	i = p->ceiling - p->end;
 	if (i == 0) {
 		log_d("input buffer full");
-		cn->action = HC_CLOSING;
+		set_connection_state(cn, HC_CLOSING);
 		return;
 	}
 	nr = recv(fd, p->end, i, MSG_PEEK);
@@ -311,13 +445,13 @@ static void read_connection(struct connection *cn)
 			lerror("recv");
 		case ECONNRESET:
 		case EPIPE:
-			cn->action = HC_CLOSING;
+			set_connection_state(cn, HC_CLOSING);
 		case EAGAIN:
 			return;
 		}
 	}
 	if (nr == 0) {
-		cn->action = HC_CLOSING;
+		set_connection_state(cn, HC_CLOSING);
 		return;
 	}
 	i = 0;
@@ -325,7 +459,7 @@ static void read_connection(struct connection *cn)
 		c = p->end[i++];
 		if (c == 0) {
 			log_d("read_connection: NUL in headers");
-			cn->action = HC_CLOSING;
+			set_connection_state(cn, HC_CLOSING);
 			return;
 		}
 		switch (state) {
@@ -343,9 +477,9 @@ static void read_connection(struct connection *cn)
 				break;
 			}
 			if (state)
-				if (cn->action == HC_WAITING) {
+				if (cn->connection_state == HC_WAITING) {
 					gettimeofday(&cn->itv, 0);
-					cn->action = HC_READING;
+					set_connection_state(cn, HC_READING);
 					--available_connections;
 				}
 			break;
@@ -456,7 +590,7 @@ static void read_connection(struct connection *cn)
 			cn->nread += nr;
 			log_d("read_connection: %d != %d!", nr, i);
 		}
-		cn->action = HC_CLOSING;
+		set_connection_state(cn, HC_CLOSING);
 		return;
 	}
 	cn->nread += nr;
@@ -465,16 +599,16 @@ static void read_connection(struct connection *cn)
 	cn->t = current_time;
 	if (state == 8) {
 		if (process_request(cn->r) == -1) {
-			if (cn->state != HC_FORKED)
-				cn->action = HC_CLOSING;
+			if (cn->connection_state != HC_FORKED)
+				set_connection_state(cn, HC_CLOSING);
 			return;
 		}
 		cn->left = cn->r->content_length;
 		if (fill_connection(cn) == -1) {
-			cn->action = HC_CLOSING;
+			set_connection_state(cn, HC_CLOSING);
 			return;
 		}
-		cn->action = HC_WRITING;
+		set_connection_state(cn, HC_WRITING);
 		write_connection(cn);
 	}
 }
@@ -499,28 +633,32 @@ static int setup_server_pollfds(int n)
 static int setup_connection_pollfds(int n)
 {
 	struct connection *cn;
-	short e;
 
-	cn = connections;
+	cn = waiting_connections.head;
 	while (cn) {
-		e = 0;
-		if (cn->state == HC_ACTIVE) {
-			switch (cn->action) {
-			case HC_WAITING:
-			case HC_READING:
-				e = POLLIN;
-				break;
-			default:
-				e = POLLOUT;
-				break;
-			}
-		}
-		if (e) {
-			pollfds[n].fd = cn->fd;
-			pollfds[n].events = e;
-			cn->pollno = n++;
-		} else
-			cn->pollno = -1;
+		if (debug)
+			log_d("POLLIN %d", cn - connection_array);
+		pollfds[n].fd = cn->fd;
+		pollfds[n].events = POLLIN;
+		cn->pollno = n++;
+		cn = cn->next;
+	}
+	cn = reading_connections.head;
+	while (cn) {
+		if (debug)
+			log_d("POLLIN %d", cn - connection_array);
+		pollfds[n].fd = cn->fd;
+		pollfds[n].events = POLLIN;
+		cn->pollno = n++;
+		cn = cn->next;
+	}
+	cn = writing_connections.head;
+	while (cn) {
+		if (debug)
+			log_d("POLLOUT %d", cn - connection_array);
+		pollfds[n].fd = cn->fd;
+		pollfds[n].events = POLLOUT;
+		cn->pollno = n++;
 		cn = cn->next;
 	}
 	return n;
@@ -563,48 +701,75 @@ static void run_connection(struct connection *cn)
 	if (r & POLLERR) {
 		sprintf(buf, "error on connection to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
 		log_socket_error(cn->fd, buf);
-		cn->action = HC_CLOSING;
+		set_connection_state(cn, HC_CLOSING);
 	} else if (r & POLLIN)
 		read_connection(cn);
 	else if (r & POLLOUT)
 		write_connection(cn);
 	else if (r) {
 		log_d("poll: unexpected event %hd", r);
-		cn->action = HC_CLOSING;
+		set_connection_state(cn, HC_CLOSING);
 	}
 }
 
 static void run_connections(void)
 {
-	struct connection *cn;
+	struct connection *c, *n;
 
-	cn = connections;
-	while (cn) {
-		if (cn->pollno != -1)
-			run_connection(cn);
-		cn = cn->next;
+	c = waiting_connections.head;
+	while (c) {
+		n = c->next;
+		run_connection(c);
+		c = n;
+	}
+	c = reading_connections.head;
+	while (c) {
+		n = c->next;
+		run_connection(c);
+		c = n;
+	}
+	c = writing_connections.head;
+	while (c) {
+		n = c->next;
+		run_connection(c);
+		c = n;
+	}
+}
+
+static void timeout_connections(struct connection *c, time_t t)
+{
+	struct connection *n;
+
+	while (c) {
+		n = c->next;
+		if (current_time >= c->t + t) {
+			if (debug)
+				log_d("timeout to %s[%hu]", inet_ntoa(c->peer.sin_addr), ntohs(c->peer.sin_port));
+			close_connection(c);
+		}
+		c = n;
 	}
 }
 
 static void cleanup_connections(void)
 {
-	struct connection *cn;
+	struct connection *c, *n;
 
-	cn = connections;
-	while (cn) {
-		if (cn->state == HC_ACTIVE) {
-			if (cn->action == HC_REINIT)
-				reinit_connection(cn);
-			else if (cn->action == HC_CLOSING)
-				close_connection(cn);
-			else if (current_time >= cn->t + (time_t) tuning.timeout) {
-				if (debug)
-					log_d("timeout to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
-				close_connection(cn);
-			}
-		}
-		cn = cn->next;
+	c = reinit_connections.head;
+	while (c) {
+		n = c->next;
+		reinit_connection(c);
+		c = n;
 	}
+	c = closing_connections.head;
+	while (c) {
+		n = c->next;
+		close_connection(c);
+		c = n;
+	}
+	timeout_connections(waiting_connections.head, tuning.timeout);
+	timeout_connections(reading_connections.head, tuning.timeout);
+	timeout_connections(writing_connections.head, tuning.timeout);
 }
 
 static void reap_children(void)
@@ -727,4 +892,47 @@ int init_pollfds(size_t n)
 {
 	pollfds = realloc(pollfds, n * sizeof *pollfds);
 	return pollfds == 0 ? -1 : 0;
+}
+
+static struct pool *new_pool(size_t s)
+{
+	char *t;
+	struct pool *p;
+
+	p = malloc(sizeof *p);
+	if (p == 0)
+		return 0;
+	t = malloc(s);
+	if (t == 0) {
+		free(p);
+		return 0;
+	}
+	p->floor = t;
+	p->ceiling = t + s;
+	return p;
+}
+
+int init_connections(size_t n)
+{
+	size_t i;
+	struct connection *cn;
+
+	connection_array = malloc(n * sizeof *connection_array);
+	if (connection_array == 0)
+		return -1;
+	for (i = 0; i < n; i++) {
+		cn = connection_array + i;
+		if ((cn->r = malloc(sizeof *cn->r)) == 0)
+			return -1;
+		if ((cn->r->headers = malloc(tuning.num_headers * sizeof *cn->r->headers)) == 0)
+			return -1;
+		if ((cn->input = new_pool(tuning.input_buf_size)) == 0)
+			return -1;
+		if ((cn->output = new_pool(tuning.buf_size)) == 0)
+			return -1;
+		cn->r->cn = cn;
+		cn->connection_state = HC_UNATTACHED;
+		set_connection_state(cn, HC_FREE);
+	}
+	return 0;
 }
