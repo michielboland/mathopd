@@ -197,6 +197,7 @@ int process_dump(struct request *r)
 	r->last_modified = r->finfo.st_mtime;
 	if (r->method == M_GET) {
 		lseek(fd, 0, SEEK_SET);
+		r->cn->file_offset = 0;
 		r->cn->rfd = fd;
 	} else
 		close(fd);
