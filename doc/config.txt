@@ -133,6 +133,9 @@ Desc:    The server uses two buffers to store incoming and outgoing data.
          Larger buffers can lead to less system calls, but also increase the
          amount of memory used by the server process.
 
+         Note: if you run a version of Mathopd that uses sendfile(), the
+         default bufsize is way too much, and you should lower it.
+
 Keyword: BytesRead
 Where:   LogFormat
 Desc:    The number of octets (bytes) read from the client during a single
@@ -363,6 +366,16 @@ Desc:    The 'External' keywords defines a set of filename extensions that
          This will treat all files that end with '.pl' as CGI scripts,
          interpreted by /usr/bin/perl.
 
+         It is possible to pass additional arguments to interpreters.
+         For example, if you want to run all perl scripts with the '-T'
+         option, use the following construction:
+
+           Control {
+             External {
+               "/usr/bin/perl -T" { .pl }
+             }
+           }
+
 Keyword: ExtraHeaders
 Where:   Control
 Type:    Block
@@ -370,14 +383,15 @@ Desc:    Use this keyword to add extra HTTP headers. This is perhaps best
          demonstrated by an example.
 
            Control {
-             ExtraHeaders { "Refresh: 5" }
+             ExtraHeaders { "Cache-Control: max-age=3600" }
            }
 
-         If this is done, all responses from the server will be accompanied
-         by a "Refresh: 5" HTTP header. (This does not make a lot of sense
-         of course.)
+         If this is done, all responses, well, to be precise, all responses
+         with status code 200, will be accompanied by a
 
-         This is an experimental feature that may go away in the future.
+           Cache-Control: max-age=3600
+
+         HTTP header.
 
 Keyword: Host
 Where:   Virtual
@@ -450,7 +464,7 @@ Desc:    The Location keyword is used in combination with the Alias keyword.
            }
 
          In this example, when a client request a URI '/secure/test.html',
-         the server will redirect the client to 'https://an.example/text.html'.
+         the server will redirect the client to 'https://an.example/test.html'.
 
          More than one Location keywords can be used with one alias. Mathopd
          will rotate the locations on a round-robin bases. Example:
@@ -540,8 +554,14 @@ Desc:    This keyword determines the order in which items are written into
            BytesRead
            BytesWritten
 
-         In addition to the above, the fields Version and QueryString are
-         available for logging.
+         In addition to the above, the following fields are available:-
+
+           LocalAddress
+           LocalPort
+           Version
+           QueryString
+           TimeTaken
+           MicroTime
 
 Keyword: LogGMT
 Where:   Global
@@ -558,9 +578,9 @@ Desc:    The client's request-method, usually GET.
 
 Keyword: MicroTime
 Where:   LogFormat
-Desc:    The time, measured in microseconds since 00:00:00 UTC,
-         January 1, 1970. (Or whatever is returned by the gettimeofday()
-         system call.)
+Desc:    The time, measured in seconds, with microsecond precision,
+         since 00:00:00 UTC, January 1, 1970. (Or whatever is returned
+         by the gettimeofday() system call.)
 
 Keyword: NoApply
 Where:   Clients
@@ -581,11 +601,14 @@ Desc:    The NumConnections parameter determines how many simultaneous
          Mathopd uses a fixed block of memory for each connection, so
          the higher you set this tunable, the more memory the server
          will use.
-         If all connections are in use, and there are idle connections
-         (clients that are just waiting to send new requests), and a new
-         connection arrives, the connection that has been idle the longest
-         is closed and replaced with the new connection. (This process is
-         called 'clobbering'.)
+
+         See also: Clobber.
+
+         Note: the amount of memory that is used by Mathopd for buffers
+         can be approximated by the formula
+
+           Memory =
+             NumConnections * (BufSize + InputBufSize + 2 * ScriptBufSize)
 
 Keyword: NumHeaders
 Where:   Tuning
@@ -630,6 +653,25 @@ Desc:    If you want to redirect a user to a different web site, regardless
          redirected to http://www.an.example/foo.html/index.html (which does
          not make much sense of course.)
 
+         The PathArgs keyword was originally created to solve a problem
+         related to hit metering. If you have a website, but no control
+         over its logfiles, you can create hidden images on your site
+         that link to a statistics gathering site. This is a well-known
+         process of course. If the statistics-gathering runs mathopd it
+         can be set up something like this:-
+
+           Control {
+             Alias /
+             Location /usr/local/www/tiny-image.png
+             PathArgs On
+           }
+
+         This way, every request will return the same response, namely,
+         the contents of tiny-image.png. If the two websites cooperate,
+         the request-URI that appears in the log file on the gathering
+         website can then be used to collect hit-metering data for the
+         original site.
+
 Keyword: PathInfo
 Where:   Control
 Type:    Flag
@@ -639,8 +681,7 @@ Desc:    Normally mathopd allows requests for things like /script.cgi/args,
          works by mathopd chopping off all trailing path components until a
          file is found. This operation can be quite expensive and in most
          circumstances it is not needed. Worse yet, a request for, say,
-         /a/b/c/d/e/f/g/h will result in eight invocation of the stat()
-         system call.
+         /a/b/c/d/e/f/g/h will result in eight system calls.
 
          To turn the 'chopping' behaviour off, set the value of PathInfo to
          Off.
@@ -736,10 +777,13 @@ Keyword: ScriptBufSize
 Where:   Tuning
 Type:    Integer
 Default: 4096
-Desc:    The server uses three buffers for CGI scripts. The size of these
-         is determined by the value of ScriptBufSize. (Actually one of these
-         buffers is made slightly larger than the others to create extra room
-         for 'chunk' delimiters.)
+Desc:    The server uses two buffers for CGI scripts. The size of these
+         is determined by the value of ScriptBufSize. Note that the
+         value of ScriptBufSize must be equal to or greather than the
+         InputBufSize; if this is not the case, Mathopd will increase
+         the value of ScriptBufSize itself. It is recommended that
+         ScriptBufSize be at least sixteen bytes less than BufSize, to
+         leave room in the output buffer for 'chunk' delimiters.
 
 Keyword: ScriptTimeout
 Where:   Tuning
@@ -901,19 +945,18 @@ Desc:    If Mathopd is started by root it must change its identity. This
          is done for security reasons: you do not want the web server to
          be able to read all files. The new identity is defined by the
          value of the User keyword. The user name is looked up in the
-         password file (this is done after a possible chroot!) and
+         password file (this is done before a possible chroot!) and
          Mathopd then changes its effective user id (and real user id
          as well, depending on whether StayRoot is off or on). In addition,
-         Mathopd will perform an initgroups() call to set its list of
-         supplementary group ids. (This usually requires /etc/group to be
-         present, so people that use chroot please take note.)
+         Mathopd will perform a setgroups() call to clear its list of
+         supplementary group ids.
 
          Note: Mathopd will create log files, etc. with an owner that is
          equal to the value of the User keyword. The *group* owner of
          the log file may differ between operating systems. For example,
          on BSD, the group owner of a file is set to the group owner of
          the directory in which it is created. Other systems may have
-         other semantics.
+         different semantics.
 
 Keyword: UserAgent
 Where:   LogFormat
