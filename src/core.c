@@ -563,7 +563,7 @@ void httpd_main(void)
 			}
 			cn = connections;
 			while (cn) {
-				if (cn->state == HC_ACTIVE) {
+				if (cn->pollno != -1) {
 					r = pollfds[cn->pollno].revents;
 					if (r & POLLIN)
 						read_connection(cn);
