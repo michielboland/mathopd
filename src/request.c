@@ -498,11 +498,6 @@ static int append_indexes(struct request *r)
 	return 0;
 }
 
-static int process_cgi(struct request *r)
-{
-	return fork_request(r, exec_cgi);
-}
-
 static int process_external(struct request *r)
 {
 	r->num_content = -1;
@@ -822,7 +817,7 @@ static int process_path(struct request *r)
 					return 405;
 				r->content_type = r->c->auto_index_command;
 				r->class = CLASS_EXTERNAL;
-				return fork_request(r, exec_cgi);
+				return process_cgi(r);
 			}
 			r->error_file = r->c->error_404_file;
 			return 404;
