@@ -96,11 +96,3 @@ The DefaultName: keyword has been removed.
 
 REMOTE_PORT and SERVER_ADDR environment variables are
 available to CGI scripts.
-
-PATH_INFO now contains the full path name, including
-the name of the script. PATH_TRANSLATED contains the
-absolute pathname of the executable. (Excluding any
-path arguments - this is probably wrong.) This appears
-to conflict with the CGI spec; I'll have to check
-what is the right thing. But php is much happier this
-way.

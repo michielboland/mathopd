@@ -631,7 +631,7 @@ static int check_realm(struct request *r)
 	return -1;
 }
 
-static struct control *faketoreal(char *x, char *y, struct request *r, int update)
+struct control *faketoreal(char *x, char *y, struct request *r, int update)
 {
 	unsigned long ip;
 	struct control *c;

@@ -365,6 +365,7 @@ extern void httpd_main(void);
 /* request */
 
 extern int process_request(struct request *);
+extern struct control *faketoreal(char *, char *, struct request *, int);
 extern int prepare_reply(struct request *);
 
 /* imap */
