@@ -47,7 +47,6 @@ static const char rcsid[] = "$Id$";
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include "mathopd.h"
@@ -221,6 +220,7 @@ void internal_dump(void)
 {
 	FILE *f;
 	char name[32];
+	struct timeval tv;
 
 	sprintf(name, "/tmp/mathopd-%d-dump", my_pid);
 	f = fopen(name, "a");
@@ -229,7 +229,8 @@ void internal_dump(void)
 		lerror("fopen");
 		return;
 	}
-	fprintf(f, "*** Dump performed at %s", ctime(&current_time));
+	gettimeofday(&tv, 0);
+	fprintf(f, "*** Dump performed at %.6f\n", tv.tv_sec + 1e-6 * tv.tv_usec);
 	fdump(f, 0);
 	fclose(f);
 }
