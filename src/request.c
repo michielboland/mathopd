@@ -336,11 +336,8 @@ static char *dirmatch(char *s, char *t)
 		(s[n] == '/' || s[n] == '\0' || s[n-1] == '~') ? s + n : 0;
 }
 
-static int evaluate_access(struct request *r)
+static int evaluate_access(unsigned long ip, struct access *a)
 {
-	unsigned long ip = r->cn->peer.s_addr;
-	struct access *a = r->c->accesses;
-
 	while (a && ((ip & a->mask) != a->addr))
 		a = a->next;
 	return a ? a->type : ALLOW;
@@ -563,6 +560,8 @@ static int process_fd(struct request *r)
 		}
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		r->cn->rfd = fd;
+		if (r->content_length <= 65)
+			r->cn->keepalive = 0;
 	}
 	return 200;
 }
@@ -635,7 +634,7 @@ static int process_path(struct request *r)
 		return 302;
 	}
 	log(L_DEBUG, " evaluate_access,");
-	if (evaluate_access(r) == DENY) {
+	if (evaluate_access(r->cn->peer.s_addr, r->c->accesses) == DENY) {
 		r->error = fb_active;
 		return 403;
 	}
@@ -1086,7 +1085,7 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 		    && c->alias
 		    && (s = dirmatch(x, c->alias)) != 0
 		    && (c->clients == 0 ||
-			(ip & c->clients->mask) == c->clients->addr))
+			evaluate_access(ip, c->clients) == APPLY))
 			break;
 		c = c->next;
 	}
