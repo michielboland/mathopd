@@ -14,11 +14,7 @@ for RunScriptsAsOwner, and that no scripts will be run
 if neither variable is set and the server is run as root.
 
 LogFormat keyword has been added to generate custom log
-formats. See config.c for details. Additional keywords
-Ctime, RemoteUser, RemoteAddress, RemotePort, ServerName,
-Method, Uri, Version, Status, ContentLength, Referer,
-UserAgent, BytesRead, BytesWritten are also added.
-The HTTP version can now also be logged.
+formats. See config.c for details.
 Thans to Peter Leven for suggesting these changes.
 
 Never return a 403 error code, except if the client's IP
@@ -104,5 +100,3 @@ The server now emits an error message if it cannot open
 any log files.
 
 Support for select() has been removed in favour of poll().
-
-Support for logging query strings has been added.
