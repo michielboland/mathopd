@@ -88,6 +88,7 @@ static const char c_index_names[] =	"IndexNames";
 static const char c_location[] =	"Location";
 static const char c_log[] =		"Log";
 static const char c_name[] =		"Name";
+static const char c_noapply[] =		"NoApply";
 static const char c_num_connections[] =	"NumConnections";
 static const char c_off[] =		"Off";
 static const char c_on[] =		"On";
@@ -373,7 +374,10 @@ static const char *config_mime(struct mime **ms, int class)
 	return 0;
 }
 
-static const char *config_access(struct access **ls)
+#define ALLOWDENY 0
+#define APPLYNOAPPLY 1
+
+static const char *config_acccl(struct access **ls, int t)
 {
 	struct access *l;
 	struct in_addr ia;
@@ -386,14 +390,21 @@ static const char *config_access(struct access **ls)
 		ALLOC(l);
 		l->next = *ls;
 		*ls = l;
-		if (!strcasecmp(tokbuf, c_allow))
-			l->type = ALLOW;
-		else if (!strcasecmp(tokbuf, c_deny))
-			l->type = DENY;
-		else if (!strcasecmp(tokbuf, c_apply))
-			l->type = APPLY;
-		else
-			return e_keyword;
+		if (t == ALLOWDENY) {
+			if (!strcasecmp(tokbuf, c_allow))
+				l->type = ALLOW;
+			else if (!strcasecmp(tokbuf, c_deny))
+				l->type = DENY;
+			else
+				return e_keyword;
+		} else {
+			if (!strcasecmp(tokbuf, c_apply))
+				l->type = APPLY;
+			else if (!strcasecmp(tokbuf, c_noapply))
+				l->type = NOAPPLY;
+			else
+				return e_keyword;
+		}
 		GETWORD();
 		sl = strchr(tokbuf, '/');
 		if (sl == 0)
@@ -413,6 +424,16 @@ static const char *config_access(struct access **ls)
 			return e_bad_mask;
 	}
 	return 0;
+}
+
+static const char *config_access(struct access **ls)
+{
+	return config_acccl(ls, ALLOWDENY);
+}
+
+static const char *config_clients(struct access **ls)
+{
+	return config_acccl(ls, APPLYNOAPPLY);
 }
 
 static void chopslash(char *s)
@@ -499,7 +520,7 @@ static const char *config_control(struct control **as)
 		else if (!strcasecmp(tokbuf, c_access))
 			t = config_access(&a->accesses);
 		else if (!strcasecmp(tokbuf, c_clients))
-			t = config_access(&a->clients);
+			t = config_clients(&a->clients);
 		else if (!strcasecmp(tokbuf, c_types))
 			t = config_mime(&a->mimes, CLASS_FILE);
 		else if (!strcasecmp(tokbuf, c_specials))
