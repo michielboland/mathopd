@@ -237,12 +237,15 @@ static const char *config_flag(int *i)
 
 static const char *config_address(char **a, struct in_addr *b)
 {
+	struct in_addr ia;
+
 	if (*a)
 		return e_addr_set;
 	GETSTRING();
 	COPY(*a, tokbuf);
-	if ((b->s_addr = inet_addr(tokbuf)) == (unsigned long) -1)
+	if (inet_aton(tokbuf, &ia) == 0)
 		return e_bad_addr;
+	*b = ia;
 	return 0;
 }
 
