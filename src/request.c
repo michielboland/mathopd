@@ -975,6 +975,8 @@ static int process_headers(struct request *r)
 				r->range_s = s;
 		} else if (!strcasecmp(l, "If-Range"))
 			r->if_range_s = s;
+		else if (!strcasecmp(l, "Transfer-Encoding"))
+			r->in_transfer_encoding = s;
 	}
 	r->nheaders = n;
 	s = r->method_s;
@@ -1031,6 +1033,16 @@ static int process_headers(struct request *r)
 			r->cn->keepalive = !(s && strcasecmp(s, "Close") == 0);
 		else
 			r->cn->keepalive = s && strcasecmp(s, "Keep-Alive") == 0;
+	}
+	if (r->in_transfer_encoding) {
+		if (strcasecmp(r->in_transfer_encoding, "chunked")) {
+			log_d("unimplemented transfer-coding \"%s\"", r->in_transfer_encoding);
+			return 501;
+		}
+		if (r->in_content_length) {
+			log_d("ignoring Content-Length header from client");
+			r->in_content_length = 0;
+		}
 	}
 	if (r->method == M_GET) {
 		s = r->ims_s;
@@ -1219,6 +1231,7 @@ void init_request(struct request *r)
 	r->ius = 0;
 	r->rhost[0] = 0;
 	r->forked = 0;
+	r->in_transfer_encoding = 0;
 }
 
 int process_request(struct request *r)

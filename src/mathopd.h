@@ -248,6 +248,7 @@ struct request {
 	time_t ius;
 	char rhost[STRLEN];
 	int forked;
+	char *in_transfer_encoding;
 };
 
 struct connection {
