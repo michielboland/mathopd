@@ -345,12 +345,7 @@ int process_cgi(struct request *r)
 	if (s == 0)
 		return 500;
 	sprintf(curdir, "%.*s", s - r->path_translated, r->path_translated);
-	pp = children;
-	while (pp) {
-		if (pp->cn == 0)
-			break;
-		pp = pp->next;
-	}
+	pp = new_pipe_params();
 	if (pp == 0)
 		return 503;
 	switch (r->c->script_identity) {
