@@ -663,9 +663,9 @@ static int check_realm(struct request *r)
 	a = r->authorization;
 	if (a == 0)
 		return -1;
-	if (strncasecmp(a, "basic", 5))
+	if (strncasecmp(a, "basic ", 6))
 		return -1;
-	a += 5;
+	a += 6;
 	while (*a == ' ')
 		++a;
 	if (webuserok(a, r->c->userfile, r->user, sizeof r->user, r->c->do_crypt))
