@@ -1041,8 +1041,6 @@ int init_buffers(void)
 {
 	if (init_pollfds(2 * tuning.num_connections + num_servers) == -1)
 		return -1;
-	if (init_children(tuning.num_connections) == -1)
-		return -1;
 	if (init_connections(tuning.num_connections) == -1)
 		return -1;
 	if (init_log_buffer(tuning.input_buf_size + 1000) == -1)
