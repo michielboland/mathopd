@@ -193,7 +193,7 @@ static int init_log_d(char *name, int *fdp)
 			}
 		}
 		fd = *fdp;
-		nfd = open(n, O_WRONLY | O_CREAT | O_APPEND, DEFAULT_FILEMODE);
+		nfd = open(n, O_WRONLY | O_CREAT | O_APPEND, 0666);
 		if (nfd == -1)
 			return fd == -1 ? -1 : 0;
 		if (fd == -1)

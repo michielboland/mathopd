@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
 	setrlimit(RLIMIT_CORE, &rl);
 	umask(fcm);
 	if (pid_filename) {
-		pid_fd = open(pid_filename, O_WRONLY | O_CREAT, DEFAULT_FILEMODE);
+		pid_fd = open(pid_filename, O_WRONLY | O_CREAT, 0666);
 		if (pid_fd == -1)
 			die("open", "Cannot open PID file");
 	} else
@@ -309,7 +309,7 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		if (child_filename == 0)
 			efd = fd;
 		else {
-			efd = open(child_filename, O_WRONLY | O_CREAT | O_APPEND, DEFAULT_FILEMODE);
+			efd = open(child_filename, O_WRONLY | O_CREAT | O_APPEND, 0666);
 			if (efd == -1) {
 				log_d("cannot open child log %s", child_filename);
 				lerror("open");
