@@ -407,20 +407,14 @@ static int readfromchild(struct pipe_params *p)
 		log_d("readfromchild: fd=%d, ipp=%d, bytestoread=%d, r=%d", p->pfd, p->ipp, bytestoread, r);
 	switch (r) {
 	case -1:
-		switch (errno) {
-		default:
-			lerror("readfromchild");
-		case ECONNRESET:
-		case EPIPE:
-			p->error_condition = STUB_ERROR_PIPE;
-			return -1;
-		case EAGAIN:
-			break;
-		}
-		break;
+		if (errno == EAGAIN)
+			return 0;
+		lerror("readfromchild");
+		p->error_condition = STUB_ERROR_PIPE;
+		return -1;
 	case 0:
 		if (p->state != 2) {
-			log_d("readfromchild: premature end of script headers");
+			log_d("readfromchild: premature end of script headers (ipp=%d)", p->ipp);
 			p->error_condition = STUB_ERROR_RESTART;
 			return -1;
 		}
@@ -458,7 +452,7 @@ static int writetoclient(struct pipe_params *p)
 		case EAGAIN:
 			break;
 		default:
-			lerror("pipe_run: error writing to client");
+			lerror("writetoclient");
 		case EPIPE:
 		case ECONNRESET:
 			p->error_condition = STUB_ERROR_CLIENT;
@@ -485,16 +479,11 @@ static int writetochild(struct pipe_params *p)
 		log_d("writetochild: fd=%d, opp=%d, ibp=%d, r=%d", p->pfd, p->opp, p->ibp, r);
 	switch (r) {
 	case -1:
-		switch (errno) {
-		case EAGAIN:
-			break;
-		default:
-			lerror("pipe_run: error writing to script");
-		case EPIPE:
-		case ECONNRESET:
-			p->error_condition = STUB_ERROR_PIPE;
-			return -1;
-		}
+		if (errno == EAGAIN)
+			return 0;
+		lerror("writetochild");
+		p->error_condition = STUB_ERROR_PIPE;
+		return -1;
 		break;
 	default:
 		p->t = current_time;
