@@ -45,6 +45,7 @@ static const char rcsid[] = "$Id$";
 #include <poll.h>
 #include <sysexits.h>
 #include <unistd.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -76,6 +77,8 @@ struct pipe_params {
 	size_t imax;
 	int chunkit;
 	int nocontent;
+	int haslen;
+	size_t pmax;
 };
 
 struct cgi_header {
@@ -89,11 +92,12 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 {
 	int addheader, c, s;
 	struct cgi_header headers[STUB_NHEADERS];
-	size_t i, nheaders, status, location;
+	size_t i, nheaders, status, location, length;
 	const char *p, *tmpname, *tmpvalue;
-	int havestatus, havelocation, firstline;
+	int havestatus, havelocation, firstline, havelength;
 	size_t len, tmpnamelen, tmpvaluelen;
-	char sbuf[40], dbuf[50], gbuf[40], cbuf[30];
+	char sbuf[40], dbuf[50], gbuf[40], cbuf[30], *cp;
+	unsigned long ul;
 
 	headers[nheaders = 0].len = sprintf(sbuf, "Server: %.30s", server_version);
 	headers[nheaders].name = sbuf;
@@ -108,8 +112,10 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 	tmpvalue = 0;
 	havestatus = 0;
 	havelocation = 0;
+	havelength = 0;
 	status = 0;
 	location = 0;
+	length = 0;
 	s = 0;
 	len = 0;
 	addheader = 0;
@@ -191,8 +197,14 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 						addheader = 0;
 					break;
 				case 14:
-					if (strncasecmp(tmpname, "Content-Length", 14) == 0)
-						addheader = 0;
+					if (strncasecmp(tmpname, "Content-Length", 14) == 0) {
+						if (havelength)
+							addheader = 0;
+						else {
+							length = nheaders;
+							havelength = 1;
+						}
+					}
 					break;
 				case 17:
 					if (strncasecmp(tmpname, "Transfer-Encoding", 17) == 0) {
@@ -203,10 +215,9 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 				}
 			if (firstline)
 				firstline = 0;
-			if (addheader == 0) {
-				if (debug)
-					log_d("convert_cgi_headers: disallowing header \"%.*s\"", len, tmpname);
-			} else {
+			if (addheader == 0)
+				log_d("convert_cgi_headers: disallowing header \"%.*s\"", len, tmpname);
+			else {
 				if (nheaders == STUB_NHEADERS) {
 					log_d("convert_cgi_headers: too many header lines");
 					return -1;
@@ -247,6 +258,10 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 			return -1;
 		}
 		if (s == 204 || s == 304) {
+			if (havelength) {
+				log_d("convert_cgi_headers: script should not send content-length with status %d", s);
+				return -1;
+			}
 			pp->nocontent = 1;
 			pp->chunkit = 0;
 		}
@@ -261,6 +276,25 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 		len += tmpvaluelen;
 		pp->obuf[len++] = '\r';
 		pp->obuf[len++] = '\n';
+	}
+	if (havelength) {
+		tmpvalue = headers[length].value;
+		if (*tmpvalue == '-') {
+			log_d("convert_cgi_headers: illegal content-length header \"%.*s\"", headers[length].len, headers[length].name);
+			return -1;
+		}
+		ul = strtoul(tmpvalue, &cp, 10);
+		if (cp != tmpvalue) {
+			while (*cp != '\n' && isspace(*cp))
+				++cp;
+		}
+		if (*cp != '\n' || ul >= UINT_MAX) {
+			log_d("convert_cgi_headers: illegal content-length header \"%.*s\"", headers[length].len, headers[length].name);
+			return -1;
+		}
+		pp->chunkit = 0;
+		pp->haslen = 1;
+		pp->pmax = ul;
 	}
 	if (pp->chunkit) {
 		if (nheaders == STUB_NHEADERS) {
@@ -337,6 +371,8 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 	pollfds[1].events = 0;
 	pollfds[0].revents = 0;
 	pollfds[1].revents = 0;
+	if (p->haslen && p->pmax == 0)
+		p->pstate = 2;
 	if (p->istate == 1 && p->ibp < p->isize && p->imax) {
 		done = 0;
 		pollfds[0].fd = p->cfd;
@@ -347,7 +383,7 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		pollfds[0].fd = p->cfd;
 		pollfds[0].events |= POLLOUT;
 	}
-	if (p->pstate == 1 && p->ipp < p->psize) {
+	if (p->pstate == 1 && p->ipp < p->psize && (p->chunkit || p->haslen == 0 || p->pmax)) {
 		done = 0;
 		pollfds[1].fd = p->pfd;
 		pollfds[1].events |= POLLIN;
@@ -394,6 +430,8 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		if (bytestoread > p->imax)
 			bytestoread = p->imax;
 		r = read(p->cfd, p->ibuf + p->ibp, bytestoread);
+		if (debug)
+			log_d("read(%d [client], %p + %d, %d) = %d", p->cfd, p->ibuf, p->ibp, bytestoread, r);
 		switch (r) {
 		case -1:
 			if (errno == EAGAIN)
@@ -412,6 +450,8 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 	}
 	if (pollfds[0].revents & POLLOUT) {
 		r = write(p->cfd, p->obuf + p->obp, p->otop - p->obp);
+		if (debug)
+			log_d("write(%d [client], %p + %d, %d) = %d", p->cfd, p->obuf, p->obp, p->otop - p->obp, r);
 		switch (r) {
 		case -1:
 			if (errno == EAGAIN)
@@ -425,26 +465,41 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		}
 	}
 	if (pollfds[1].revents & POLLIN) {
-		r = read(p->pfd, p->pbuf + p->ipp, p->psize - p->ipp);
+		bytestoread = p->isize - p->ibp;
+		if (p->haslen && bytestoread > p->pmax)
+			bytestoread = p->pmax;
+		r = read(p->pfd, p->pbuf + p->ipp, bytestoread);
+		if (debug)
+			log_d("read(%d [script], %p + %d, %d) = %d", p->pfd, p->pbuf, p->ipp, bytestoread, r);
 		switch (r) {
 		case -1:
 			if (errno == EAGAIN)
 				break;
 			lerror("pipe_run: error reading from script");
+			p->pstate = 2;
+			break;
 		case 0:
 			if (p->state == 0) {
 				log_d("pipe_run: premature end of script headers");
+				return 1;
+			}
+			if (p->haslen) {
+				log_d("pipe_run: script went away");
 				return 1;
 			}
 			p->pstate = 2;
 			break;
 		default:
 			p->ipp += r;
+			if (p->haslen)
+				p->pmax -= r;
 			break;
 		}
 	}
 	if (pollfds[1].revents & POLLOUT) {
 		r = write(p->pfd, p->ibuf + p->opp, p->ibp - p->opp);
+		if (debug)
+			log_d("write(%d [script], %p + %d, %d) = %d", p->pfd, p->ibuf, p->opp, p->ibp - p->opp, r);
 		switch (r) {
 		case -1:
 			if (errno == EAGAIN)
@@ -487,6 +542,17 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 			if (convert_result == -1) {
 				log_d("pipe_run: problem in convert_cgi_headers");
 				return 1;
+			}
+			if (p->haslen && p->pstart < p->ipp) {
+				if (debug)
+					log_d("pipe_run: p->pstart = %d, p->ipp = %d, p->pmax = %d", p->pstart, p->ipp, p->pmax);
+				if (p->ipp > p->pstart + p->pmax) {
+					log_d("extra garbage from script ignored");
+					p->pmax = 0;
+				} else
+					p->pmax -= p->ipp - p->pstart;
+				if (debug)
+					log_d("pipe_run: p->pmax is now %d", p->pmax);
 			}
 		} else if (p->pstart == p->psize) {
 			log_d("pipe_run: too many headers");
@@ -566,6 +632,8 @@ static int pipe_loop(int fd, struct request *r, int timeout)
 	p.timeout = timeout;
 	p.chunkit = r->protocol_minor > 0;
 	p.nocontent = r->method == M_HEAD;
+	p.haslen = 0;
+	p.pmax = 0;
 	if (r->method == M_POST) {
 		p.istate = 1;
 		p.imax = r->in_mblen;
