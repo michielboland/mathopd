@@ -13,7 +13,7 @@ DEPENDS=mathopd.h Makefile
 
 all: $(BIN)
 install: $(BIN)
-	install $(BIN) $(SBINDIR)
+	install -c $(BIN) $(SBINDIR)
 $(BIN): $(OBJS)
 	$(CC) $(LDFLAGS) -o $(BIN) $(OBJS) $(LDLIBS)
 $(OBJS): $(DEPENDS)
