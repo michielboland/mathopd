@@ -845,6 +845,8 @@ static int process_path_translated(struct request *r)
 	if (get_path_info(r) == -1) {
 		if (debug)
 			log_d("get_path_info failed for %s", r->path_translated);
+		if (r->status)
+			return 0;
 		r->error_file = r->c->error_404_file;
 		r->status = 404;
 		return 1;
@@ -1581,10 +1583,6 @@ int process_request(struct request *r)
 				log_d("process_request: %s", r->path_translated);
 			s = process_path_translated(r);
 		} while (++n < 3 && s == 1 && r->error_file);
-		if (n == 3 && s == 1) {
-			log_d("process_request: loop detected");
-			r->status = 500;
-		}
 	}
 	if (r->status) {
 		if (prepare_reply(r) == -1) {
