@@ -617,7 +617,7 @@ static int process_fd(struct request *r)
 	}
 	if (r->method == M_GET) {
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
-		r->cn->rfd = fd;
+		r->cn->request.fd = fd;
 	} else
 		close(fd);
 	return r->range ? 206 : 200;
@@ -650,7 +650,7 @@ static int add_fd(struct request *r, const char *filename)
 		return -1;
 	}
 	fcntl(fd, F_SETFD, FD_CLOEXEC);
-	r->cn->rfd = fd;
+	r->cn->request.fd = fd;
 	r->content_length = s.st_size;
 	return 0;
 }

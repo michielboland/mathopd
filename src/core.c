@@ -182,9 +182,9 @@ int reinit_connection(struct connection *cn)
 	++stats.nrequests;
 	log_request(cn->r);
 	cn->logged = 1;
-	if (cn->rfd != -1) {
-		close(cn->rfd);
-		cn->rfd = -1;
+	if (cn->request.fd != -1) {
+		close(cn->request.fd);
+		cn->request.fd = -1;
 	}
 	init_connection(cn);
 	set_connection_state(cn, HC_WAITING);
@@ -204,10 +204,10 @@ void close_connection(struct connection *cn)
 		log_request(cn->r);
 	}
 	--stats.nconnections;
-	close(cn->fd);
-	if (cn->rfd != -1) {
-		close(cn->rfd);
-		cn->rfd = -1;
+	close(cn->client.fd);
+	if (cn->request.fd != -1) {
+		close(cn->request.fd);
+		cn->request.fd = -1;
 	}
 	set_connection_state(cn, HC_FREE);
 }
@@ -306,12 +306,12 @@ static int accept_connection(struct server *s)
 			close(fd);
 		} else {
 			cn->s = s;
-			cn->fd = fd;
-			cn->rfd = -1;
+			cn->client.fd = fd;
+			cn->request.fd = -1;
 			cn->peer = sa_remote;
 			cn->sock = sa_local;
 			cn->t = current_time;
-			cn->pollno = -1;
+			cn->client.pollindex = -1;
 			++stats.nconnections;
 			if (stats.nconnections > stats.maxconnections)
 				stats.maxconnections = stats.nconnections;
@@ -330,7 +330,7 @@ static int fill_connection(struct connection *cn)
 	int poolleft, n, m;
 	long fileleft;
 
-	if (cn->rfd == -1)
+	if (cn->request.fd == -1)
 		return 0;
 	p = &cn->output;
 	poolleft = p->ceiling - p->end;
@@ -339,9 +339,9 @@ static int fill_connection(struct connection *cn)
 	if (n <= 0)
 		return 0;
 	cn->left -= n;
-	m = read(cn->rfd, p->end, n);
+	m = read(cn->request.fd, p->end, n);
 	if (debug)
-		log_d("fill_connection: %d %d %d %d", cn->rfd, p->end - p->floor, n, m);
+		log_d("fill_connection: %d %d %d %d", cn->request.fd, p->end - p->floor, n, m);
 	if (m != n) {
 		if (m == -1)
 			lerror("read");
@@ -373,9 +373,9 @@ static void write_connection(struct connection *cn)
 			}
 		}
 		cn->t = current_time;
-		m = send(cn->fd, p->start, n, 0);
+		m = send(cn->client.fd, p->start, n, 0);
 		if (debug)
-			log_d("write_connection: %d %d %d %d", cn->fd, p->start - p->floor, n, m);
+			log_d("write_connection: %d %d %d %d", cn->client.fd, p->start - p->floor, n, m);
 		if (m == -1) {
 			switch (errno) {
 			default:
@@ -413,9 +413,9 @@ static int read_connection(struct connection *cn)
 		cn->header_input.end -= offset;
 		bytestoread = cn->header_input.ceiling - cn->header_input.end;
 	}
-	nr = recv(cn->fd, cn->header_input.end, bytestoread, 0);
+	nr = recv(cn->client.fd, cn->header_input.end, bytestoread, 0);
 	if (debug)
-		log_d("read_connection: %d %d %d %d", cn->fd, cn->header_input.end - cn->header_input.floor, bytestoread, nr);
+		log_d("read_connection: %d %d %d %d", cn->client.fd, cn->header_input.end - cn->header_input.floor, bytestoread, nr);
 	if (nr == -1) {
 		switch (errno) {
 		default:
@@ -613,23 +613,23 @@ static int setup_connection_pollfds(int n)
 
 	cn = waiting_connections.head;
 	while (cn) {
-		pollfds[n].fd = cn->fd;
+		pollfds[n].fd = cn->client.fd;
 		pollfds[n].events = POLLIN;
-		cn->pollno = n++;
+		cn->client.pollindex = n++;
 		cn = cn->next;
 	}
 	cn = reading_connections.head;
 	while (cn) {
-		pollfds[n].fd = cn->fd;
+		pollfds[n].fd = cn->client.fd;
 		pollfds[n].events = POLLIN;
-		cn->pollno = n++;
+		cn->client.pollindex = n++;
 		cn = cn->next;
 	}
 	cn = writing_connections.head;
 	while (cn) {
-		pollfds[n].fd = cn->fd;
+		pollfds[n].fd = cn->client.fd;
 		pollfds[n].events = POLLOUT;
-		cn->pollno = n++;
+		cn->client.pollindex = n++;
 		cn = cn->next;
 	}
 	return n;
@@ -668,7 +668,7 @@ static void log_connection_error(struct connection *cn)
 	char buf[80];
 
 	sprintf(buf, "error on connection to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
-	log_socket_error(cn->fd, buf);
+	log_socket_error(cn->client.fd, buf);
 }
 
 static void run_rconnection(struct connection *cn)
@@ -676,7 +676,7 @@ static void run_rconnection(struct connection *cn)
 	int n;
 	short r;
 
-	n = cn->pollno;
+	n = cn->client.pollindex;
 	if (n == -1)
 		return;
 	r = pollfds[n].revents;
@@ -700,7 +700,7 @@ static void run_wconnection(struct connection *cn)
 	int n;
 	short r;
 
-	n = cn->pollno;
+	n = cn->client.pollindex;
 	if (n == -1)
 		return;
 	r = pollfds[n].revents;

@@ -174,7 +174,7 @@ int process_dump(struct request *r)
 	r->last_modified = r->finfo.st_mtime;
 	if (r->method == M_GET) {
 		lseek(fd, 0, SEEK_SET);
-		r->cn->rfd = fd;
+		r->cn->request.fd = fd;
 	} else
 		close(fd);
 	r->content_type = "text/plain";
