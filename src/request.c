@@ -31,10 +31,6 @@ static STRING(fb_symlink) =		"symlink spotted";
 static STRING(fb_active) =		"actively forbidden";
 static STRING(fb_access) =		"no permission";
 static STRING(fb_post_file) =		"POST to file";
-static STRING(nf_not_found) =		"not found";
-static STRING(nf_no_index) =		"no index";
-static STRING(nf_path_info) =		"path info";
-static STRING(nf_slash) =		"trailing slash";
 static STRING(ni_not_implemented) =	"method not implemented";
 static STRING(se_alias) =		"cannot resolve pathname";
 static STRING(se_get_path_info) =	"cannot determine path argument";
@@ -496,10 +492,6 @@ static int append_indexes(struct request *r)
 	}
 	if (i == 0) {
 		*q = '\0';
-		if (r->path_args[0] && r->path_args[1])
-			r->error = nf_not_found;
-		else
-			r->error = nf_no_index;
 		return 404;
 	}
 	return 0;
@@ -522,14 +514,8 @@ static int process_special(struct request *r)
 static int process_fd(struct request *r)
 {
 	if (r->path_args[0] && r->c->path_args_ok == 0) {
-		if (r->path_args[1]) {
-			r->error = nf_path_info;
+		if (r->path_args[1] || r->isindex == 0)
 			return 404;
-		}
-		else if (r->isindex == 0) {
-			r->error = nf_slash;
-			return 404;
-		}
 	}
 	if (r->method == M_POST) {
 		r->error = fb_post_file;
@@ -651,7 +637,6 @@ static int process_path(struct request *r)
 	log(L_DEBUG, " sanity check,");
 	if (r->c->locations == 0) {
 		log(L_ERROR, "raah... no locations found");
-		r->error = nf_not_found;
 		return 404;
 	}
 	log(L_DEBUG, " ISDIR check,");
