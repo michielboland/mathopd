@@ -187,6 +187,42 @@ busy just copying data to and fro, and will steal precious CPU
 cycles from other programs (including the CGI script itself.)
 Therefore it is recommended that CGI scripts buffer their output.
 
+"Location:" headers
+--------------------------------
+
+The CGI specification states that if a CGI script outputs a
+location header that contains a virtual path, that is, a line
+like
+
+  Location: /thisisthis.html
+
+then the web server should restart the request as if the client
+requested /thisisthis.html (see [1]). This is also called an
+'internal redirect'. There are some problems with this approach:
+
+ - it leeds to endless loops if a CGI script outputs a Location:
+   header that (ultimately) points to itself; this will kill
+   performance;
+
+ - it does not work if the location that is referred to is
+   protected by access lists; a script cannot know in advance
+   whether this will be the case or not;
+
+ - the document that is referred to in the Location header cannot
+   know the location of the referer; therefore, that document
+   cannot contain relative hyperlinks.
+
+Therefore I have decided not to implement internal redirects. If
+a CGI script sets a "Location:" header, then the server will
+fabricate a '302 Moved' response, and will pass the value of
+"Location:" unmodified to the client, regardless of whether it
+is an absolute URI, a virtual path, of something else. Experience
+has shown that this is not a problem with most web browsers.
+
+References:
+
+[1] http://hoohoo.ncsa.uiuc.edu/cgi/
+
 Example
 --------------------------------
 
