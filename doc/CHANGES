@@ -1,5 +1,13 @@
 Changes between Mathopd 1.4 and Mathopd 1.5
 
+The string "[!]" after a change means: this change introduces
+an incompatibility with previous versions of this software. 
+
+The string "[RFC2616]" after a change means: this change was
+made in order to attain HTTP/1.1 compliance.
+
+A list of changes follows.
+
 cgi.c:
 
 	All headers are now converted into HTTP_ environment
@@ -12,8 +20,8 @@ cgi.c:
 	Headers with the same name that occur multiple times
 	in a request are now concatenated. Previous versions
 	did not do this, which meant, for instance, that if
-	two Cookie headers where received, one of those would
-	be lost.
+	two "Cookie" headers where received, one of those
+	would be lost.
 
 	The value of GATEWAY_INTERFACE is now set.
 	If the user is authenticated by Mathopd, the value of
@@ -24,23 +32,27 @@ cgi.c:
 	the most sense, especially for virtual servers that are
 	created with "AnyHost".
 
-	Do not allow scripts to run under the same user-id as
-	ourselves. (Previously, we would not run a script if
-	neither ScriptUser nor RunScriptAsOwner were set. But
+	The server no longer allows scripts to run under the same
+	user-id as ourselves. Previously, we would not run a script
+	if neither ScriptUser nor RunScriptAsOwner were set. But
 	that does not catch cases where ScriptUser == User or
-	other anomalies.)
+	other anomalies. [!]
+
+	If the "StayRoot" flag is Off, CGI scripts can only run if
+	there is no ScriptUser or RunScriptsAsOwner. Previous
+	versions would ignore these keywords. [!]
 
 	The setting of PATH_INFO and PATH_TRANSLATED is now
 	independent on whether we run as a pure CGI program or
 	an 'External' script. The SCRIPT_FILENAME variable now
 	contains what would be in PATH_TRANSLATED for external
-	scripts. This keeps php happy.
+	scripts. [!]
 
 	External scripts can now be called with added command-line
 	arguments.
 
 	The DNS lookup code has been removed. This means that
-	REMOTE_HOST will never be set.
+	REMOTE_HOST will never be set. [!]
 
 	The ChildLog is now strftime-expanded, just like the
 	other logs.
@@ -61,11 +73,12 @@ config.c:
 		LocalPort
 		MicroTime
 		Clobber
+		Wait [!]
 
 	The following keywords have been removed:-
 
-		DNSLookups
-		Name
+		DNSLookups [!]
+		Name [!]
 
 	The "Virtual" keyword may now be used in a global context
 	as well. If used that way, the virtual server(s) that it
@@ -73,33 +86,14 @@ config.c:
 
 	The value for the User parameter is now immediately checked
 	at configuration time, and the user and group IDs are stored
-	then. The ScriptUser gets a similar treatment. This means
-	that after startup, no password lookups will be done (except
-	perhaps for UserDirectory thingies.)
+	then. The ScriptUser gets a similar treatment. [!]
 
 core.c:
 
-	If connections are active, call poll() with a timeout
-	of one minute, rather than infinity. This should take
-	care of connections that remain stuck after shutdown.
+	Connections are timed out properly.
 
-	Do not poll server sockets or try to accept() if there is no
-	room for any new connection. Previously mathopd would accept
-	and then immediately drop a connection. That does not make
-	a lot of sense. So we now let new connections hang in the air
-	until an existing connection goes away or changes into a
-	keep-alive state.
-
-	Make a time stamp in the connection structure when a bona
-	fide request appears. This can be used to log the time taken
-	to process a request.
-
-	The state machine that detects HTTP requests has been altered.
-	If the first nonblank line contains a space (or tab) followed by
-	the letter 'H', we are talking HTTP, and continue to scan the
-	remainder of the input for request headers. Previously, HTTP
-	is detected by a request line containing three or more words,
-	which does not really work.
+	The server no longer tries to accept() from a server socket if
+	there is no room for any new connection.
 
 	The connections are now stored in several linked lists, rather
 	than just one. This causes a significant speed increase,
@@ -112,121 +106,124 @@ core.c:
 	that has been idle for the longest period of time. Previously
 	a more or less random connection would be clobbered.
 
-	Mathopd will perform an 'internal dump' if a SIGWINCH signal is
-	received. The dump will be written to /tmp/mathopd-PID-dump
-	(where PID is the process ID of server). This is an experimental
-	feature.
-
 	On certain systems, Mathopd can use sendfile() to send the
-	contents of a file to the client (at this moment this is known
-	to work on FreeBSD-4 and Linux 2.4 systems.)
+	contents of a file to the client. At this moment this is known
+	to work on FreeBSD-4 and Linux 2.4 systems.
 
 	Previous Mathopd versions would 'clobber' connections that are
 	idle when it starts to run out of other connections. This
 	behaviour can now be turned off using the Clobber keyword.
 
+	There is a separate timeout for connections that are idling in
+	a keep-alive state between requests, via the "Wait" keyword. [!]
+
+dump.c:
+
+	Some extra statistics counters were added. The per-server
+	'accepted' counters are merged into one. The 'handled'
+	counters have gone, since these will now always equal the
+	'accepted' counters.
+
+	An 'internal dump' has been added to allow dumping to a file
+	in /tmp, rather than dumping to an HTTP client. This is triggered
+	by the SIGWINCH signal.
+
 imap.c:
 
-	Replace the strtok() function with something that is a
-	little bit quicker.
-
-	Limit imagemap files to 1000 lines or less, since processing
-	these can be quite expensive in terms of CPU time.
+	Imagemap files are now limited to 1000 lines or less, since
+	processing these can be quite expensive in terms of CPU time. [!]
 
 log.c:
 
-	New global function: open_log().
-
-	We no longer log to standard error if the -n command-line
-	option is set, because that interferes with the ChildLog
-	for forked requests. To get the old behaviour, run Mathopd
-	with the -t ('tee') option.
+	The server no longer logs to standard error if the '-n'
+	command-line option is set, because that interferes with the
+	ChildLog for forked requests. To get the old behaviour, run
+	Mathopd with the '-t' ('tee') option. [!]
 
 	Time stamps in the request log are more accurate.
 
+	Previous versions would stop logging after the log files were
+	rotated and /dev/stdout or /dev/stderr had been specified as
+	log file. This has been corrected.
+
 main.c:
 
-	If we are not running as a daemon, do not close all file
-	descriptors.
+	The server no longer closes all file descriptors if the
+	'-n' flag is specified.
 
-	The fork_request function has been removed, since most of
-	the work is now done in the main process (in cgi.c).
-	Instead, we have a spawn() function, that forks, does a
-	minimum amount of initialization routines, like change
-	user-id, current directory, and so on, and then immediately
-	calls exec. On some platforms we can even use vfork() rather
-	than fork() to achieve a rather dramatic speedup.
+	All initialization for child processes (i.e. CGI scripts) is
+	now done in the main process, rather than the child process.
+	This change makes it possible to use vfork() rather than
+	fork() to create child processes. This dramatically improves
+	CGI performances on some platforms.
 
 	The second argument to the listen() call is now dynamic via
 	the Backlog keyword.
 
 request.c:
 
-	Store all headers in the r->headers array (up to a maximum
-	number, determined by NumHeaders.)
+	The "Range" and "If-Range" headers are now handled properly.
 
-	Print extra headers, if defined by the ExtraHeaders keyword.
+	The server now understands and implements the
+	"If-Unmodified-Since" header. [RFC2616]
 
-	Add satisfy_range(). In process_fd(), set the correct file
-	offset if "Range" header is present in the request. Return
-	200, 206 or 416 status based on range headers. Deal with "If-Range"
-	headers. Added process_range_header(). Ignore (and log) multiple
-	Range headers and requests for multiple ranges.
+	If the first line after the Request-Line starts with a space,
+	it is no longer treated as a continuation of the Request-Line.
 
-	Return 412 error for GET requests with If-Unmodified-Since header
-	if applicable.
+	The server now returns a 400 rather than 404 error if a
+	virtual server cannot be found. [RFC2616]
 
-	Do not fold the Request-Line. That is, if the first line after
-	the Request-Line ("GET / HTTP/1.1") starts with a space, do not
-	treat it as a continuation of the Request-Line.
+	Mathopd now understands requests with an absolute URI in the
+	Request-Line. [RFC2616]
 
-	Return a 400 rather than 404 error if a virtual server cannot be
-	found. This is required by RFC2616.
+	The "Transfer-Encoding" header is parsed. [RFC2616]
 
-	Allow requests with an absolute URI in the Request-Line
-	("GET http://localhost/ HTTP/1.1").
+	Despite the above, POST requests to Mathopd that contain a
+	message body must have a Content-Length as well, and no
+	Transfer-Encoding. If a length is not present we return a
+	411 error. (Content-Length is required because CGI does not
+	specify what one should do with input that arrives in chunks.)
 
-	Store the value of Transfer-Encoding. Do not allow transfer-codings
-	other than 'chunked'. If Content-Length is sent in addition to
-	Transfer-Encoding, ignore the content-length.
+	If the AutoIndexCommand is set for a control block, that
+	command is executed when a request is made for a directory
+	and there is no index, as specified by IndexNames. The
+	command may be a CGI script or an External; it may even be a
+	plain file, but that is probably not very useful.
 
-	Return 411 error for POST requests without Content-Length.
-	(Thus for the time being we refuse POST requests with a chunked
-	message body.)
+	The server now limits the size of Request-URIs (to 400
+	characters, but this can be changed by redefining STRLEN when
+	compiling the program.) If the Request-URI is too long, a
+	414 error is returned. Note that the size of the query part
+	(the bit that follows the '?' character) is not limited by
+	this factor.
 
-	If the AutoIndexCommand is set for a control block, execute that
-	command if the request is for a directory and there is no index,
-	as specified by IndexNames. (The command may be a CGI script or
-	an External; it may even be a plain file, but that is probably
-	not very useful.)
-
-	The parsing of the Request-Line has changed. Rather than assuming
-	that the last word of that line contains the HTTP version, scan
-	the Request-Line for the string 'HTTP'.
-
-	Request-URIs that are too long produce a 414 error.
-
-	Close the connection upon receipt of a 'HTTP/0.9' request, that is,
-	a request that does not contain a HTTP version. Thus, we now
-	support HTTP/0.9 requests, in the sense that such requests are
-	treated as an error. There are no HTTP/0.9 browsers left so this
-	should not be a problem.
+	Mathopd now closes the connection upon receipt of a 'HTTP/0.9'
+	request, that is, a request that does not contain a HTTP
+	version. Thus, we now support HTTP/0.9 requests, in the sense
+	that such requests are treated as an error. There are no
+	HTTP/0.9 browsers left so this should not be a problem. [!]
 
 	The files specified by Error401File etc. can now be CGI scripts.
 
-	Anything that is requested is now opened immediately. Previous
-	versions would call stat() first, which is a time-consuming process.
+	Anything that is requested is now opened immediately.
+	Previous versions would call stat() first, which is a
+	time-consuming process.
+
 	As a side-effect, all files that are served by Mathopd must now
-	be readable, including compiled CGI programs.
+	be readable, including compiled CGI programs. [!]
 
 	If the request included an "Expect: 100-continue" header, the
 	client is apparently sending a request-body next, and no part
-	of the request-body has been received, send a "100-continue"
-	response. This is required by RFC2616.
+	of the request-body has been received, the server sends a
+	"100-continue" response. [RFC2616]
 
 	Mathopd now closes the connection after it has processed a
 	GET or HEAD request that contained a message body. Previous
 	versions would treat the message body as a new request.
+
+	Mathopd no longer generates Last-Modified dates that are in the
+	future, and ignores If-Modified-Since dates in the future.
+	[RFC2616]
 
 stub.c:
 
@@ -237,14 +234,4 @@ stub.c:
 sendfile.c:
 
 	This is a new file. It contains hooks into the sendfile() function.
-
-	The set_nopush function has been added. This function instructs
-	the kernel to not send partial TCP segments until the response
-	is finished. On FreeBSD this is done using the TCP_NOPUSH
-	option; for Linux we use TCP_CORK.
-
-	Note that set_nopush is currently enabled only if sendfile is
-	used. This is done in order to send HTTP header and body in
-	one TCP segment. Mathopd without sendfile does not need the
-	function.
-
+	See the comments about sendfile above for details.
