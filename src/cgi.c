@@ -202,7 +202,7 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 	struct simple_list *e;
 	char path_translated[PATHLEN];
 	char *tmp;
-	int n;
+	size_t n;
 
 	for (n = 0; n < r->nheaders; n++) {
 		tmp = cgi_envar(r->headers[n].rh_name);
