@@ -329,13 +329,13 @@ struct statistics {
 /* main */
 
 extern const char server_version[];
-extern volatile sig_atomic_t gotsigterm;
-extern volatile sig_atomic_t gotsighup;
-extern volatile sig_atomic_t gotsigusr1;
-extern volatile sig_atomic_t gotsigusr2;
-extern volatile sig_atomic_t gotsigchld;
-extern volatile sig_atomic_t gotsigquit;
-extern volatile sig_atomic_t gotsigwinch;
+extern sig_atomic_t gotsigterm;
+extern sig_atomic_t gotsighup;
+extern sig_atomic_t gotsigusr1;
+extern sig_atomic_t gotsigusr2;
+extern sig_atomic_t gotsigchld;
+extern sig_atomic_t gotsigquit;
+extern sig_atomic_t gotsigwinch;
 extern int debug;
 extern unsigned long fcm;
 extern int stayroot;
