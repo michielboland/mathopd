@@ -59,7 +59,6 @@ int log_columns;
 int *log_column;
 
 static const char *err;
-static char *fqdn;
 static char tokbuf[STRLEN];
 static int line;
 static int num_servers;
@@ -83,7 +82,6 @@ static const char c_content_length[] =	"ContentLength";
 static const char c_control[] =		"Control";
 static const char c_core_directory[] =	"CoreDirectory";
 static const char c_ctime[] =		"Ctime";
-static const char c_default_name[] =	"DefaultName";
 static const char c_deny[] =		"Deny";
 static const char c_dns[] =		"DNSLookups";
 static const char c_do_crypt[] =	"EncryptedUserFile";
@@ -764,6 +762,7 @@ static const char *config_server(FILE *f, struct server **ss)
 	s->s_name = 0;
 	s->children = 0;
 	s->vservers= 0;
+	s->s_fullname = 0;
 	s->controls = controls;
 	s->next = *ss;
 	s->naccepts = 0;
@@ -801,20 +800,25 @@ static const char *fill_servernames(void)
 
 	s = servers;
 	while (s) {
-		if (s->s_name == 0) {
-			if (fqdn == 0)
-				return e_nodefault;
-			s->s_name = fqdn;
+		if (s->s_name) {
+			if (s->port == 80)
+				s->s_fullname = s->s_name;
+			else {
+				sprintf(buf, "%.200s:%lu", s->s_name, s->port);
+				COPY(s->s_fullname, buf);
+			}
 		}
 		v = s->children;
 		while (v) {
 			v->controls = v->vserver->controls;
 			name = v->host ? v->host : s->s_name;
-			if (s->port == 80)
-				v->fullname = name;
-			else {
-				sprintf(buf, "%.200s:%lu", name, s->port);
-				COPY(v->fullname, buf);
+			if (name) {
+				if (s->port == 80)
+					v->fullname = name;
+				else {
+					sprintf(buf, "%.200s:%lu", name, s->port);
+					COPY(v->fullname, buf);
+				}
 			}
 			v = v->next;
 		}
@@ -858,8 +862,6 @@ static const char *config_main(FILE *f)
 			t = config_string(f, &rootdir);
 		else if (!strcasecmp(tokbuf, c_core_directory))
 			t = config_string(f, &coredir);
-		else if (!strcasecmp(tokbuf, c_default_name))
-			t = config_string(f, &fqdn);
 		else if (!strcasecmp(tokbuf, c_umask))
 			t = config_int(f, &fcm);
 		else if (!strcasecmp(tokbuf, c_stayroot))
