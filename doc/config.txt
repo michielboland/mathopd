@@ -57,17 +57,22 @@ Desc:    Control blocks that contain an Alias keyword are used in
          speaking, Mathopd scans Control blocks until it can match
          the directory part of the Request-URI with the alias.
          Scanning starts in the Virtual server and continues
-         upwards.
+         upwards. Scanning stops as soon as a match is found.
+
          Example:
 
            Control {
              Alias /
              Location /usr/share/doc/handbook
            }
+           Control {
+             Alias /boland
+             Location /usr/home/boland/www
+           }
 
-         Note that the order of aliases in the configuration matters.
-         In general you should put your leasts specific aliases, like
-         the root, first.
+         The above is an example of two aliases. Note that the order
+         of the aliases matters: if you switch the two around, unexpected
+         things will happen.
 
 Keyword: Allow
 Where:   Access
