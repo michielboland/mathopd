@@ -1086,7 +1086,6 @@ static void init_request(struct request *r)
 	r->method_s = 0;
 	r->url = 0;
 	r->args = 0;
-	r->params = 0;
 	r->version = 0;
 	r->protocol_major = 0;
 	r->protocol_minor = 0;
