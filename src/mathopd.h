@@ -55,6 +55,7 @@
 #define DEFAULT_UMASK 022
 #define DEFAULT_NUM_HEADERS 100
 #define DEFAULT_SCRIPT_TIMEOUT 60
+#define DEFAULT_SCRIPT_BUF_SIZE 4080
 
 #define STRLEN 400
 #define PATHLEN (2 * STRLEN)
@@ -318,6 +319,7 @@ struct tuning {
 	int accept_multi;
 	unsigned long num_headers;
 	unsigned long script_timeout;
+	unsigned long script_buf_size;
 };
 
 /* main */
