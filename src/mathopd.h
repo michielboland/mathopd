@@ -280,8 +280,8 @@ struct connection {
 	struct sockaddr_in peer;
 	struct sockaddr_in sock;
 	time_t t;
-	struct pool *input;
-	struct pool *output;
+	struct pool input;
+	struct pool output;
 	int keepalive;
 	int pollno;
 	unsigned long nread;

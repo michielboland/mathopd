@@ -965,7 +965,7 @@ static int process_headers(struct request *r)
 	unsigned long cl;
 
 	do {
-		l = getline(r->cn->input, 0);
+		l = getline(&r->cn->input, 0);
 		if (l == 0)
 			return -1;
 	} while (*l == 0);
@@ -989,7 +989,7 @@ static int process_headers(struct request *r)
 		return 400;
 	n = 0;
 	multiple_range = 0;
-	while ((l = getline(r->cn->input, 1)) != 0) {
+	while ((l = getline(&r->cn->input, 1)) != 0) {
 		s = strchr(l, ':');
 		if (s == 0)
 			continue;
@@ -1234,7 +1234,7 @@ static int prepare_reply(struct request *r)
 	}
 	if (r->status >= 400 && r->method != M_GET && r->method != M_HEAD)
 		r->cn->keepalive = 0;
-	p = r->cn->output;
+	p = &r->cn->output;
 	return (output_headers(p, r) == -1 || (send_message && putstring(p, buf) == -1)) ? -1 : 0;
 }
 

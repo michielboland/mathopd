@@ -193,8 +193,8 @@ static void init_pool(struct pool *p)
 
 static void init_connection(struct connection *cn)
 {
-	init_pool(cn->input);
-	init_pool(cn->output);
+	init_pool(&cn->input);
+	init_pool(&cn->output);
 	init_request(cn->r);
 	cn->keepalive = 0;
 	cn->nread = 0;
@@ -345,7 +345,7 @@ static int fill_connection(struct connection *cn)
 
 	if (cn->rfd == -1)
 		return 0;
-	p = cn->output;
+	p = &cn->output;
 	poolleft = p->ceiling - p->end;
 	fileleft = cn->left;
 	n = fileleft > poolleft ? poolleft : (int) fileleft;
@@ -371,7 +371,7 @@ static void write_connection(struct connection *cn)
 	struct pool *p;
 	int m, n;
 
-	p = cn->output;
+	p = &cn->output;
 	do {
 		n = p->end - p->start;
 		if (n == 0) {
@@ -413,7 +413,7 @@ static void read_connection(struct connection *cn)
 	struct pool *p;
 	char state;
 
-	p = cn->input;
+	p = &cn->input;
 	state = p->state;
 	fd = cn->fd;
 	i = p->ceiling - p->end;
@@ -893,22 +893,16 @@ int init_pollfds(size_t n)
 	return pollfds == 0 ? -1 : 0;
 }
 
-static struct pool *new_pool(size_t s)
+static int new_pool(struct pool *p, size_t s)
 {
 	char *t;
-	struct pool *p;
 
-	p = malloc(sizeof *p);
-	if (p == 0)
-		return 0;
 	t = malloc(s);
-	if (t == 0) {
-		free(p);
-		return 0;
-	}
+	if (t == 0)
+		return -1;
 	p->floor = t;
 	p->ceiling = t + s;
-	return p;
+	return 0;
 }
 
 int init_connections(size_t n)
@@ -925,9 +919,9 @@ int init_connections(size_t n)
 			return -1;
 		if ((cn->r->headers = malloc(tuning.num_headers * sizeof *cn->r->headers)) == 0)
 			return -1;
-		if ((cn->input = new_pool(tuning.input_buf_size)) == 0)
+		if (new_pool(&cn->input, tuning.input_buf_size) == -1)
 			return -1;
-		if ((cn->output = new_pool(tuning.buf_size)) == 0)
+		if (new_pool(&cn->output, tuning.buf_size) == -1)
 			return -1;
 		cn->r->cn = cn;
 		cn->connection_state = HC_UNATTACHED;
