@@ -359,7 +359,7 @@ static int readfromclient(struct pipe_params *p)
 	}
 	r = recv(p->cfd, p->ibuf + p->ibp, bytestoread, 0);
 	if (debug)
-		log_d("readfromclient: fd=%d, ibp=%d, bytestoread=%d, r=%d", p->cfd, p->ibp, bytestoread, r);
+		log_d("readfromclient: %d %d %d %d", p->cfd, p->ibp, bytestoread, r);
 	switch (r) {
 	case -1:
 		switch (errno) {
@@ -401,7 +401,7 @@ static int readfromchild(struct pipe_params *p)
 	}
 	r = recv(p->pfd, p->pbuf + p->ipp, bytestoread, 0);
 	if (debug)
-		log_d("readfromchild: fd=%d, ipp=%d, bytestoread=%d, r=%d", p->pfd, p->ipp, bytestoread, r);
+		log_d("readfromchild: %d %d %d %d", p->pfd, p->ipp, bytestoread, r);
 	switch (r) {
 	case -1:
 		if (errno == EAGAIN)
@@ -448,7 +448,7 @@ static int writetoclient(struct pipe_params *p)
 	}
 	r = send(p->cfd, p->obuf + p->obp, bytestowrite, 0);
 	if (debug)
-		log_d("writetoclient: fd=%d, obp=%d, bytestowrite=%d, r=%d", p->cfd, p->obp, bytestowrite, r);
+		log_d("writetoclient: %d %d %d %d", p->cfd, p->obp, bytestowrite, r);
 	switch (r) {
 	case -1:
 		switch (errno) {
@@ -485,7 +485,7 @@ static int writetochild(struct pipe_params *p)
 	}
 	r = send(p->pfd, p->ibuf + p->opp, bytestowrite, 0);
 	if (debug)
-		log_d("writetochild: fd=%d, opp=%d, bytestowrite=%d, r=%d", p->pfd, p->opp, bytestowrite, r);
+		log_d("writetochild: %d %d %d %d", p->pfd, p->opp, bytestowrite, r);
 	switch (r) {
 	case -1:
 		if (errno == EAGAIN)

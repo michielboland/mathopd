@@ -115,7 +115,7 @@ static void close_connection(struct connection *cn)
 	}
 	--nconnections;
 	if (debug)
-		log_d("close_connection: fd=%d", cn->fd);
+		log_d("close_connection: %d", cn->fd);
 	close(cn->fd);
 	if (cn->rfd != -1) {
 		close(cn->rfd);
@@ -192,7 +192,7 @@ static int accept_connection(struct server *s)
 			return 0;
 		}
 		if (debug)
-			log_d("accept_connection: fd=%d", fd);
+			log_d("accept_connection: %d", fd);
 		s->naccepts++;
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		fcntl(fd, F_SETFL, O_NONBLOCK);
