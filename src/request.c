@@ -1133,7 +1133,7 @@ static int process_headers(struct request *r)
 static int prepare_reply(struct request *r)
 {
 	struct pool *p;
-	char *b, buf[PATHLEN];
+	char *b, buf[200];
 	int send_message;
 
 	send_message = r->method != M_HEAD;
@@ -1229,7 +1229,7 @@ static int prepare_reply(struct request *r)
 			break;
 		}
 		if (r->c && r->c->admin)
-			b += sprintf(b, "<p>Please contact the site administrator at <i>%s</i>.\n", r->c->admin);
+			b += sprintf(b, "<p>Please contact the site administrator at <i>%.100s</i>.\n", r->c->admin);
 		r->content_length = strlen(buf);
 		r->num_content = 0;
 		r->content_type = "text/html";
