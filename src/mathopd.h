@@ -64,8 +64,9 @@ enum {
 };
 
 enum {
-	M_TYPE,
-	M_SPECIAL
+	CLASS_FILE = 1,
+	CLASS_SPECIAL,
+	CLASS_EXTERNAL
 };
 
 enum {
@@ -113,7 +114,7 @@ struct access {
 };
 
 struct mime {
-	int type;
+	int class;
 	char *ext;
 	char *name;
 	struct mime *next;
@@ -186,7 +187,7 @@ struct request {
 	char path_args[PATHLEN];
 	const char *content_type;
 	int num_content;
-	int special;
+	int class;
 	long content_length;
 	time_t last_modified;
 	time_t ims;
