@@ -77,6 +77,7 @@ static const char c_error[] =		"ErrorLog";
 static const char c_error_401_file[] =	"Error401File";
 static const char c_error_403_file[] =	"Error403File";
 static const char c_error_404_file[] =	"Error404File";
+static const char c_exact_match[] =	"ExactMatch";
 static const char c_export[] =		"Export";
 static const char c_external[] =	"External";
 static const char c_host[] =		"Host";
@@ -417,6 +418,7 @@ static const char *config_control(struct control **as)
 	a->locations = 0;
 	a->alias = 0;
 	a->clients = 0;
+	a->exact_match = 0;
 	if (b) {
 		a->index_names = b->index_names;
 		a->accesses = b->accesses;
@@ -503,6 +505,8 @@ static const char *config_control(struct control **as)
 			t = config_flag(&a->do_crypt);
 		else if (!strcasecmp(tokbuf, c_child_log))
 			t = config_string(&a->child_filename);
+		else if (!strcasecmp(tokbuf, c_exact_match))
+			t = config_flag(&a->exact_match);
 		else
 			t = e_keyword;
 		if (t)
