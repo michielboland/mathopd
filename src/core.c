@@ -419,16 +419,20 @@ static void read_connection(struct connection *cn)
 	cn->nread += nr;
 	p->end += i;
 	p->state = state;
-	if (state == 8) {
-		if (process_request(cn->r) == -1 || fill_connection(cn) == -1)
-			cn->action = HC_CLOSING;
-		else {
-			cn->left = cn->r->content_length;
-			cn->action = HC_WRITING;
-			write_connection(cn);
-		}
-	}
 	cn->t = current_time;
+	if (state == 8) {
+		if (process_request(cn->r) == -1) {
+			cn->action = HC_CLOSING;
+			return;
+		}
+		cn->left = cn->r->content_length;
+		if (fill_connection(cn) == -1) {
+			cn->action = HC_CLOSING;
+			return;
+		}
+		cn->action = HC_WRITING;
+		write_connection(cn);
+	}
 }
 
 static void cleanup_connections(void)
