@@ -441,12 +441,10 @@ static int exec_cgi(struct request *r)
 		log_d("executing %s %s", cp->cgi_argv[0], cp->cgi_argv[1]);
 	else
 		log_d("executing %s", cp->cgi_argv[0]);
-	if (execve(cp->cgi_argv[0], (char **) cp->cgi_argv, cp->cgi_envp) == -1) {
-		lerror("execve");
-		destroy_parameters(cp);
-		return cgi_error(r, 404);
-	}
-	return 0;
+	execve(cp->cgi_argv[0], (char **) cp->cgi_argv, cp->cgi_envp);
+	lerror("execve");
+	destroy_parameters(cp);
+	return cgi_error(r, 404);
 }
 
 int process_cgi(struct request *r)
