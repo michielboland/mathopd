@@ -35,7 +35,7 @@
 
 /* Mysterons */
 
-static const char rcsid[] = "$Id: request.c,v 1.293 2003/12/23 00:38:39 boland Exp $";
+static const char rcsid[] = "$Id: request.c,v 1.294 2004/02/13 14:43:28 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -761,6 +761,8 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update, int 
 						sprintf(y + l, "%.*s", maxlen - (l + 1), s);
 					break;
 				} else {
+					if (*s == '/')
+						++s;
 					t = strchr(s, '/');
 					if (t)
 						*t = 0;
