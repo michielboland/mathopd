@@ -888,7 +888,7 @@ static int process_headers(struct request *r)
 		s = r->ims_s;
 		if (s) {
 			i = timerfc(s);
-			if (i == (time_t) -1) {
+			if (i == -1) {
 				log_d("illegal date \"%s\" in If-Modified-Since", s);
 				return 400;
 			}
