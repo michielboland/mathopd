@@ -12,6 +12,12 @@ cgi.c:
 	the most sense, especially for virtual servers that are
 	created with "AnyHost".
 
+	Do not allow scripts to run under the same user-id as
+	ourselves. (Previously, we would not run a script if
+	neither ScriptUser nor RunScriptAsOwner were set. But
+	that does not catch cases where ScriptUser == User or
+	other anomalies.)
+
 config.c:
 
 	The `NumHeaders' keyword has been added to the Tuning
@@ -28,11 +34,24 @@ config.c:
 	The "Virtual" keyword may now be used in a global context
 	as well.
 
+	The "ScriptTimeout" keyword has been added.
+
 core.c:
 
 	If connections are active, call poll() with a timeout
 	of one minute, rather than infinity. This should take
 	care of connections that remain stuck after shutdown.
+
+	Besides connections we now have `children'. (The struct
+	pipe_params thingies.) We loop over these in httpd_main.
+	The code that deals with reading from and writing to
+	children is still in stub.c
+
+dump.c:
+
+	Adjust the formatting slightly.
+
+	Take the new connections states into account.
 
 log.c:
 
@@ -45,11 +64,9 @@ main.c:
 	Allow ChildLogs that can be %-expanded, just like the other
 	log files (via open_log).
 
-	Use cgi_stub for the child process (see stub.c).
-
-mathopd.h:
-
-	A lot of structures have changed.
+	The fork_request now creates a socket pair to communicate with
+	the child process, and calls init_child(), which converts the
+	underlying connection into something that the stub can handle.
 
 request.c:
 
