@@ -491,7 +491,6 @@ static int process_fd(struct request *r)
 		int fd;
 
 		if ((fd = open(r->path_translated, O_RDONLY)) == -1) {
-			r->last_modified = 0;
 			switch (errno) {
 			case EACCES:
 				r->error = fb_access;
@@ -901,6 +900,9 @@ int prepare_reply(struct request *r)
 	int send_message = r->method != M_HEAD;
 
 	log(L_DEBUG, "prepare_replay, status=%d", r->status);
+
+	if (r->status >= 400)
+		r->last_modified = 0;
 
 	switch (r->status) {
 	case 200:
