@@ -283,7 +283,6 @@ struct connection {
 	time_t t;
 	struct pool *input;
 	struct pool *output;
-	int assbackwards;
 	int keepalive;
 	int action;
 	struct connection *next;
