@@ -197,8 +197,11 @@ int main(int argc, char *argv[])
 	null_fd = open(devnull, O_RDWR);
 	if (null_fd == -1)
 		die("open", "Cannot open %s", devnull);
-	while (null_fd < 3)
+	while (null_fd < 3) {
 		null_fd = dup(null_fd);
+		if (null_fd == -1)
+			die("dup", 0);
+	}
 	message = config(config_filename);
 	if (message)
 		die(0, "%s", message);
