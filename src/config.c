@@ -58,7 +58,6 @@ char *error_filename;
 char *rootdir;
 char *coredir;
 struct server *servers;
-struct virtual *virtuals;
 struct vserver *vservers;
 uid_t server_uid;
 gid_t server_gid;
@@ -75,6 +74,7 @@ struct configuration {
 
 static int num_servers;
 static struct control *controls;
+static struct virtual *virtuals;
 
 static const char c_all[] =			"*";
 static const char c_accept_multi[] =		"AcceptMulti";
