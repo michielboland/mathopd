@@ -62,6 +62,7 @@ volatile sig_atomic_t gotsigusr1;
 volatile sig_atomic_t gotsigusr2;
 volatile sig_atomic_t gotsigchld;
 volatile sig_atomic_t gotsigquit;
+volatile sig_atomic_t gotsigwinch;
 int numchildren;
 int debug;
 unsigned long fcm; /* should be mode_t */
@@ -143,6 +144,9 @@ static void sighandler(int sig)
 		break;
 	case SIGQUIT:
 		gotsigquit = 1;
+		break;
+	case SIGWINCH:
+		gotsigwinch = 1;
 		break;
 	}
 }
@@ -277,6 +281,7 @@ int main(int argc, char *argv[])
 	mysignal(SIGUSR1, sighandler);
 	mysignal(SIGUSR2, sighandler);
 	mysignal(SIGPIPE, SIG_IGN);
+	mysignal(SIGWINCH, sighandler);
 	my_pid = getpid();
 	if (pid_fd != -1) {
 		ftruncate(pid_fd, 0);
@@ -322,6 +327,7 @@ pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd,
 		mysignal(SIGUSR1, SIG_DFL);
 		mysignal(SIGUSR2, SIG_DFL);
 		mysignal(SIGPIPE, SIG_DFL);
+		mysignal(SIGWINCH, SIG_DFL);
 		sigprocmask(SIG_SETMASK, &oset, 0);
 		dup2(fd, 0);
 		dup2(fd, 1);
