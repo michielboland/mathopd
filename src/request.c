@@ -329,7 +329,6 @@ static char *dirmatch(char *s, char *t)
 {
 	int n = strlen(t);
 
-	log(L_DEBUG, "dirmatch(\"%s\", \"%s\")", s, t);
 	return (strneq(s, t, n) && (s[n] == '/' || s[n] == '\0')) ? s + n : 0;
 }
 
@@ -343,7 +342,6 @@ static int findcontrol(struct request *r)
 	b = 0;
 	m = 0;
 
-	log(L_DEBUG, "findcontrol starting at %p ...", a);
 	while (a) {
 		if (a->locations == 0) {
 			if (b == 0)
@@ -357,7 +355,6 @@ static int findcontrol(struct request *r)
 		}
 		a = a->next;
 	}
-	log(L_DEBUG, "... and got %p", b);
 	r->c = b;
 
 	return b ? 0 : -1;
@@ -425,7 +422,7 @@ static int get_path_info(struct request *r)
 
 	while (cp > p) {
 		*cp = '\0';
-		log(L_DEBUG, "stat(\"%s\")", p);
+		log(L_DEBUG, "  stat(\"%s\")", p);
 		rv = stat(p, s);
 		if (cp != end)
 			*cp = '/';
@@ -483,7 +480,7 @@ static int check_symlinks(struct request *r)
 		}
 		else if (flag) {
 			flag = 0;
-			log(L_DEBUG, "lstat(\"%s\")", b);
+			log(L_DEBUG, "  lstat(\"%s\")", b);
 			if (lstat(b, &buf) == -1) {
 				lerror("lstat");
 				return -1;
@@ -519,7 +516,7 @@ static int append_indexes(struct request *r)
 	r->isindex = 1;
 	while (i) {
 		strcpy(q, i->name);
-		log(L_DEBUG, "stat(\"%s\")", p);
+		log(L_DEBUG, "  stat(\"%s\")", p);
 		if (stat(p, &r->finfo) != -1)
 			break;
 		i = i->next;
@@ -606,7 +603,6 @@ static int hostmatch(const char *s, const char *t)
 {
 	register char c, d;
 
-	log(L_DEBUG, "hostmatch(\"%s\", \"%s\")", s, t);
 	while (c = *s++, d = *t++, c && c != ':' && d) {
 		if (toupper(c) != toupper(d))
 			return 0;
@@ -630,7 +626,6 @@ static int find_vs(struct request *r)
 	struct virtual *v = r->cn->s->children;
 	struct virtual *gv = 0;
 
-	log(L_DEBUG, "find_vs starting at %p ...", v);
 	while (v) {
 		if (v->host == 0)
 			gv = v;
@@ -638,7 +633,6 @@ static int find_vs(struct request *r)
 			break;
 		v = v->next;
 	}
-	log(L_DEBUG, "... and got %p (gv=%p)", v, gv);
 	if (v == 0 && gv)
 		v = gv;
 	if (v) {
@@ -651,43 +645,54 @@ static int find_vs(struct request *r)
 
 static int process_path(struct request *r)
 {
+	log(L_DEBUG, "process_path starting: find_vs,");
 	if (find_vs(r)) {
 		r->error = se_no_virtual;
 		return 500;
 	}
+	log(L_DEBUG, " faketoreal,");
 	if (faketoreal(r->path, r->path_translated, r, 1) == 0) {
 		r->error = se_alias;
 		return 500;
 	}
-/*
- * next two blocks were swapped since otherwise redirects
- * would never make it to the logs - MB 2 Apr 1997
- */
+	log(L_DEBUG, " findcontrol,");
 	if (findcontrol(r) == -1) {
 		r->error = se_no_control;
 		return 500;
 	}
+	log(L_DEBUG, " redirect check,");
 	if (r->path_translated[0] != '/') {
 		escape_url(r->path_translated);
 		r->location = r->path_translated;
 		return 302;
 	}
+	log(L_DEBUG, " evaluate_access,");
 	if (evaluate_access(r) == DENY) {
 		r->error = fb_active;
 		return 403;
 	}
+	log(L_DEBUG, " check_path,");
 	if (check_path(r) == -1) {
 		r->error = br_bad_path_name;
 		return 400;
 	}
+	log(L_DEBUG, " get_path_info,");
 	if (get_path_info(r) == -1) {
 		r->error = se_get_path_info;
 		return 500;
 	}
+	log(L_DEBUG, " findcontrol,");
 	if (r->path_args[0] && r->path_args[1] && findcontrol(r) == -1) {
 		r->error = se_no_control;
 		return 500;
 	}
+	log(L_DEBUG, " sanity check,");
+	if (r->c->locations == 0) {
+		log(L_ERROR, "raah... no locations found");
+		r->error = nf_not_found;
+		return 404;
+	}
+	log(L_DEBUG, " ISDIR check,");
 	if (S_ISDIR(r->finfo.st_mode)) {
 		int rv;
 
@@ -696,18 +701,22 @@ static int process_path(struct request *r)
 		if ((rv = append_indexes(r)) != 0)
 			return rv;
 	}
+	log(L_DEBUG, " ISREG check,");
 	if (S_ISREG(r->finfo.st_mode) == 0) {
 		r->error = fb_not_plain;
 		return 403;
 	}
+	log(L_DEBUG, " check_symlinks,");
 	if (check_symlinks(r) == -1) {
 		r->error = fb_symlink;
 		return 403;
 	}
+	log(L_DEBUG, " get_mime,");
 	if (get_mime(r) == -1) {
 		r->error = se_no_mime;
 		return 500;
 	}
+	log(L_DEBUG, " done.");
 	return r->special ? process_special(r) : process_fd(r);
 }
 
@@ -787,7 +796,6 @@ static int get_version(char *p, struct request *r)
 	*s++ = '\0';
 	x = atoi(p);
 	y = atoi(s);
-	log(L_DEBUG, "major=%d, minor=%d", x, y);
 	if (x != 1 || y > 1) {
 		log(L_ERROR, "unsupported HTTP version (%d.%d) from %s",
 		    x, y, r->cn->ip);
@@ -1111,7 +1119,6 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 		return 0;
 	}
 	c = r->vs->controls;
-	log(L_DEBUG, "faketoreal starting at %p ...", c);
 	while (c) {
 		if (c->locations
 		    && c->alias
@@ -1122,7 +1129,6 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 		}
 		c = c->next;
 	}
-	log(L_DEBUG, "... and got %p", cc);
 	if (cc) {
 		if (update)
 			cc->locations = cc->locations->next;
