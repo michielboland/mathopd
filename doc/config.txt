@@ -21,9 +21,11 @@ Desc:    The Access block can be used to allow or deny access to
          access blocks from the bottom up until a match is found.
          Example:
 
-            Access {
-              Deny 0/0
-              Allow 127.0.0.1/32
+            Control {
+              Access {
+                Deny 0/0
+                Allow 127.0.0.1/32
+              }
             }
 
          This will allow access to 127.0.0.1, while denying access to
@@ -94,7 +96,8 @@ Where:   Virtual
 Desc:    If a virtual server has this keyword, it will match on any Host:
          header that is sent by the client. Other virtual servers that have
          an explicit Host name are still checked, so the 'AnyHost' virtual
-         server will only be used as a last resort.
+         server will only be used as a last resort. See also the discussion
+         of wildcard expansion under the `Location' keyword.
 
 Keyword: Apply
 Where:   Clients
@@ -157,6 +160,7 @@ Desc:    This directive is similar to 'Access', except that it causes
              Clients {
                Apply 192.168.57.0/24
              }
+           }
 
          In this example, visitors from within the 192.168.57.0/24 network
          will get their content served from /usr/share/doc/internal/handbook,
@@ -223,6 +227,10 @@ Desc:    By default, when processing CGI scripts and external programs,
              DNSLookups Off
            }
 
+         Note the Mathopd does not do any DNS lookups when processing
+         requests themselves. You need to manually resolve IP addresses
+         from the log files if you are interested in names of clients.
+
 Keyword: Deny
 Where:   Access
 Type:    Network
@@ -231,22 +239,40 @@ Keyword: EncryptedUserFile
 Where:   Control
 Type:    Flag
 Default: Off
+Desc:    Normally, the UserFile (see the descriptions of the Realm and
+         Userfile keywords) contains passwords in clear-text format. If
+         you want to use encrypted passwords (for example, using the
+         `htpasswd' program) you must set the value of EncryptedUserFile
+         to `On' in the control block that contains the UserFile in
+         question.
 
 Keyword: Error401File
 Where:   Control
 Type:    String
+Desc:    The contents of this file will be displayed whenever a `401' (not
+         authorized) error occurs.
 
 Keyword: Error403File
 Where:   Control
 Type:    String
+         The contents of this file will be displayed whenever a `403'
+         (forbidden) error occurs.
 
 Keyword: Error404File
 Where:   Control
 Type:    String
+         The contents of this file will be displayed whenever a `404' (not
+         found) error occurs.
 
 Keyword: ErrorLog
 Where:   Global
 Type:    String
+Desc:    The server process will print diagnostics messages into this file.
+         Mathopd will open the error log in write-only mode. If it does not
+         have permission to do that, the program will exit.
+         Note that if the value of ErrorLog contains a percent sign (%),
+         the name of the error logfile will be expanded using a strftime-like
+         contruction (see also: Log.)
 
 Keyword: ExactMatch
 Where:   Control
@@ -260,22 +286,26 @@ Desc:    The ExactMatch causes an Alias to be used only if it matches the
              IndexNames { index.html }
              Types {
                text/html { html htm }
-           [...]
-          
-           Virtual {
-             Host www.another.example
-             Control {
-               Alias /
-               Location /var/www/www.another.example
-               Specials {
-                 Dummy { html htm }
+             }
+           }
+           Server {
+             Virtual {
+               Host www.another.example
+               Control {
+                 Alias /
+                 Location /var/www/www.another.example
+                 Specials {
+                   Dummy { html htm }
+                 }
+               }
+               Control {
+                 Alias /
+                 Location /var/www/www.another.example
+                 ExactMatch On
                }
              }
-             Control {
-               Alias /
-               Location /var/www/www.another.example
-               ExactMatch On
-             }
+             # other virtual servers ...
+           }
          
          Now if someone requests http://www.another.example/, the alias
          will match exactly, so the control block at the bottom will be
@@ -291,23 +321,72 @@ Desc:    The ExactMatch causes an Alias to be used only if it matches the
 Keyword: Export
 Where:   Control
 Type:    Block
+Desc:    Some operating systems require that some environment variables
+         have certain values in order for child processes to work correctly.
+         To export these variables to child processes, use the `Export'
+         keyword. If you want to export certain variables with preset values,
+         use `PutEnv' instead.
+         Example:
+
+           Control {
+             Export { TZ LD_LIBRARY_PATH }
+           }
 
 Keyword: External
 Where:   Control
 Type:    Block
+Desc:    The `External' keywords defines a set of filename extensions that
+         get special treatment. (See also: Types, Specials.) If mathopd
+         processes a filename whose extension is match in an `External'
+         block, it will run an external program with the name of the file
+         as its first argument. Before execution, mathopd will change its
+         current directory to the directory that contains the file that is
+         being served.
+         Example:
+
+           Control {
+             External {
+               /usr/bin/perl { .pl }
+             }
+           }
+
+         This will treat all files that end with `.pl' as CGI scripts,
+         interpreted by /usr/bin/perl.
 
 Keyword: Host
 Where:   Virtual
 Type:    String
+Desc:    A virtual server has zero or more names. To name a virtual server,
+         use the `Host' keyword. More than one `Host' keyword is allowed
+         for each virtual server.
 
 Keyword: IndexNames
 Where:   Control
 Type:    Block
+Desc:    Any request that ends with a slash (`/') is treated as an `index'.
+         The terminology is a bit confusing, since no indexes are actually
+         being made. What happens is that mathopd will map the request-URI
+         to a directory. This directory is then scanned for a set of files
+         called indexes. (For instance `index.html'). As soon as a file is
+         found, that file will be sent to the client.
+         Example:
+
+           Control {
+             IndexNames { index.html Default.htm }
+           }
+
+         Note that the value of `IndexNames' is carried over into all
+         subsequent control blocks. That is, if you define IndexNames once
+         it is not possible to reset its value later on.
 
 Keyword: InputBufSize
 Where:   Tuning
 Type:    Integer
 Default: 2048
+Desc:    The input buffer contains the complete set of headers sent by the
+         client. As such, it needs to be large enough to contain all those
+         headers. Usually the default value of 2048 is sufficient and does
+         not need to be changed.
 
 Keyword: Location
 Where:   Control
@@ -352,6 +431,25 @@ Desc:    The Location keyword is used in combination with the Alias keyword.
          The first client that request something under /download will be
          redirected to mirrior1.an.example, the second client to mirror2,
          the third to mirror3, the fourth to mirror1, and so on.
+
+         Wildcard expansion: the wildcard character `*' in Location values
+         is expanded to the current value of the `host' header sent by the
+         client (after conversion to lower case.) This makes it possible to
+         define a very large number of virtual servers in one go.
+         Example:
+
+           Server {
+             Virtual {
+               AnyHost
+               Control {
+                 Alias /
+                 Location /home/www/*
+               }
+             }
+           }
+
+         With this setting, a request for, say, http://an.example/foo.html
+         will result in the file /home/www/an.example/foo.html.
 
 Keyword: Log
 Where:   Global
@@ -491,6 +589,20 @@ Desc:    If you want Mathopd to run a server on a different port, rather
 Keyword: PutEnv
 Where:   Control
 Type:    Block
+Desc:    This is like Export, except that environment variables defined
+         here must accompanied by a value.
+         Example: (rather silly)
+
+           Control {
+             PutEnv {
+               MATHOPD_INVOKED=1
+             }
+           }
+
+         There must be no space between the name of an environment
+         variable, the equals sign, and its value. If the value contains
+         space characters the entire name=value bit must be enclosed in
+         double quotes.
 
 Keyword: QueryString
 Where:   LogFormat
@@ -500,6 +612,12 @@ Desc:    The query string (the part that follows the '?' in the request-URI)
 Keyword: Realm
 Where:   Control
 Type:    String
+Desc:    If this keyword is present in a control block, resources in that
+         block are protected using username-password combinations. The
+         Realm keyword must be accompanied by a UserFile keyword. The
+         value of the Realm keyword is transmitted to the client in `401'
+         error responses. Its value may be displayed by a web browser in
+         a login dialog.
 
 Keyword: Referer
 Where:   LogFormat
@@ -522,19 +640,43 @@ Desc:    The username sent by the client for a request that needs
 Keyword: RootDirectory
 Where:   Global
 Type:    String
+Desc:    If this keyword is present, mathopd will perform a chroot() to the
+         specified directory before startup. The chroot() is done right
+         after the configuration file is read. Obviously the server must
+         be started as root for this to work. Some additional files may be
+         required in the new root, like a (stripped down) /etc/passwd and
+         so on.
 
 Keyword: RunScriptsAsOwner
 Where:   Control
 Type:    Flag
 Default: Off
+Desc:    Normally, if the server is started as root and the StayRoot flag
+         is set, child processes are run as a certain user (see the StayRoot
+         and ScriptUser keywords.)
+         It is possible to run CGI scripts as the user that owns them by
+         setting the RunScriptsAsOwner flag.
+         This is not recommended, since it is possible to trick mathopd
+         using symbolic links.
 
 Keyword: ScriptUser
 Where:   Control
 Type:    String
+Desc:    If a CGI or external program is executed, Mathopd will change
+         its identity to make sure that such programs cannot do silly
+         things like kill the web server process and so on. The recommended
+         way to set the user for child processes is with the ScriptUser
+         keyword. Its argument is a user name that will be looked up in
+         the system password file right before execution of each program.
+         See also: StayRoot.
 
 Keyword: Server
 Where:   Global
 Type:    Block
+Desc:    The Server keyword sets up a physical server, that is, a TCP
+         socket. Some TCP parameters may be tuned (see Address and Port.)
+         Inside a server block one can then declare `virtual' servers,
+         which is where all action occurs.
 
 Keyword: ServerName
 Where:   LogFormat
@@ -543,6 +685,28 @@ Desc:    The value of the 'Host:' header sent by the client (more or less.)
 Keyword: Specials
 Where:   Control
 Type:    Block
+Desc:    Some file extensions can be treated specially if they are
+         put into a `Specials' block. There are four specialties:
+
+           CGI
+           Imagemap
+           Redirect
+           Dump
+
+         For a description of CGI and Imagemaps, see the corresponding
+         documentation.
+         A redirect file simply redirects the client to a URL that is
+         contained in the file. A Dump displays some mildly interesting
+         server statistics but is otherwise not very useful.
+
+         Example:
+
+           Control {
+             Specials {
+               CGI { cgi }
+               Imagemap { map }
+             }
+           }
 
 Keyword: Status
 Where:   LogFormat
@@ -553,24 +717,76 @@ Keyword: StayRoot
 Where:   Global
 Type:    Flag
 Default: Off
+Desc:    Mathopd, if it is started by root, will change its identity to
+         that of a nonprivileged user (see the User keyword.) It is
+         sometimes desirable to retain some root privileges, for example
+         when external processes are started. One does not really want
+         those child processes to be able to interfere with the server
+         process itself, therefore these processes must be run under a
+         different identity. In order to accomplish this, set the
+         StayRoot flag.
 
 Keyword: Timeout
 Where:   Tuning
 Type:    Integer
 Default: 60
-
+Desc:    Connections that are idle for too long are aborted by Mathopd.
+         Idle in this case meaning `receiving or transmitting no data.'
+         It is possible to increase or decrease the timeout by adding
+         a Timeout keyword. The unit of the timeout value is seconds.
+         
 Keyword: Tuning
 Where:   Global
 Type:    Block
+Desc:    Some items that control general tuning of the server can be
+         specified here.
 
 Keyword: Types
 Where:   Control
 Type:    Block
+Desc:    All served content must be accompanied by a `Content-Type' header
+         that indicates the kind of content. Historically, HTTP servers
+         have used the extension of a filename to determine its content.
+         For example a file whose name ends with `html' is likely to
+         contain HTML, a file with a name ending with `png' is probably
+         a PNG image, and so on. Mathopd follows this behaviour. File
+         extensions are mapped to media types (values of `Content-Type'
+         that web browsers understand) using the `Types' keyword.
+         Example:
+
+           Control {
+             Types {
+               text/html { html htm }
+               text/plain { txt }
+               image/jpeg { jpg }
+               application/octet-stream { * }
+             }
+           }
+
+         As you can see, the media type is followed by a group of
+         extensions that will be mapped to that type. The special
+         extension `*' is used to indicate a default: if a filename has
+         an extension that does not occur in any of the Types (or Specials
+         or External), then the type for `*' (if it is defined) is used.
+
+         Note that for Mathopd, `extension' really means just `last part'.
+         For example, a file that is called `flubrdhtml' is deemed to
+         be a HTML file even though it does not really have an extension.
+         This is a bit of a misfeature, but it does no real harm in
+         practice.
 
 Keyword: Umask
 Where:   Global
 Type:    Integer
 Default: 022
+Desc:    Mathopd will create log files with certain permissions. These
+         permissions are determined by what is called in Unix lingo the
+         `umask'. A umask of 022 (the default) will create files that are
+         readable by everyone but writeable only by the user that runs the
+         server process. More restricted umasks are 026 or even 066.
+         (The 0 at the beginning is not optional!)
+
+         Note: the umask is inherited by child processes.
 
 Keyword: Uri
 Where:   LogFormat
@@ -579,6 +795,23 @@ Desc:    The URI requested by the client (minus query string, if present.)
 Keyword: User
 Where:   Global
 Type:    String
+Desc:    If Mathopd is started by root it must change its identity. This
+         is done for security reasons: you do not want the web server to
+         be able to read all files. The new identity is defined by the
+         value of the User keyword. The user name is looked up in the
+         password file (this is done after a possible chroot!) and
+         Mathopd then changes its effective user id (and real user id
+         as well, depending on whether StayRoot is off or on). In addition,
+         Mathopd will perform an initgroups() call to set its list of
+         supplementary group ids. (This usually requires /etc/group to be
+         present, so people that use chroot please take note.)
+
+         Note: Mathopd will create log files, etc. with an owner that is
+         equal to the value of the User keyword. The *group* owner of
+         the log file may differ between operating systems. For example,
+         on BSD, the group owner of a file is set to the group owner of
+         the directory in which it is created. Other systems may have
+         other semantics.
 
 Keyword: UserAgent
 Where:   LogFormat
@@ -588,10 +821,51 @@ Desc:    The value of the 'User-Agent:' header sent by the client. This may,
 Keyword: UserDirectory
 Where:   Control
 Type:    Flag
+Desc:    To allow each user to put up his or her personal pages, use the
+         UserDirectory kyeword.
+         Example:
+
+           Control {
+             Alias /users
+             Location public_html
+             UserDirectory On
+           }
+
+         In this example, a request for /users/boland/index.html will
+         result in a password lookup for user `boland'. Assume the home
+         directory for this user is /home/boland. Then the file served will
+         be /home/boland/public_html/index.html.
+
+         Note: the `~' character, when used as the last character in
+         an alias is treated specially. For example:
+
+           Control {
+             Alias /~
+             Location public_html
+             UserDirectory On
+           }
+
+         With this setting, /~boland/index.html will be mapped to
+         /home/boland/public_html/index.html, like before. This is to
+         allow some sort of compatibilty to the often used custom to use
+         `~username' for user pages.
 
 Keyword: UserFile
 Where:   Control
 Type:    String
+Desc:    Control blocks that are `protected' by a Realm keyword need
+         a UserFile keyword as well. The user file contains all username /
+         password combinations that are valid for that specific realm.
+         The user file should contain lines that look like
+
+           username:password
+
+         (with username and password replaced by a real username and
+         password of course.) A user can be entered more than once with
+         different passwords. The user file has no relation whatsoever
+         to the system password file. Passwords can be encrypted, but
+         Mathopd needs to be told that they are encrypted, using the
+         EncryptedUserFile keyword.
 
 Keyword: Version
 Where:   LogFormat
