@@ -1,7 +1,7 @@
 /*
  * extras.c - Mathopd server extensions
  *
- * Copyright 1996, Michiel Boland
+ * Copyright 1996, 1997, Michiel Boland
  */
 
 /* Hanc marginis exiguitas non caperet */
