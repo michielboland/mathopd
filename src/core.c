@@ -772,6 +772,7 @@ static void cleanup_connections(void)
 	timeout_connections(waiting_connections.head, tuning.timeout);
 	timeout_connections(reading_connections.head, tuning.timeout);
 	timeout_connections(writing_connections.head, tuning.timeout);
+	timeout_connections(forked_connections.head, tuning.script_timeout);
 }
 
 static void reap_children(void)
@@ -886,7 +887,6 @@ void httpd_main(void)
 				accepting = 0;
 			run_connections();
 		}
-		cleanup_children(forked_connections.head);
 		cleanup_connections();
 	}
 	log_d("*** shutting down");
