@@ -244,7 +244,6 @@ struct request {
 	time_t ims;
 	char *location;
 	const char *status_line;
-	const char *error;
 	char *method_s;
 	char *url;
 	char *args;
