@@ -89,6 +89,8 @@ static void init_connection(struct connection *cn)
 
 static void reinit_connection(struct connection *cn)
 {
+	if (debug)
+		log_d("reinit_connection(%p)", cn);
 	log_request(cn->r);
 	cn->logged = 1;
 	if (cn->rfd != -1) {
@@ -101,6 +103,8 @@ static void reinit_connection(struct connection *cn)
 
 static void close_connection(struct connection *cn)
 {
+	if (debug)
+		log_d("close_connection(%p)", cn);
 	if (cn->nread || cn->nwritten || cn->logged == 0)
 		log_request(cn->r);
 	--nconnections;
@@ -417,7 +421,8 @@ static void read_connection(struct connection *cn)
 	cn->t = current_time;
 	if (state == 8) {
 		if (process_request(cn->r) == -1 || cn->r->forked) {
-			cn->action = HC_CLOSING;
+			cn->state = HC_FORKED;
+			cn->action = HC_WAITING;
 			return;
 		}
 		cn->left = cn->r->content_length;
@@ -520,6 +525,11 @@ static void cleanup_connections(void)
 	cn = connections;
 	while (cn) {
 		if (cn->state == HC_ACTIVE) {
+			if (cn->action == HC_REINIT) {
+				if (debug)
+					log_d("reinitializing connection to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
+				reinit_connection(cn);
+			}
 			if (cn->action == HC_CLOSING)
 				close_connection(cn);
 			else if (current_time >= cn->t + (time_t) tuning.timeout) {
@@ -605,6 +615,7 @@ void httpd_main(void)
 		if (accepting)
 			n = setup_server_pollfds(n);
 		n = setup_connection_pollfds(n);
+		n = setup_child_pollfds(n);
 		if (n == 0 && accepting) {
 			log_d("no more sockets to poll from");
 			break;
@@ -634,7 +645,9 @@ void httpd_main(void)
 			if (accepting && run_servers() == -1)
 				accepting = 0;
 			run_connections();
+			run_children();
 		}
+		cleanup_children();
 		cleanup_connections();
 	}
 	log_d("*** shutting down");

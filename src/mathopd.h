@@ -80,14 +80,16 @@ enum {
 
 enum {
 	HC_FREE,
-	HC_ACTIVE
+	HC_ACTIVE,
+	HC_FORKED
 };
 
 enum {
 	HC_READING,
 	HC_WRITING,
 	HC_WAITING,
-	HC_CLOSING
+	HC_CLOSING,
+	HC_REINIT
 };
 
 enum {
@@ -407,7 +409,11 @@ extern int open_log(const char *);
 
 /* stub */
 
+extern struct pipe_params *children;
+extern int setup_child_pollfds(int);
 extern int init_children(size_t);
-extern int cgi_stub(struct request *, int (*)(struct request *));
+extern void init_child(struct pipe_params *, struct request *, int);
+extern int run_children(void);
+extern void cleanup_children(void);
 
 #endif

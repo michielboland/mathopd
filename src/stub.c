@@ -62,7 +62,7 @@ struct cgi_header {
 	size_t len;
 };
 
-static struct pipe_params *children;
+struct pipe_params *children;
 
 int init_children(size_t n)
 {
@@ -329,27 +329,6 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 	return 0;
 }
 
-static int stub_reap(void)
-{
-	int errno_save, status, pid;
-
-	errno_save = errno;
-	while (1) {
-		pid = waitpid(-1, &status, WNOHANG | WUNTRACED);
-		if (pid <= 0)
-			break;
-		if (!WIFEXITED(status) && !WIFSIGNALED(status)) {
-			log_d("stub_reap: child process %d did not really die", pid);
-			errno = errno_save;
-			return -1;
-		}
-	}
-	if (pid < 0 && errno != ECHILD)
-		lerror("waitpid");
-	errno = errno_save;
-	return 0;
-}
-
 static void pipe_run(struct pipe_params *p)
 {
 	short revents;
@@ -373,23 +352,27 @@ static void pipe_run(struct pipe_params *p)
 			bytestoread = p->isize - p->ibp;
 			if (bytestoread > p->imax)
 				bytestoread = p->imax;
-			r = read(p->cfd, p->ibuf + p->ibp, bytestoread);
-			switch (r) {
-			case -1:
-				if (errno == EAGAIN)
+			if (bytestoread == 0)
+				log_d("pipe_run: no bytes to read!?!?");
+			else {
+				r = read(p->cfd, p->ibuf + p->ibp, bytestoread);
+				switch (r) {
+				case -1:
+					if (errno == EAGAIN)
+						break;
+					lerror("pipe_run: error reading from client");
+					p->error_condition = STUB_ERROR_CLIENT;
+					return;
+				case 0:
+					log_d("pipe_run: client went away while posting data");
+					p->error_condition = STUB_ERROR_CLIENT;
+					return;
+				default:
+					p->cn->nread += r;
+					p->ibp += r;
+					p->imax -= r;
 					break;
-				lerror("pipe_run: error reading from client");
-				p->error_condition = STUB_ERROR_CLIENT;
-				return;
-			case 0:
-				log_d("pipe_run: client went away while posting data");
-				p->error_condition = STUB_ERROR_CLIENT;
-				return;
-			default:
-				p->cn->nread += r;
-				p->ibp += r;
-				p->imax -= r;
-				break;
+				}
 			}
 		}
 		if (revents & POLLOUT) {
@@ -552,7 +535,7 @@ static void pipe_run(struct pipe_params *p)
 	}
 }
 
-static void init_child(struct pipe_params *p, struct request *r, int fd)
+void init_child(struct pipe_params *p, struct request *r, int fd)
 {
 	p->ibp = 0;
 	p->obp = 0;
@@ -580,7 +563,7 @@ static void init_child(struct pipe_params *p, struct request *r, int fd)
 	p->error_condition = 0;
 }
 
-static int setup_child_pollfds(int n)
+int setup_child_pollfds(int n)
 {
 	struct pipe_params *p;
 	short e;
@@ -618,15 +601,30 @@ static int setup_child_pollfds(int n)
 	return n;
 }
 
-static void close_child(struct pipe_params *p)
+static void close_child(struct pipe_params *p, int nextaction)
 {
 	log_d("close_child");
 	log_request(p->cn->r);
 	close(p->pfd);
+	p->cn->state = HC_ACTIVE;
+	p->cn->action = nextaction;
 	p->cn = 0;
 }
 
-static void cleanup_children(void)
+int run_children(void)
+{
+	struct pipe_params *p;
+
+	p = children;
+	while (p) {
+		if (p->cn)
+			pipe_run(p);
+		p = p->next;
+	}
+	return 0;
+}
+
+void cleanup_children(void)
 {
 	struct pipe_params *p;
 	int f;
@@ -636,7 +634,7 @@ static void cleanup_children(void)
 		if (p->cn) {
 			if (p->error_condition) {
 				log_d("cleanup_children: error condition %d detected", p->error_condition);
-				close_child(p);
+				close_child(p, HC_CLOSING);
 			} else {
 				f = 0;
 				if (p->istate == 1 && p->ibp < p->isize && p->imax) /* see above */
@@ -648,91 +646,9 @@ static void cleanup_children(void)
 				if (p->ibp > p->opp)
 					f = 1;
 				if (f == 0)
-					close_child(p);
+					close_child(p, HC_REINIT);
 			}
 		}
 		p = p->next;
 	}
-}
-
-static int pipe_loop(void)
-{
-	int t, n;
-	struct pipe_params *p;
-
-	while (1) {
-		t = setup_child_pollfds(0);
-		n = poll(pollfds, t, 60);
-		current_time = time(0);
-		if (gotsigchld) {
-			gotsigchld = 0;
-			if (stub_reap() == -1)
-				return 1;
-		}
-		if (n == -1) {
-			if (errno == EINTR)
-				continue;
-			lerror("poll");
-			break;
-		}
-		p = children;
-		while (p) {
-			if (p->cn)
-				pipe_run(p);
-			p = p->next;
-		}
-		cleanup_children();
-	}
-	return 0;
-}
-
-int cgi_stub(struct request *r, int (*f)(struct request *))
-{
-	int p[2], efd, rv;
-	pid_t pid;
-	struct pipe_params *pp;
-
-	pp = children;
-	while (pp) {
-		if (pp->cn == 0)
-			break;
-		pp = pp->next;
-	}
-	if (pp == 0) {
-		log_d("cgi_stub: out of children");
-		rv = -1;
-	} else if (socketpair(AF_UNIX, SOCK_STREAM, 0, p) == -1) {
-		lerror("socketpair");
-		rv = -1;
-	} else {
-		pid = fork();
-		switch (pid) {
-		case -1:
-			lerror("fork");
-			rv = -1;
-			break;
-		case 0:
-			my_pid = getpid();
-			efd = open_log(r->c->child_filename);
-			if (efd == -1)
-				_exit(EX_UNAVAILABLE);
-			close(p[0]);
-			dup2(p[1], 0);
-			dup2(p[1], 1);
-			dup2(efd, 2);
-			close(p[1]);
-			close(efd);
-			_exit(f(r));
-			break;
-		default:
-			if (debug)
-				log_d("cgi_stub: child process %d created", pid);
-			close(p[1]);
-			fcntl(p[0], F_SETFL, O_NONBLOCK);
-			init_child(pp, r, p[0]);
-			rv = pipe_loop();
-			break;
-		}
-	}
-	return rv;
 }

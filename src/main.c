@@ -43,6 +43,7 @@ static const char rcsid[] = "$Id$";
 #include <arpa/inet.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sysexits.h>
 #include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -291,6 +292,8 @@ int main(int argc, char *argv[])
 
 int fork_request(struct request *r, int (*f)(struct request *))
 {
+	struct pipe_params *pp;
+	int p[2], efd;
 	pid_t pid;
 
 	if (r->forked) {
@@ -305,11 +308,34 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		log_d("fork_request: no HTTP/0.9 allowed here");
 		return 500;
 	}
+	pp = children;
+	while (pp) {
+		if (pp->cn == 0)
+			break;
+		pp = pp->next;
+	}
+	if (pp == 0) {
+		log_d("fork_request: out of children");
+		return 503;
+	}
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, p) == -1) {
+		lerror("socketpair");
+		return 503;
+	}
 	pid = fork();
 	switch (pid) {
 	case 0:
 		my_pid = getpid();
-		_exit(cgi_stub(r, f));
+		efd = open_log(r->c->child_filename);
+		if (efd == -1)
+			_exit(EX_UNAVAILABLE);
+		close(p[0]);
+		dup2(p[1], 0);
+		dup2(p[1], 1);
+		dup2(efd, 2);
+		close(p[1]);
+		close(efd);
+		_exit(f(r));
 		break;
 	case -1:
 		lerror("fork");
@@ -317,7 +343,11 @@ int fork_request(struct request *r, int (*f)(struct request *))
 	default:
 		if (debug)
 			log_d("fork_request: child process %d created", pid);
+		close(p[1]);
+		fcntl(p[0], F_SETFL, O_NONBLOCK);
+		init_child(pp, r, p[0]);
 		r->forked = 1;
+		break;
 	}
 	return 0;
 }
