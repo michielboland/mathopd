@@ -325,8 +325,6 @@ extern int prepare_reply(struct request *);
 extern int process_request(struct request *);
 extern struct control *faketoreal(char *, char *, struct request *, int);
 extern void construct_url(char *, char *, struct request *);
-extern void escape_url(char *);
-extern int unescape_url(char *, char *);
 
 /* imap */
 
@@ -348,5 +346,11 @@ extern int webuserok(const char *, const char *, char *, int);
 /* redirect */
 
 extern int process_redirect(struct request *);
+
+/* util */
+
+extern void escape_url(const char *, char *);
+extern int unescape_url(const char *, char *);
+extern int unescape_url_n(const char *, char *, size_t);
 
 #endif
