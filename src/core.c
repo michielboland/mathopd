@@ -677,7 +677,7 @@ static void run_rconnection(struct connection *cn)
 	if (n == -1)
 		return;
 	r = pollfds[n].revents;
-	if (r & (POLLERR | POLLHUP)) {
+	if (r & POLLERR || r == POLLHUP) {
 		close_connection(cn);
 		return;
 	}
@@ -700,7 +700,7 @@ static void run_wconnection(struct connection *cn)
 	if (n == -1)
 		return;
 	r = pollfds[n].revents;
-	if (r & (POLLERR | POLLHUP)) {
+	if (r & POLLERR || r == POLLHUP) {
 		close_connection(cn);
 		return;
 	}

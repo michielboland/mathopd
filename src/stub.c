@@ -565,11 +565,11 @@ void pipe_run(struct connection *p)
 
 	cevents = p->pollno != -1 ? pollfds[p->pollno].revents : 0;
 	pevents = p->rpollno != -1 ? pollfds[p->rpollno].revents : 0;
-	if (cevents & (POLLERR | POLLHUP)) {
+	if (cevents & POLLERR || cevents == POLLHUP) {
 		close_connection(p);
 		return;
 	}
-	if (pevents & (POLLERR | POLLHUP)) {
+	if (pevents & POLLERR || pevents == POLLHUP) {
 		close_connection(p);
 		return;
 	}
