@@ -333,4 +333,5 @@ pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd,
 		execve(program, argv, envp);
 		_exit(6);
 	}
+	return -1; /* not reached */
 }
