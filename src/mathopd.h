@@ -242,9 +242,10 @@ struct request {
 	char *if_range_s;
 	time_t if_range;
 	int range;
-	size_t range_floor;
-	size_t range_ceiling;
-	size_t range_suffix;
+	unsigned long range_floor;
+	unsigned long range_ceiling;
+	unsigned long range_suffix;
+	unsigned long range_total;
 };
 
 struct connection {
