@@ -761,9 +761,8 @@ static int process_headers(struct request *r)
 
 	while (1) {
 		l = getline(r->cn->input);
-		if (l == 0) {
+		if (l == 0)
 			return -1;
-		}
 		while (*l == ' ')
 			++l;
 		u = strchr(l, ' ');
@@ -778,9 +777,9 @@ static int process_headers(struct request *r)
 	s = strrchr(u, ' ');
 	if (s) {
 		r->version = s + 1;
-		do {
+		do
 			*s-- = 0;
-		} while (*s == ' ');
+		while (*s == ' ');
 	}
 	r->url = u;
 	s = strchr(u, '?');
@@ -823,9 +822,9 @@ static int process_headers(struct request *r)
 		log_d("method_s == 0 !?");
 		return -1;
 	}
-	if (strcmp(s, m_get) == 0) {
+	if (strcmp(s, m_get) == 0)
 		r->method = M_GET;
-	} else {
+	else {
 		if (r->cn->assbackwards) {
 			log_d("method \"%s\" not implemented for old-style connections", s);
 			return 501;
@@ -879,11 +878,10 @@ static int process_headers(struct request *r)
 		r->protocol_major = x;
 		r->protocol_minor = y;
 		s = r->connection;
-		if (y) {
+		if (y)
 			r->cn->keepalive = !(s && strcasecmp(s, "Close") == 0);
-		} else {
+		else
 			r->cn->keepalive = s && strcasecmp(s, "Keep-Alive") == 0;
-		}
 	}
 	if (r->method == M_GET) {
 		s = r->ims_s;
