@@ -8,7 +8,7 @@ is sent back, rather than a 500 error.
 
 IPv6 support has been added. It is not clear yet how the Access
 and Clients functionality should be ported. Therefore Access and
-Clients has been temporarily disabled.
+Clients has been temporarily disabled, as well as Error403File.
 
 The 'family' keyword has been added. This sets the address family
 for a particular server. It must be either 'inet' or 'inet6'.
