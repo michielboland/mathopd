@@ -55,12 +55,12 @@ static const char rcsid[] = "$Id$";
 
 const char server_version[] = "Mathopd/1.4b11";
 
-volatile int gotsigterm;
-volatile int gotsighup;
-volatile int gotsigusr1;
-volatile int gotsigusr2;
-volatile int gotsigchld;
-volatile int gotsigquit;
+volatile sig_atomic_t gotsigterm;
+volatile sig_atomic_t gotsighup;
+volatile sig_atomic_t gotsigusr1;
+volatile sig_atomic_t gotsigusr2;
+volatile sig_atomic_t gotsigchld;
+volatile sig_atomic_t gotsigquit;
 int numchildren;
 int debug;
 unsigned long fcm; /* should be mode_t */
