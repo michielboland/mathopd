@@ -299,7 +299,6 @@ struct connection {
 	unsigned long nwritten;
 	long left;
 	int logged;
-	off_t file_offset;
 	struct timeval itv;
 	pid_t pid;
 	struct pipe_params pipe_params;

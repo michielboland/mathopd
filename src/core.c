@@ -590,12 +590,6 @@ static int scan_request(struct connection *cn)
 			}
 			return 0;
 		}
-		if (cn->file_offset && cn->rfd != -1)
-			if (lseek(cn->rfd, cn->file_offset, SEEK_SET) == -1) {
-				lerror("lseek");
-				close_connection(cn);
-				return -1;
-			}
 		cn->left = cn->r->content_length;
 		if (fill_connection(cn) == -1) {
 			close_connection(cn);

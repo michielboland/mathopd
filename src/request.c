@@ -603,12 +603,11 @@ static int process_fd(struct request *r)
 			return 416;
 		}
 		if (r->range) {
-			r->cn->file_offset = r->range_floor;
+			if (r->range_floor)
+				lseek(fd, r->range_floor, SEEK_SET);
 			r->content_length = r->range_ceiling - r->range_floor + 1;
-		} else
-			r->cn->file_offset = 0;
-	} else
-		r->cn->file_offset = 0;
+		}
+	}
 	if (r->method == M_GET) {
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		r->cn->rfd = fd;
