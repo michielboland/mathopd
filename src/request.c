@@ -231,11 +231,12 @@ static char *getline(struct pool *p, int fold)
 			}
 		case '\r':
 		case '\t':
+			s[-1] = ' ';
+		case ' ':
 			if (f == 0) {
 				f = 1;
 				sp = s - 1;
 			}
-			s[-1] = ' ';
 			break;
 		default:
 			f = 0;
