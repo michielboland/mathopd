@@ -68,6 +68,22 @@ static int mysignal(int sig, void(*f)(int))
 	return sigaction(sig, &act, 0);
 }
 
+static void die(const char *t, const char *fmt, ...)
+{
+	va_list ap;
+
+	if (fmt) {
+		fprintf(stderr, "%s: ", progname);
+		va_start(ap, fmt);
+		vfprintf(stderr, fmt, ap);
+		fprintf(stderr, "\n");
+		va_end(ap);
+	}
+	if (t)
+		perror(t);
+	exit(1);
+}
+
 static void startup_server(struct server *s)
 {
 	int onoff, rv;
@@ -136,6 +152,7 @@ int main(int argc, char *argv[])
 	char buf[10];
 	struct rlimit rl;
 	struct passwd *pwd;
+	const char *message;
 
 	progname = argv[0];
 	daemon = 1;
@@ -173,7 +190,9 @@ int main(int argc, char *argv[])
 		die("open", "Cannot open %s", devnull);
 	while (null_fd < 3)
 		null_fd = dup(null_fd);
-	config();
+	message = config();
+	if (message)
+		die(0, "%s", message);
 	s = servers;
 	while (s) {
 		startup_server(s);
@@ -262,22 +281,6 @@ int main(int argc, char *argv[])
 	base64initialize();
 	httpd_main();
 	return 0;
-}
-
-void die(const char *t, const char *fmt, ...)
-{
-	va_list ap;
-
-	if (fmt) {
-		fprintf(stderr, "%s: ", progname);
-		va_start(ap, fmt);
-		vfprintf(stderr, fmt, ap);
-		fprintf(stderr, "\n");
-		va_end(ap);
-	}
-	if (t)
-		perror(t);
-	exit(1);
 }
 
 int fork_request(struct request *r, int (*f)(struct request *))
