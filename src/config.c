@@ -1,7 +1,7 @@
 /*
  * config.c - startup and configuration of Mathopd
  *
- * Copyright 1996 Michiel Boland
+ * Copyright 1996, 1997, Michiel Boland
  */
 
 /* House of Games */
@@ -19,7 +19,6 @@ char *log_filename;
 char *error_filename;
 char *child_filename;
 
-char *admin;
 char *rootdir;
 char *coredir;
 struct connection *connections;
@@ -406,6 +405,7 @@ static const char *config_control(struct control **as)
 		a->symlinksok = b->symlinksok;
 		a->path_args_ok = b->path_args_ok;
 		a->loglevel = b->loglevel;
+		a->admin = b->admin;
 	}
 	else {
 		a->index_names = 0;
@@ -414,6 +414,7 @@ static const char *config_control(struct control **as)
 		a->symlinksok = 0;
 		a->path_args_ok = 0;
 		a->loglevel = 0;
+		a->admin = 0;
 	}
 	a->next = *as;
 	*as = a;
@@ -454,6 +455,8 @@ static const char *config_control(struct control **as)
 			t = config_mime(&a->mimes, M_TYPE);
 		else if (strceq(tokbuf, c_specials))
 			t = config_mime(&a->mimes, M_SPECIAL);
+		else if (strceq(tokbuf, c_admin))
+			t = config_string(&a->admin);
 		else
 			t = e_keyword;
 		if (t)
@@ -581,8 +584,6 @@ static const char *config_main(void)
 			t = config_string(&coredir);
 		else if (strceq(tokbuf, c_default_name))
 			t = config_string(&fqdn);
-		else if (strceq(tokbuf, c_admin))
-			t = config_string(&admin);
 		else if (strceq(tokbuf, c_cern))
 			t = config_flag(&cern);
 		else if (strceq(tokbuf, c_umask))
