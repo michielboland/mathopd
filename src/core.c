@@ -448,18 +448,18 @@ void reap_children(void)
 
 	errno_save = errno;
 	while (1) {
-		pid = waitpid(-1, &status, WNOHANG | WUNTRACED);
+		pid = waitpid(-1, &status, WNOHANG);
 		if (pid <= 0)
 			break;
-		++numchildren;
-		if (debug) {
-			if (WIFEXITED(status))
+		if (WIFEXITED(status)) {
+			++numchildren;
+			if (debug)
 				log_d("child process %d exited with status %d", pid, WEXITSTATUS(status));
-			else if (WIFSIGNALED(status))
-				log_d("child process %d killed by signal %d", pid, WTERMSIG(status));
-			else if (WIFSTOPPED(status))
-				log_d("child process %d stopped by signal %d", pid, WSTOPSIG(status));
-		}
+		} else if (WIFSIGNALED(status)) {
+			++numchildren;
+			log_d("child process %d killed by signal %d", pid, WTERMSIG(status));
+		} else
+			log_d("child process %d stopped!?", pid);
 	}
 	if (pid < 0 && errno != ECHILD)
 		lerror("waitpid");
