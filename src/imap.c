@@ -44,6 +44,7 @@ static const char rcsid[] = "$Id$";
 #include "mathopd.h"
 
 #define MAXVERTS 100
+#define MAXLINES 1000
 
 typedef struct {
 	long x;
@@ -233,7 +234,10 @@ static int f_process_imap(struct request *r, int fd)
 	url = 0;
 
 	while (fgetline(input, STRLEN, &fb) != -1) {
-		++line;
+		if (++line > MAXLINES) {
+			status = "too many lines";
+			break;
+		}
 		l = separate(input, tok, 2 * MAXVERTS + 2);
 		if (l < 2)
 			continue;
