@@ -240,7 +240,6 @@ struct request {
 	int isindex;
 	const char *error_file;
 	char user[16];
-	char iphost[16];
 	char *servername;
 };
 
@@ -251,7 +250,6 @@ struct connection {
 	int fd;
 	int rfd;
 	struct sockaddr_in peer;
-	struct sockaddr_in sock;
 	char ip[16];
 	time_t t;
 	time_t it;

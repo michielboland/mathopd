@@ -630,8 +630,6 @@ static int find_vs(struct request *r)
 		r->servername = v->host;
 	else if (v->parent->s_name)
 		r->servername = v->parent->s_name;
-	else
-		r->servername = r->iphost;
 	if (r->host && v->host == 0) {
 		log(L_ERROR, "No such virtual server: %.50s", r->host);
 		return 1;
@@ -879,8 +877,6 @@ static int process_headers(struct request *r)
 	r->error_file = 0;
 	r->user[0] = '\0';
 	r->servername = 0;
-
-	sprintf(r->iphost, "%.15s", inet_ntoa(r->cn->sock.sin_addr));
 
 	if ((l = getline(r->cn->input)) == 0) {
 		r->error = br_empty; /* can this happen? */
