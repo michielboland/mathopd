@@ -1265,7 +1265,7 @@ static int process_headers(struct request *r)
 		s = r->ims_s;
 		if (s) {
 			i = timerfc(s);
-			if (i != -1)
+			if (i != -1 && i <= current_time)
 				r->ims = i;
 		}
 		s = r->ius_s;
