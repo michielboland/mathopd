@@ -704,7 +704,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 	return 0;
 }
 
-static const char *config_vhost(struct virtual **vs, struct vserver *s, const char *host)
+static const char *config_vhost(struct virtual **vs, struct vserver *s, const char *host, int anyhost)
 {
 	struct virtual *v;
 
@@ -724,6 +724,7 @@ static const char *config_vhost(struct virtual **vs, struct vserver *s, const ch
 	v->nwritten = 0;
 	v->vserver = s;
 	v->next = *vs;
+	v->anyhost = anyhost;
 	*vs = v;
 	return 0;
 }
@@ -738,7 +739,6 @@ static const char *config_virtual(struct configuration *p, struct vserver **vs, 
 		return e_memory;
 	v->server = parent;
 	v->controls = parent->controls;
-	v->anyhost = 0;
 	nameless = 1;
 	v->next = *vs;
 	*vs = v;
@@ -751,21 +751,21 @@ static const char *config_virtual(struct configuration *p, struct vserver **vs, 
 			if ((t = gettoken(p)) != t_string)
 				return t;
 			nameless = 0;
-			t = config_vhost(&parent->children, v, p->tokbuf);
+			t = config_vhost(&parent->children, v, p->tokbuf, 0);
 		} else if (!strcasecmp(p->tokbuf, c_no_host)) {
 			nameless = 0;
-			t = config_vhost(&parent->children, v, 0);
+			t = config_vhost(&parent->children, v, 0, 0);
 		} else if (!strcasecmp(p->tokbuf, c_control))
 			t = config_control(p, &v->controls);
 		else if (!strcasecmp(p->tokbuf, c_any_host)) {
-			v->anyhost = 1;
+			t = config_vhost(&parent->children, v, 0, 1);
 			continue;
 		} else
 			t = e_keyword;
 		if (t)
 			return t;
 	}
-	return nameless ? config_vhost(&parent->children, v, 0) : 0;
+	return 0;
 }
 
 static const char *config_server(struct configuration *p, struct server **ss)
