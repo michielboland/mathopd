@@ -39,7 +39,6 @@ static const char rcsid[] = "$Id$";
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <signal.h>

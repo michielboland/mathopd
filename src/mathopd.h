@@ -42,7 +42,6 @@
 #include <sys/socket.h> /* socklen_t is here sometimes */
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <netinet/in.h>
 #include <signal.h>
 
 #define CGI_MAGIC_TYPE "CGI"
