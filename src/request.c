@@ -824,7 +824,6 @@ static int process_path(struct request *r)
 			r->error_file = r->c->error_404_file;
 			return 404;
 		}
-		
 	}
 	if (!S_ISREG(r->finfo.st_mode)) {
 		log_d("%s is not a regular file", r->path_translated);
