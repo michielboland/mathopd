@@ -199,15 +199,15 @@ static time_t timerfc(char *s)
 		   365L * (year - 1970L) + ((year - 1969L) >> 2)))));
 }
 
-static char *rfctime(time_t t)
+static char *rfctime(time_t t, char *buf)
 {
-	static char buf[32];
 	struct tm *tp;
 
-	if ((tp = gmtime(&t)) != 0)
-		strftime(buf, 31, "%a, %d %b %Y %H:%M:%S GMT", tp);
-	else
-		buf[0] = 0;
+	if ((tp = gmtime(&t)) == 0) {
+		log(L_ERROR, "gmtime failed!?!?!?");
+		return 0;
+	}
+	strftime(buf, 31, "%a, %d %b %Y %H:%M:%S GMT", tp);
 	return buf;
 }
 
@@ -264,7 +264,7 @@ static int putstring(struct pool *p, char *s)
 static int output_headers(struct pool *p, struct request *r)
 {
 	long cl;
-	char tmp_outbuf[2048], *b;
+	char tmp_outbuf[2048], gbuf[40], *b;
 
 	log(L_DEBUG, "output_headers: started");
 
@@ -282,7 +282,7 @@ static int output_headers(struct pool *p, struct request *r)
 		r->protocol_minor,
 		r->status_line,
 		server_version,
-		rfctime(current_time));
+		rfctime(current_time, gbuf));
 
 	if (r->c) {
 		if (r->c->refresh)
@@ -299,7 +299,7 @@ static int output_headers(struct pool *p, struct request *r)
 			b += sprintf(b, "Content-length: %ld\r\n", cl);
 		if (r->last_modified)
 			b += sprintf(b, "Last-Modified: %s\r\n",
-				rfctime(r->last_modified));
+				rfctime(r->last_modified, gbuf));
 	}
 
 	if (r->location)
@@ -968,7 +968,7 @@ static int process_headers(struct request *r)
 int prepare_reply(struct request *r)
 {
 	struct pool *p = r->cn->output;
-	static char buf[PATHLEN];
+	char buf[PATHLEN];
 	int send_message = r->method != M_HEAD;
 
 	log(L_DEBUG, "prepare_replay, status=%d", r->status);
