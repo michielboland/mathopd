@@ -305,6 +305,13 @@ static int fill_connection(struct connection *cn)
 
 	if (cn->rfd == -1)
 		return 0;
+#if defined LINUX_SENDFILE || defined FREEBSD_SENDFILE
+	if (set_nopush(cn->fd, 1) == -1) {
+		lerror("set_nopush");
+		return -1;
+	}
+	return 0;
+#endif
 	p = &cn->output;
 	poolleft = p->ceiling - p->end;
 	fileleft = cn->left;
@@ -327,66 +334,71 @@ static int fill_connection(struct connection *cn)
 	return n;
 }
 
+static void end_request(struct connection *cn)
+{
+#if defined LINUX_SENDFILE || defined FREEBSD_SENDFILE
+	if (cn->rfd != -1)
+		if (set_nopush(cn->fd, 0) == -1) {
+			lerror("set_nopush");
+			close_connection(cn);
+			return;
+		}
+#endif
+	if (cn->keepalive)
+		reinit_connection(cn);
+	else
+		close_connection(cn);
+}
+
 static void write_connection(struct connection *cn)
 {
 	struct pool *p;
 	int m, n;
 
 	p = &cn->output;
-	n = p->end - p->start;
-	if (n == 0) {
-#ifdef SENDFILE
-		if (sendfile_connection(cn) == -1) {
-			close_connection(cn);
-			return;
-		}
-		if (cn->left == 0) {
-			if (cn->keepalive)
-				reinit_connection(cn);
-			else
-				close_connection(cn);
-		}
-		return;
-#else
-		p->start = p->end = p->floor;
-		n = fill_connection(cn);
-		if (n == -1) {
-			close_connection(cn);
-			return;
-		}
+	do {
+		n = p->end - p->start;
 		if (n == 0) {
-			if (cn->keepalive)
-				reinit_connection(cn);
-			else
+#if defined LINUX_SENDFILE || defined FREEBSD_SENDFILE
+			if (sendfile_connection(cn) == -1) {
 				close_connection(cn);
+				return;
+			}
+			if (cn->left == 0)
+		       		end_request(cn);
 			return;
-		}
+#else
+			p->start = p->end = p->floor;
+			n = fill_connection(cn);
+			if (n == -1) {
+				close_connection(cn);
+				return;
+			}
+			if (n == 0) {
+				end_request(cn);
+				return;
+			}
 #endif
-	}
-	m = write(cn->fd, p->start, n);
-	if (debug)
-		log_d("write_connection: %d %d %d %d", cn->fd, p->start - p->floor, n, m);
-	if (m == -1) {
-		switch (errno) {
-		default:
-			log_d("error writing to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
-			lerror("write");
-		case ECONNRESET:
-		case EPIPE:
-			close_connection(cn);
-		case EAGAIN:
-			return;
 		}
-	}
-	cn->t = current_time;
-	cn->nwritten += m;
-	p->start += m;
-	if (n == m && cn->left == 0) {
-		if (cn->keepalive)
-			reinit_connection(cn);
-		else
-			close_connection(cn);
-	}
+		m = write(cn->fd, p->start, n);
+		if (debug)
+			log_d("write_connection: %d %d %d %d", cn->fd, p->start - p->floor, n, m);
+		if (m == -1) {
+			switch (errno) {
+			default:
+				log_d("error writing to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
+				lerror("write");
+			case ECONNRESET:
+			case EPIPE:
+				close_connection(cn);
+			case EAGAIN:
+				return;
+			}
+		}
+		cn->t = current_time;
+		cn->nwritten += m;
+		p->start += m;
+	} while (n == m);
 }
 
 static int read_connection(struct connection *cn)
