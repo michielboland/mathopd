@@ -665,7 +665,7 @@ void init_child(struct connection *p, int fd)
 	p->output.start = p->output.end = p->output.floor;
 	p->script_input.start = p->script_input.end = p->script_input.floor;
 	p->script_input.state = 1;
-	p->pipe_params.state = 0;
+	p->pipe_params.state = 1;
 	if (p->rfd != -1)
 		abort();
 	p->rfd = fd;
