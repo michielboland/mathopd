@@ -132,25 +132,69 @@ static int add_argv(const char *a, const char *b, int decode, struct cgi_paramet
 	return 0;
 }
 
-static char *cgi_envar(const char *s)
+static int add_http_vars(struct request *r, struct cgi_parameters *cp)
 {
-	size_t i, j, n;
-	char *t;
-	int c;
+	size_t i, j, k, l, n;
+	int c, *seen;
+	char *tmp, *b, **e;
+	const char *name;
 
-	n = strlen(s);
-	t = malloc(n + 6);
-	if (t == 0)
+	n = r->nheaders;
+	if (n == 0)
 		return 0;
-	j = sprintf(t, "HTTP_");
+	seen = malloc(n * sizeof *seen);
+	if (seen == 0)
+		return -1;
+	for (i = 0; i < n; i++)
+		seen[i] = 0;
 	for (i = 0; i < n; i++) {
-		c = toupper(s[i]);
-		if (c == '-')
-			c = '_';
-		t[j++] = c;
+		if (seen[i])
+			continue;
+		name = r->headers[i].rh_name;
+		if (strcasecmp(name, "Authorization") == 0 && r->user && r->user[0])
+			continue;
+		l = strlen(name) + strlen(r->headers[i].rh_value) + 6;
+		for (j = i + 1; j < n; j++) {
+			if (seen[j])
+				continue;
+			if (strcasecmp(r->headers[j].rh_name, name) == 0) {
+				seen[j] = 1;
+				l += strlen(r->headers[j].rh_name) + 2;
+			}
+		}
+		tmp = malloc(l);
+		if (tmp == 0) {
+			free(seen);
+			return -1;
+		}
+		memcpy(tmp, "HTTP_", 5);
+		b = tmp + 5;
+		l = strlen(name);
+		for (k = 0; k < l; k++) {
+			c = toupper(name[k]);
+			if (c == '-')
+				c = '_';
+			*b++ = c;
+		}
+		b += sprintf(b, "=%s", r->headers[i].rh_value);
+		for (j = i + 1; j < n; j++) {
+			if (seen[j] == 1) {
+				b += sprintf(b, ",%s", r->headers[j].rh_value);
+				seen[j] = 2;
+			}
+		}
+		e = realloc(cp->cgi_envp, (cp->cgi_envc + 1) * sizeof *cp->cgi_envp);
+		if (e == 0) {
+			free(tmp);
+			free(seen);
+			return -1;
+		}
+		cp->cgi_envp = e;
+		cp->cgi_envp[cp->cgi_envc] = tmp;
+		++cp->cgi_envc;
 	}
-	t[j] = 0;
-	return t;
+	free(seen);
+	return 0;
 }
 
 static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
@@ -159,20 +203,9 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 	struct simple_list *e;
 	char path_translated[PATHLEN];
 	char *tmp;
-	size_t n;
 
-	for (n = 0; n < r->nheaders; n++) {
-		if (strcasecmp(r->headers[n].rh_name, "Authorization") == 0 && r->user && r->user[0])
-			continue;
-		tmp = cgi_envar(r->headers[n].rh_name);
-		if (tmp == 0)
-			return -1;
-		if (add(tmp, r->headers[n].rh_value, 0, cp) == -1) {
-			free(tmp);
-			return -1;
-		}
-		free(tmp);
-	}
+	if (add_http_vars(r, cp) == -1)
+		return -1;
 	if (add("GATEWAY_INTERFACE", "CGI/1.1", 0, cp) == -1)
 		return -1;
 	if (add("CONTENT_LENGTH", r->in_content_length, 0, cp) == -1)
