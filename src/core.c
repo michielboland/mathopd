@@ -442,10 +442,11 @@ static void cleanup_connections(void)
 	}
 }
 
-static void reap_children(void)
+void reap_children(void)
 {
-	int status, pid;
+	int errno_save, status, pid;
 
+	errno_save = errno;
 	while (1) {
 		pid = waitpid(-1, &status, WNOHANG | WUNTRACED);
 		if (pid <= 0)
@@ -462,6 +463,7 @@ static void reap_children(void)
 	}
 	if (pid < 0 && errno != ECHILD)
 		lerror("waitpid");
+	errno = errno_save;
 }
 
 #ifndef INFTIM
