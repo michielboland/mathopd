@@ -105,7 +105,7 @@ static void startup_server(struct server *s)
 	sa.sin_port = htons(s->port);
 	rv = bind(s->fd, (struct sockaddr *) &sa, sizeof sa);
 	if (rv == -1)
-		die("bind", "cannot start up server at %s port %lu", s->s_name ? s->s_name : "0", s->port);
+		die("bind", "cannot start up server at %s port %lu", inet_ntoa(s->addr), s->port);
 	rv = listen(s->fd, 128);
 	if (rv == -1)
 		die("listen", 0);
