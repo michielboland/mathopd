@@ -761,8 +761,8 @@ void cleanup_children(void)
 			} else if (current_time >= p->t + (time_t) tuning.script_timeout) {
 				log_d("script timeout to %s[%hu]", inet_ntoa(p->cn->peer.sin_addr), ntohs(p->cn->peer.sin_port));
 				close_child(p, HC_CLOSING);
-			} else if (p->pstate == 3)
-					close_child(p, p->cn->keepalive ? HC_REINIT : HC_CLOSING);
+			} else if (p->pstate == 3 && (p->istate == 0 || (p->imax == 0 && p->ibp == 0)))
+				close_child(p, p->cn->keepalive ? HC_REINIT : HC_CLOSING);
 		}
 		p = p->next;
 	}
