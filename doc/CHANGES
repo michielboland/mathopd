@@ -182,9 +182,10 @@ request.c:
 	In the makedir() function, the query string, if
 	any, is preserved in the 302 response.
 
-	The process_dummy() function has been moved from
-	dummy.c into request.c. This function is so trivial
-	that it hardly warrants a separate source file.
+	The process_dummy() function and the Dummy specialty
+	have been removed. If an unknown specialty is found,
+	a 404 error is returned rather than a 500 error.
+	This sort of replaces the dummy functionality.
 
 	The "Redirect" magic type has been removed.
 	This feature can be implemented just as wel using
