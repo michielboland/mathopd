@@ -46,7 +46,6 @@ char *rootdir;
 char *coredir;
 struct connection *connections;
 struct server *servers;
-struct simple_list *exports;
 
 char *user_name;
 
@@ -486,6 +485,7 @@ static const char *config_control(struct control **as)
 		a->do_crypt = b->do_crypt;
 		a->child_filename = b->child_filename;
 		a->dns = b->dns;
+		a->exports = b->exports;
 	} else {
 		a->index_names = 0;
 		a->accesses = 0;
@@ -502,6 +502,7 @@ static const char *config_control(struct control **as)
 		a->do_crypt = 0;
 		a->child_filename = 0;
 		a->dns = 1;
+		a->exports = 0;
 	}
 	a->next = *as;
 	*as = a;
@@ -562,6 +563,8 @@ static const char *config_control(struct control **as)
 			t = config_flag(&a->exact_match);
 		else if (!strcasecmp(tokbuf, c_dns))
 			t = config_int(&a->dns);
+		else if (!strcasecmp(tokbuf, c_export))
+			t = config_list(&a->exports);
 		else
 			t = e_keyword;
 		if (t)
@@ -720,8 +723,6 @@ static const char *config_main(void)
 			t = config_string(&log_filename);
 		else if (!strcasecmp(tokbuf, c_error))
 			t = config_string(&error_filename);
-		else if (!strcasecmp(tokbuf, c_export))
-			t = config_list(&exports);
 		else if (!strcasecmp(tokbuf, c_tuning))
 			t = config_tuning(&tuning);
 		else if (!strcasecmp(tokbuf, c_control))

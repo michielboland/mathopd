@@ -191,7 +191,7 @@ static int make_cgi_envp(struct request *r)
 		ADD("SERVER_PROTOCOL", t);
 	} else
 		ADD("SERVER_PROTOCOL", "HTTP/0.9");
-	e = exports;
+	e = r->c->exports;
 	while (e) {
 		ADD(e->name, getenv(e->name));
 		e = e->next;

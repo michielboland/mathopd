@@ -174,6 +174,7 @@ struct control {
 	int do_crypt;
 	char *child_filename;
 	int dns;
+	struct simple_list *exports;
 };
 
 struct virtual {
@@ -290,7 +291,6 @@ extern int fork_request(struct request *, int (*)(struct request *));
 /* config */
 
 extern struct tuning tuning;
-extern struct simple_list *exports;
 extern char *pid_filename;
 extern char *log_filename;
 extern char *error_filename;
