@@ -60,6 +60,8 @@ char *rootdir;
 char *coredir;
 struct connection *connections;
 struct server *servers;
+struct virtual *virtuals;
+struct vserver *vservers;
 
 char *user_name;
 
@@ -751,10 +753,17 @@ static const char *config_virtual(struct configuration *p, struct vserver **vs, 
 {
 	struct vserver *v;
 	const char *t;
+	struct virtual **vp;
 
 	if ((v = malloc(sizeof *v)) == 0)
 		return e_memory;
-	v->controls = parent->controls;
+	if (parent) {
+		v->controls = parent->controls;
+		vp = &parent->children;
+	} else {
+		v->controls = controls;
+		vp = &virtuals;
+	}
 	v->next = *vs;
 	*vs = v;
 	if ((t = gettoken(p)) != t_open)
@@ -765,13 +774,13 @@ static const char *config_virtual(struct configuration *p, struct vserver **vs, 
 		if (!strcasecmp(p->tokbuf, c_host)) {
 			if ((t = gettoken(p)) != t_string)
 				return t;
-			t = config_vhost(&parent->children, v, p->tokbuf, 0);
+			t = config_vhost(vp, v, p->tokbuf, 0);
 		} else if (!strcasecmp(p->tokbuf, c_no_host))
-			t = config_vhost(&parent->children, v, 0, 0);
+			t = config_vhost(vp, v, 0, 0);
 		else if (!strcasecmp(p->tokbuf, c_control))
 			t = config_control(p, &v->controls);
 		else if (!strcasecmp(p->tokbuf, c_any_host)) {
-			t = config_vhost(&parent->children, v, 0, 1);
+			t = config_vhost(vp, v, 0, 1);
 			continue;
 		} else
 			t = e_keyword;
@@ -790,8 +799,8 @@ static const char *config_server(struct configuration *p, struct server **ss)
 		return e_memory;
 	s->port = 80;
 	s->addr.s_addr = 0;
-	s->children = 0;
-	s->vservers = 0;
+	s->children = virtuals;
+	s->vservers = vservers;
 	s->controls = controls;
 	s->naccepts = 0;
 	s->nhandled = 0;
@@ -883,6 +892,8 @@ static const char *config_main(struct configuration *p)
 			t = config_log(p, &log_column, &log_columns);
 		else if (!strcasecmp(p->tokbuf, c_log_gmt))
 			t = config_flag(p, &log_gmt);
+		else if (!strcasecmp(p->tokbuf, c_virtual))
+			t = config_virtual(p, &vservers, 0);
 		else
 			t = e_keyword;
 		if (t)
