@@ -732,7 +732,7 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update, int 
 		log_d("virtualhost not initialized!");
 		return 0;
 	}
-	c = r->vs->controls;
+	c = r->vs->vserver->controls;
 	while (c) {
 		if (c->locations && c->alias) {
 			s = c->exact_match ? exactmatch(x, c->alias) : dirmatch(x, c->alias);

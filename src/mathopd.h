@@ -165,7 +165,6 @@ struct control {
 
 struct virtual {
 	char *host;
-	struct control *controls;
 	struct virtual *next;
 	struct vserver *vserver;
 	int anyhost;

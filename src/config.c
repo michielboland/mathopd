@@ -740,7 +740,6 @@ static const char *config_vhost(struct virtual **vs, struct vserver *s, const ch
 			return e_memory;
 		sanitize_host(v->host);
 	}
-	v->controls = 0; /* filled in later */
 	v->vserver = s;
 	v->next = *vs;
 	v->anyhost = anyhost;
@@ -792,7 +791,7 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	s->port = 80;
 	s->addr.s_addr = 0;
 	s->children = 0;
-	s->vservers= 0;
+	s->vservers = 0;
 	s->controls = controls;
 	s->naccepts = 0;
 	s->nhandled = 0;
@@ -819,23 +818,6 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	num_servers++;
 	s->next = *ss;
 	*ss = s;
-	return 0;
-}
-
-static const char *fill_servernames(void)
-{
-	struct server *s;
-	struct virtual *v;
-
-	s = servers;
-	while (s) {
-		v = s->children;
-		while (v) {
-			v->controls = v->vserver->controls;
-			v = v->next;
-		}
-		s = s->next;
-	}
 	return 0;
 }
 
@@ -982,9 +964,6 @@ const char *config(const char *config_filename)
 		log_column = default_log_column;
 		log_columns = sizeof default_log_column / sizeof default_log_column[0];
 	}
-	s = fill_servernames();
-	if (s)
-		return s;
 	if (init_pollfds(tuning.num_connections + num_servers) == -1)
 		return e_memory;
 	for (n = 0; n < tuning.num_connections; n++) {
