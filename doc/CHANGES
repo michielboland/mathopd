@@ -55,8 +55,8 @@ mathopd.h:
 	members to request structure; num_headers to tuning.
 	Added extra_headers to control.
 	Added range_s, if_range_s, if_range, range, range_floor,
-	range_ceiling, range_suffix, range_total, ius_s, ius
-	and rhost to request.
+	range_ceiling, range_suffix, range_total, ius_s, ius,
+	rhost and forked to request.
 
 	Removed: cookie, servername from request structure.
 	Removed s_name from server structure.
