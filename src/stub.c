@@ -72,6 +72,7 @@ struct pipe_params {
 	int ofd;
 	int fd;
 	int timeout;
+	size_t imax;
 };
 
 struct cgi_header {
@@ -275,6 +276,7 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 	size_t bytestocopy;
 	int n;
 	int convert_result;
+	size_t bytestoread;
 
 	done = 1;
 	skip_poll = 1;
@@ -287,7 +289,7 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 	pollfds[0].revents = 0;
 	pollfds[1].revents = 0;
 	pollfds[2].revents = 0;
-	if (p->istate == 1 && p->ibp < p->isize) {
+	if (p->istate == 1 && p->ibp < p->isize && p->imax) {
 		done = 0;
 		skip_poll = 0;
 		pollfds[0].fd = p->ifd;
@@ -334,7 +336,10 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		return 1;
 	}
 	if (pollfds[0].revents & POLLIN) {
-		r = read(p->ifd, p->ibuf + p->ibp, p->isize - p->ibp);
+		bytestoread = p->isize - p->ibp;
+		if (bytestoread > p->imax)
+			bytestoread = p->imax;
+		r = read(p->ifd, p->ibuf + p->ibp, bytestoread);
 		switch (r) {
 		case -1:
 			if (errno == EAGAIN)
@@ -342,11 +347,13 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 			p->ofd = -1;
 			lerror("pipe_loop: error reading from stdin");
 		case 0:
+			log_d("pipe_run: client went away while posting data");
 			p->istate = 2;
 			break;
 		default:
 			cn->nread += r;
 			p->ibp += r;
+			p->imax -= r;
 			break;
 		}
 	}
@@ -494,6 +501,13 @@ static int pipe_loop(int fd, struct request *r, int timeout)
 	p.fd = fd;
 	timeout *= 1000;
 	p.timeout = timeout;
+	if (r->method == M_POST) {
+		p.istate = 1;
+		p.imax = r->in_mblen;
+	} else {
+		p.istate = 0;
+		p.imax = 0;
+	}
 	do
 		rv = pipe_run(&p, r->cn);
 	while (rv == 0);
