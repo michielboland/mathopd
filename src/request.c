@@ -368,9 +368,9 @@ static int get_mime(struct request *r, const char *s)
 
 static int get_path_info(struct request *r)
 {
-	char *p, *pa, *end, *cp, *start;
+	char *p, *pa, *end, *cp, *start, *cds;
 	struct stat *s;
-	int rv;
+	int rv, first;
 	size_t m;
 
 	m = r->location_length;
@@ -383,18 +383,30 @@ static int get_path_info(struct request *r)
 	pa = r->path_args;
 	*pa = 0;
 	cp = end;
+	first = 0;
 	while (cp >= start && cp[-1] == '/')
 		--cp;
 	while (cp >= start) {
 		if (cp != end)
 			*cp = 0;
 		rv = stat(p, s);
+		if (rv != -1) {
+			if (r->curdir[0] == 0) {
+				first = 1;
+				strcpy(r->curdir, p);
+			}
+		}
 		if (cp != end)
 			*cp = '/';
 		if (rv != -1) {
 			strcpy(pa, cp);
 			if (S_ISDIR(s->st_mode))
 				*cp++ = '/';
+			else if (first) {
+				cds = strrchr(r->curdir, '/');
+				if (cds)
+					*cds = 0;
+			}
 			*cp = 0;
 			return 0;
 		} else if (r->c->path_info_ok == 0)
