@@ -1,9 +1,16 @@
-Changes between Mathopd 1.4 and Mathopd 1.5b4
+Changes between Mathopd 1.4 and Mathopd 1.5
 
 cgi.c:
 
 	All headers are now converted into HTTP_ environment
 	variables, not just some.
+
+	The value of GATEWAY_INTERFACE is now set.
+
+	The value of SERVER_NAME is set to the value of the
+	Host: header sent by the client. This appears to make
+	the most sense, especially for virtual servers that are
+	created with "AnyHost".
 
 config.c:
 
@@ -14,6 +21,9 @@ config.c:
 	The `ExtraHeaders' keyword has been added to the Control
 	block. It allows one to pass user-defined headers (like
 	"Cache-Control" etc.) to the client.
+
+	The "Name" keyword has been removed since it no longer
+	has any function.
 
 core.c:
 
@@ -48,7 +58,8 @@ mathopd.h:
 	range_ceiling, range_suffix, range_total, ius_s, ius
 	and rhost to request.
 
-	Removed: cookie from request structure.
+	Removed: cookie, servername from request structure.
+	Removed s_name from server structure.
 
 request.c:
 
@@ -78,6 +89,6 @@ request.c:
 
 stub.c:
 
-	New file. This file is imported more or less literally from the
-	phpstub program. This means that phpstub is now obsolete (as far
-	as Mathopd 1.5 is concerned.)
+	New file. This file is imported from the phpstub program. This
+	means that phpstub is now obsolete (as far as Mathopd 1.5 is
+	concerned.)
