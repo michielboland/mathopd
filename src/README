@@ -62,4 +62,7 @@ We are currently at 1.3b7. Changes to the last beta:
 	The targets 'all' and 'install' are added to the
 	Makefile.
 
+	EPIPE, EHOSTUNREACH and ENETUNREACH errors are logged
+	again.
+
 Michiel Boland <boland@diva.nl>
