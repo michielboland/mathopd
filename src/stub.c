@@ -38,6 +38,7 @@
 static const char rcsid[] = "$Id$";
 
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/socket.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -264,6 +265,27 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 	return 0;
 }
 
+static int stub_reap(void)
+{
+	int errno_save, status, pid;
+
+	errno_save = errno;
+	while (1) {
+		pid = waitpid(-1, &status, WNOHANG);
+		if (pid <= 0)
+			break;
+		if (!WIFEXITED(status) && !WIFSIGNALED(status)) {
+			log_d("stub_reap: child process %d did not really die", pid);
+			errno = errno_save;
+			return -1;
+		}
+	}
+	if (pid < 0 && errno != ECHILD)
+		lerror("waitpid");
+	errno = errno_save;
+	return 0;
+}
+
 static int pipe_run(struct pipe_params *p, struct connection *cn)
 {
 	int done;
@@ -305,11 +327,19 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 	}
 	if (done)
 		return 1;
+	if (gotsigchld) {
+		gotsigchld = 0;
+		if (stub_reap() == -1)
+			return 1;
+	}
+	if (debug)
+		log_d("starting poll, fd0=%d,  e0=%d, fd1=%d,  e1=%d", pollfds[0].fd, pollfds[0].events, pollfds[1].fd, pollfds[1].events);
 	n = poll(pollfds, 2, p->timeout);
 	current_time = time(0);
 	if (gotsigchld) {
 		gotsigchld = 0;
-		reap_children();
+		if (stub_reap() == -1)
+			return 1;
 	}
 	if (n == -1) {
 		if (errno == EINTR)
@@ -317,6 +347,8 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		lerror("poll");
 		return 1;
 	}
+	if (debug)
+		log_d("poll done,     fd0=%d, re0=%d, fd1=%d, re1=%d, n=%d", pollfds[0].fd, pollfds[0].revents, pollfds[1].fd, pollfds[1].revents, n);
 	if (n == 0) {
 		log_d("pipe_run: timeout");
 		return 1;
