@@ -186,6 +186,7 @@ struct control {
 	struct simple_list *locations;
 	struct access *clients;
 	char *admin;
+	int refresh;
 };
 
 struct virtual {
