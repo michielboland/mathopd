@@ -42,13 +42,10 @@ static const char rcsid[] = "$Id$";
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netinet/in.h>
-#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <string.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <time.h>
 #ifndef POLL_EMULATION
