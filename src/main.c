@@ -146,11 +146,13 @@ int main(int argc, char *argv[])
 	struct rlimit rl;
 	struct passwd *pwd;
 	const char *message;
+	const char *config_filename;
 
 	progname = argv[0];
 	am_daemon = 1;
 	version = 0;
-	while ((c = getopt(argc, argv, "ndv")) != EOF) {
+	config_filename = 0;
+	while ((c = getopt(argc, argv, "ndvf:")) != EOF) {
 		switch(c) {
 		case 'n':
 			am_daemon = 0;
@@ -161,8 +163,14 @@ int main(int argc, char *argv[])
 		case 'v':
 			version = 1;
 			break;
+		case 'f':
+			if (config_filename == 0)
+				config_filename = optarg;
+			else
+				die(0, "You may not specify more than one configuration file.");
+			break;
 		default:
-			die(0, "usage: %s [ -ndv ]", progname);
+			die(0, "usage: %s [ -ndv ] [ -f configuration_file ]", progname);
 			break;
 		}
 	}
@@ -181,7 +189,7 @@ int main(int argc, char *argv[])
 		die("open", "Cannot open %s", devnull);
 	while (null_fd < 3)
 		null_fd = dup(null_fd);
-	message = config();
+	message = config(config_filename);
 	if (message)
 		die(0, "%s", message);
 	s = servers;
