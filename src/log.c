@@ -1,5 +1,5 @@
 /*
- *   Copyright 1999, 2000, 2001, 2002, 2003 Michiel Boland.
+ *   Copyright 1999 - 2004 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
