@@ -43,6 +43,10 @@ launched to interpret it. A side effect of this is that the script in
 question does not have to be executable, so no messing about with
 chmod is necessary.
 
+Some interpreters, like awk, require a command-line argument before
+the script name, in which case you need to do some adjusting. See the
+section 'Invocation' and the example below for more details.
+
 CGI and security
 --------------------------------
 
