@@ -182,8 +182,10 @@ static time_t timerfc(const char *s)
 		year += (year < 70) ? 2000 : 1900;
 	--mon;
 	--day;
-	if (sec >= 60 || min >= 60 || hour >= 60 || day >= 31 || year < 1970)
+	if (sec >= 60 || min >= 60 || hour >= 60 || day >= 31)
 		return -1;
+	if (year < 1970)
+		return 0;
 	return sec + 60L * (min + 60L * (hour + 24L * ( day +
 	    daytab[year % 4 == 0 && (year % 100 || year % 400 == 0)][mon] +
 	    365L * (year - 1970L) + ((year - 1969L) >> 2))));
