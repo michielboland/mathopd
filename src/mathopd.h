@@ -41,6 +41,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
+#include <signal.h>
 
 #define CGI_MAGIC_TYPE "CGI"
 #define IMAP_MAGIC_TYPE "Imagemap"
@@ -264,12 +265,12 @@ struct tuning {
 /* main */
 
 extern const char server_version[];
-extern volatile int gotsigterm;
-extern volatile int gotsighup;
-extern volatile int gotsigusr1;
-extern volatile int gotsigusr2;
-extern volatile int gotsigchld;
-extern volatile int gotsigquit;
+extern volatile sig_atomic_t gotsigterm;
+extern volatile sig_atomic_t gotsighup;
+extern volatile sig_atomic_t gotsigusr1;
+extern volatile sig_atomic_t gotsigusr2;
+extern volatile sig_atomic_t gotsigchld;
+extern volatile sig_atomic_t gotsigquit;
 extern int numchildren;
 extern time_t startuptime;
 extern int debug;
