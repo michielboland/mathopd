@@ -180,6 +180,7 @@ static void write_connection(struct connection *cn)
 	}
 
 	m = send(cn->fd, p->start, n, 0);
+	log(L_DEBUG, "send(%d) = %d", n, m);
 	if (m == -1) {
 		if (errno != EPIPE)
 			lerror("send");
@@ -395,8 +396,7 @@ void log(int type, const char *fmt, ...)
 	va_list args;
 	char log_line[2*PATHLEN];
 	char *s = log_line;
-	int l;
-	int fd;
+	int l, fd, saved_errno;
 
 	switch (type) {
 	case L_TRANS:
@@ -415,6 +415,8 @@ void log(int type, const char *fmt, ...)
 	if (fd == -1)
 		return;
 
+	saved_errno = errno;
+
 	va_start(args, fmt);
 #ifdef BROKEN_SPRINTF
 	vsprintf(log_line, fmt, args);
@@ -429,6 +431,7 @@ void log(int type, const char *fmt, ...)
 	*s = '\0';
 
 	write(fd, log_line, l + 1);
+	errno = saved_errno;
 }
 
 void lerror(const char *s)
