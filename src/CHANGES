@@ -54,3 +54,7 @@ curious if any programs are broken by this.
 
 Standard input, output and error are not closed
 if mathopd is started with the -n flag.
+
+ASCII NUL characters are not allowed in HTTP
+headers, as these might upset the various
+string-handling routines.
