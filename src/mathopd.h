@@ -184,6 +184,7 @@ struct control {
 	struct mime *mimes;
 	struct control *next;
 	struct simple_list *locations;
+	struct access *clients;
 };
 
 struct virtual {
