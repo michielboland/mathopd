@@ -332,7 +332,7 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		return 1;
 	}
 	if (n == 0) {
-		log_d("pipe_loop: timeout");
+		log_d("pipe_run: timeout");
 		return 1;
 	}
 	if (pollfds[0].revents & POLLIN) {
@@ -345,7 +345,7 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 			if (errno == EAGAIN)
 				break;
 			p->ofd = -1;
-			lerror("pipe_loop: error reading from stdin");
+			lerror("pipe_run: error reading from stdin");
 		case 0:
 			log_d("pipe_run: client went away while posting data");
 			p->istate = 2;
@@ -364,7 +364,7 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 			if (errno == EAGAIN)
 				break;
 			p->ofd = -1;
-			lerror("pipe_loop: error writing to stdout");
+			lerror("pipe_run: error writing to stdout");
 			break;
 		default:
 			cn->nwritten += r;
@@ -378,10 +378,10 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		case -1:
 			if (errno == EAGAIN)
 				break;
-			lerror("pipe_loop: error reading from pipe");
+			lerror("pipe_run: error reading from pipe");
 		case 0:
 			if (p->state == 0) {
-				log_d("pipe_loop: premature end of script headers");
+				log_d("pipe_run: premature end of script headers");
 				return 1;
 			}
 			p->pstate = 2;
@@ -397,7 +397,7 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		case -1:
 			if (errno == EAGAIN)
 				break;
-			lerror("pipe_loop: error writing to pipe");
+			lerror("pipe_run: error writing to pipe");
 			return 1;
 		default:
 			p->opp += r;
@@ -407,7 +407,7 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 	if (p->opp == p->ibp) {
 		if (p->istate == 2) {
 			if (shutdown(p->fd, 1) == -1) {
-				lerror("pipe_loop: error closing pipe");
+				lerror("pipe_run: error closing pipe");
 				return 1;
 			}
 			p->istate = 0;
@@ -442,11 +442,11 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		if (p->state == 2) {
 			convert_result = convert_cgi_headers(p->pbuf, p->pstart, p->obuf, p->osize, &p->otop, &cn->r->status);
 			if (convert_result == -1) {
-				log_d("pipe_loop: problem in convert_cgi_headers");
+				log_d("pipe_run: problem in convert_cgi_headers");
 				return 1;
 			}
 		} else if (p->pstart == p->psize) {
-			log_d("pipe_loop: too many headers");
+			log_d("pipe_run: too many headers");
 			return 1;
 		}
 	}
@@ -465,7 +465,7 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 	}
 	if (p->otop == 0 && p->pstate == 2) {
 		if (p->ofd != -1 && shutdown(p->ofd, 1) == -1) {
-			lerror("pipe_loop: error closing stdout");
+			lerror("pipe_run: error closing stdout");
 			return 1;
 		}
 		p->pstate = 0;
