@@ -3,6 +3,7 @@
 
 #define CGI_MAGIC_TYPE "CGI"
 #define IMAP_MAGIC_TYPE "Imagemap"
+#define REDIRECT_MAGIC_TYPE "Redirect"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -305,6 +306,10 @@ extern void dump(void);
 
 extern void base64initialize(void);
 extern int webuserok(const char *, const char *, char *, int);
+
+/* redirect */
+
+extern int process_redirect(struct request *);
 
 #ifdef NEED_STRERROR
 extern const char *strerror(int);
