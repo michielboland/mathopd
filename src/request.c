@@ -829,18 +829,14 @@ static int process_headers(struct request *r)
 	if (strcmp(s, m_get) == 0)
 		r->method = M_GET;
 	else {
-		if (r->cn->assbackwards) {
-			log_d("method \"%s\" not implemented for old-style connections", s);
+		if (r->cn->assbackwards)
 			return 501;
-		}
 		if (strcmp(s, m_head) == 0)
 			r->method = M_HEAD;
 		else if (strcmp(s, m_post) == 0)
 			r->method = M_POST;
-		else {
-			log_d("method \"%s\" not implemented", s);
+		else
 			return 501;
-		}
 	}
 	s = r->url;
 	if (strlen(s) > STRLEN)
