@@ -274,6 +274,8 @@ static int output_headers(struct pool *p, struct request *r)
 		r->protocol_major, r->protocol_minor, r->status_line,
 		server_version,
 		rfctime(current_time, gbuf));
+	if (r->allowedmethods)
+		b += sprintf(b, "Allow: %s\r\n", r->allowedmethods);
 	if (r->c) {
 		if (r->c->refresh)
 			b += sprintf(b, "Refresh: %d\r\n", r->c->refresh);
@@ -1003,6 +1005,7 @@ int prepare_reply(struct request *r)
 		break;
 	case 405:
 		r->status_line = "405 Method Not Allowed";
+		r->allowedmethods = "GET, HEAD";
 		break;
 	case 501:
 		r->status_line = "501 Not Implemented";
@@ -1023,7 +1026,8 @@ int prepare_reply(struct request *r)
 	}
 	if (send_message) {
 		b = buf;
-		b += sprintf(b, "<title>%s</title>\n", r->status_line);
+		b += sprintf(b, "<title>%s</title>\n"
+			"<h1>%s</h1>\n", r->status_line, r->status_line);
 		switch (r->status) {
 		case 302:
 			b += sprintf(b, "This document has moved to URL <a href=\"%s\">%s</a>.\n", r->location, r->location);
@@ -1100,6 +1104,7 @@ static void init_request(struct request *r)
 	r->error_file = 0;
 	r->user[0] = 0;
 	r->servername = 0;
+	r->allowedmethods = 0;
 }
 
 int process_request(struct request *r)
