@@ -12,6 +12,7 @@ int buf_size = DEFAULT_BUF_SIZE;
 int input_buf_size = INPUT_BUF_SIZE;
 int num_connections = DEFAULT_NUM_CONNECTIONS;
 int timeout = DEFAULT_TIMEOUT;
+int cern = 0;
 
 char *pid_filename;
 char *log_filename;
@@ -47,6 +48,7 @@ static STRING(c_agent) =		"AgentLog";
 static STRING(c_alias) =		"Alias";
 static STRING(c_allow) =		"Allow";
 static STRING(c_buf_size) =		"BufSize";
+static STRING(c_cern) =			"CERNStyle";
 static STRING(c_child_log) =		"ChildLog";
 static STRING(c_control) =		"Control";
 static STRING(c_core_directory) =	"CoreDirectory";
@@ -58,7 +60,6 @@ static STRING(c_export) =		"Export";
 static STRING(c_group) =		"Group";
 static STRING(c_host) =			"Host";
 static STRING(c_index_names) =		"IndexNames";
-static STRING(c_keep_alive) =		"KeepAlive";
 static STRING(c_location) =		"Location";
 static STRING(c_log) =			"Log";
 static STRING(c_loglevel) =		"LogLevel";
@@ -567,6 +568,8 @@ static const char *config_main(void)
 			t = config_string(&fqdn);
 		else if (strceq(tokbuf, c_admin))
 			t = config_string(&admin);
+		else if (strceq(tokbuf, c_cern))
+			t = config_flag(&cern);
 		else if (strceq(tokbuf, c_timeout))
 			t = config_int(&timeout);
 		else if (strceq(tokbuf, c_buf_size))
