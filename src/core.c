@@ -128,6 +128,13 @@ static void accept_connection(struct server *s)
 			break;
 		}
 		s->naccepts++;
+#ifndef POLL
+		if (fd >= FD_SETSIZE) {
+			log_d("accept_connection: dropped fd %d past FD_SETSIZE", fd);
+			close(fd);
+			break;
+		}
+#endif
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		fcntl(fd, F_SETFL, O_NONBLOCK);
 		lsa = sizeof sa_local;
