@@ -19,6 +19,7 @@ The following keywords have been added:
 	Family
 	Options
 	NumProcesses
+	PID
 
 The following keywords have been removed:
 

@@ -627,6 +627,10 @@ Desc:    The Options keyword sets so-called socket options for a particular
              }
            }
 
+Keyword: PID
+Where:   LogFormat
+Desc:    The identifier of the process that handled the request.
+
 Keyword: PIDFile
 Where:   Global
 Type:    String

@@ -128,6 +128,7 @@ logformat-item:
 	"QueryString"
         "TimeTaken"
 	"MicroTime"
+	"PID"
 
 flag:
 	"On"
