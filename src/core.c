@@ -66,6 +66,7 @@ static void reinit_connection(struct connection *cn)
 	int rv;
 
 	log_request(cn->r);
+	cn->logged = 1;
 	if (cn->rfd != -1) {
 		rv = close(cn->rfd);
 		if (debug)
@@ -80,7 +81,7 @@ static void close_connection(struct connection *cn)
 {
 	int rv;
 
-	if (cn->nread || cn->nwritten)
+	if (cn->nread || cn->nwritten || cn->logged == 0)
 		log_request(cn->r);
 	--nconnections;
 	rv = close(cn->fd);
@@ -181,6 +182,7 @@ static void accept_connection(struct server *s)
 			if (nconnections > maxconnections)
 				maxconnections = nconnections;
 			init_connection(cn);
+			cn->logged = 0;
 			cn->action = HC_READING;
 		}
 	} while (tuning.accept_multi);

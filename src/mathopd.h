@@ -274,6 +274,7 @@ struct connection {
 	unsigned long nread;
 	unsigned long nwritten;
 	long left;
+	int logged;
 };
 
 struct tuning {
