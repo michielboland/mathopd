@@ -82,14 +82,13 @@ static int fgetline(char *s, int n, FILE *stream)
 
 int process_imap(struct request *r)
 {
-	char buffer[BUFSIZ];
 	char input[PATHLEN], default_url[PATHLEN];
 	point testpoint, pointarray[MAXVERTS];
 	long dist, mindist;
 	int k, line, sawpoint, text;
-	char *s, *t, *u, *v, *w, *status, *url;
+	char *s, *t, *u, *v, *w, *url;	const char *status;
 	FILE *fp;
-	static char *comma = ", ()\t\r\n";
+	static STRING(comma) = ", ()\t\r\n";
 
 	if (r->method == M_HEAD)
 		return 204;
@@ -111,10 +110,6 @@ int process_imap(struct request *r)
 	if ((fp = fopen(s, "r")) == 0) {
 		lerror("fopen");
 		r->error = "cannot open map file";
-		return 500;
-	}
-	if (setvbuf(fp, buffer, _IOFBF, BUFSIZ)) {
-		r->error = "setvbuf failed";
 		return 500;
 	}
 
@@ -239,7 +234,7 @@ int process_imap(struct request *r)
 
 		strcpy(buf, url);
 		if (*buf == '/')
-			construct_url(buf, url, r->cn->s);
+			construct_url(buf, url, r->vs);
 		escape_url(buf);
 		r->location = buf;
 		return 302;
@@ -256,7 +251,7 @@ static char **cgi_argv;
 static int cgi_envc;
 static int cgi_argc;
 
-static int add(char *name, const char *value)
+static int add(const char *name, const char *value)
 {
 	if (name && value == 0)
 		return 0;
@@ -294,17 +289,16 @@ static int add_argv(char *a)
 
 static int make_cgi_envp(struct request *r)
 {
-	struct server *vs = r->cn->s;
-	char *s;
+	struct server *sv = r->cn->s;
 	char t[16];
-	char **e = exports;
+	struct simple_list *e = exports;
 	unsigned long ia;
 	struct hostent *hp;
 	char *addr;
 	int i;
 	char path_translated[PATHLEN];
 
-	faketoreal(r->path_args, path_translated, r->cn->s->controls);
+	faketoreal(r->path_args, path_translated, r, 0);
 
 	i = strlen(r->path) - strlen(r->path_args);
 	if (i >= 0)
@@ -312,7 +306,7 @@ static int make_cgi_envp(struct request *r)
 
 	cgi_envc = 0;
 	cgi_envp = 0;
-	sprintf(t, "%d", vs->port);
+	sprintf(t, "%d", sv->port);
 	addr = r->cn->ip;
 	ia = r->cn->peer.s_addr;
 
@@ -337,15 +331,16 @@ static int make_cgi_envp(struct request *r)
 	}
 	ADD("REQUEST_METHOD", r->method_s);
 	ADD("SCRIPT_NAME", r->path);
-	ADD("SERVER_NAME", vs->name);
+	ADD("SERVER_NAME", r->vs->host ? r->vs->host : sv->name);
 	ADD("SERVER_PORT", t);
 	ADD("SERVER_PROTOCOL", r->protocol);
 	ADD("SERVER_SOFTWARE", server_version);
 	if (r->cn->keepalive) {
 		ADD("HTTP_CONNECTION", magic_word);
 	}
-	while ((s = *e++) != 0) {
-		ADD(s, getenv(s));
+	while (e) {
+		ADD(e->name, getenv(e->name));
+		e = e->next;
 	}
 	ADD(0, 0);
 	return 0;
@@ -378,7 +373,7 @@ static int make_cgi_argv(struct request *r, char *b)
 	return 0;
 }
 
-static int cgi_error(struct request *r, int code, char *error)
+static int cgi_error(struct request *r, int code, const char *error)
 {
 	struct pool *p = r->cn->output;
 
@@ -388,7 +383,7 @@ static int cgi_error(struct request *r, int code, char *error)
 		write(STDOUT_FILENO, p->start, p->end - p->start);
 	return -1;
 }
-
+			  
 static int exec_cgi(struct request *r)
 {
 	char *dir, *base;
@@ -423,17 +418,15 @@ int process_cgi(struct request *r)
 
 #ifdef DUMP_MAGIC_TYPE
 
-#define DUMP_BUFSIZE 4096
-
 int process_dump(struct request *r)
 {
-	char name[L_tmpnam];
-	char buf[DUMP_BUFSIZE];
-	char *b;
-	int fd, tmp_fd, l, left, t;
+	char buf[BUFSIZ];
+	FILE *tmp_file;
+	int fd, l;
 	int ncrd, ncwr, ncwt;
 	struct connection *cn;
 	struct server *s;
+	struct virtual *v;
 	long naccepts, nhandled, nrequests;
 
 	if (r->method != M_GET) {
@@ -441,31 +434,19 @@ int process_dump(struct request *r)
 		return 501;
 	}
 
-	tmpnam(name);
-
-	tmp_fd = open(name, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-	if (tmp_fd == -1) {
-		lerror("open");
-		r->error = "cannot open temporary file";
-		return 500;
-	}
-
-	if (unlink(name) == -1) {
-		lerror("unlink");
-		close(tmp_fd);
-		r->error = "cannot unlink temporary file";
+	tmp_file = tmpfile();
+	if (tmp_file == 0) {
+		lerror("tmpfile");
+		r->error = "cannot create temporary file";
 		return 500;
 	}
 
 	fd = open(r->path_translated, O_RDONLY);
 	if (fd != -1) {
-		while ((l = read(fd, buf, DUMP_BUFSIZE)) > 0)
-		    write(tmp_fd, buf, l);
+		while ((l = read(fd, buf, BUFSIZ)) > 0)
+		    fwrite(buf, 1, l, tmp_file);
 		close(fd);
 	}
-
-	left = DUMP_BUFSIZE;
-	b = buf;
 
 	ncrd = ncwr = ncwt = 0;
 	cn = connections;
@@ -485,14 +466,14 @@ int process_dump(struct request *r)
 		}
 		cn = cn->next;
 	}
-	sprintf(b,
+	fprintf(tmp_file,
 		"Uptime: %d seconds\n"
 		"Active connections: %d (Rd:%d Wr:%d Wt:%d) out of %d\n"
 		"Max simultaneous connections since last dump: %d\n"
 		"Number of exited children: %d\n"
 		"\n"
-		"Server                           "
-		"Address            accepts   handled  requests\n"
+		"Server                     "
+		"Address           port   accepts   handled  requests\n"
 		"\n",
 
 		(int) (current_time - startuptime),
@@ -506,85 +487,52 @@ int process_dump(struct request *r)
 
 	maxconnections = nconnections;
 
-	l = strlen(b);
-	b += l;
-	left -= l;
-
 	s = servers;
-	t = 0;
 	naccepts = nhandled = nrequests = 0;
 
 	while (s) {
-		if (left > 200) {
-			sprintf(b,
-				"%-32s %-16s %9ld %9ld %9ld\n",
-				s->fullname, 
-				inet_ntoa(s->addr),
-				s->naccepts,
-				s->nhandled,
-				s->nrequests);
-			l = strlen(b);
-			b += l;
-			left -= l;
-		}
-		else if (t == 0) {
-			t = 1;
-			sprintf(b, "(more)\n");
-			l = strlen(b);
-			b += l;
-			left -= l;
-		}
+		fprintf(tmp_file,
+			"%-26s %-16s %5d %9ld %9ld\n",
+			s->name, 
+			inet_ntoa(s->addr),
+			s->port,
+			s->naccepts,
+			s->nhandled);
 		naccepts += s->naccepts;
 		nhandled += s->nhandled;
-		nrequests += s->nrequests;
+		v = s->children;
+		while (v) {
+			fprintf(tmp_file, "  %-68s%9ld\n",
+				v->host ? v->host : "(default)",
+				v->nrequests);
+			nrequests += v->nrequests;
+			v = v->next;
+		}
 		s = s->next;
 	}
 
-	sprintf(b,
-		"\n"
-		"   total                                         "          
-		"%9ld %9ld %9ld\n",
+	fprintf(tmp_file,
+		"\n  %-48s%9ld %9ld %9ld\n",
+		"TOTAL",
 		naccepts,
 		nhandled,
 		nrequests);
 
-	write(tmp_fd, buf, strlen(buf));
-	fstat(tmp_fd, &r->finfo);
+	fd = dup(fileno(tmp_file));
+	fclose(tmp_file);
+	if (fd == -1) {
+		lerror("dup");
+		r->error = "dup failed";
+		return 500;
+	}
+	fstat(fd, &r->finfo);
 
 	r->num_content = 0;
 	r->content_type = "text/plain";
-	r->cn->rfd = tmp_fd;
+	r->cn->rfd = fd;
 	r->content_length = r->finfo.st_size;
 	lseek(fd, 0, SEEK_SET);
 	return 200;
 }
 
 #endif /* DUMP_MAGIC_TYPE */
-
-#ifdef REDIRECT_MAGIC_TYPE
-
-int process_redirect(struct request *r)
-{
-	char **redirects = r->c->redirects;
-	static char buf[PATHLEN];
-	int n = r->c->redirectno;
-
-	if (redirects[n] == 0) {
-		n = 0;
-		if (redirects[n] == 0) {
-			r->error = "no srever to redirect to";
-			return 500;
-		}
-	}
-	r->c->redirectno = n + 1;
-	if (*redirects[n] == '/')
-		construct_url(buf, redirects[n], r->cn->s);
-	else
-		strcpy(buf, redirects[n]);
-	strcat(buf, r->path_args);
-	escape_url(buf);
-	r->location = buf;
-	return 302;
-}
-
-#endif /* REDIRECT_MAGIC_TYPE */
