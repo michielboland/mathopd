@@ -1,14 +1,14 @@
 /*
  * main.c - Mathopd
  *
- * Copyright 1996 Michiel Boland
+ * Copyright 1996, 1997, Michiel Boland
  */
 
 /* Once Around */
 
 #include "mathopd.h"
 
-STRING(server_version) = "Mathopd/1.1b1";
+STRING(server_version) = "Mathopd/1.1b5";
 
 volatile int gotsigterm;
 volatile int gotsighup;
@@ -173,7 +173,8 @@ int main(int argc, char *argv[])
 	}
 
 	if (pid_filename) {
-		pid_fd = open(pid_filename, O_WRONLY | O_CREAT, 0644);
+		pid_fd = open(pid_filename, O_WRONLY | O_CREAT,
+			      DEFAULT_FILEMODE);
 		if (pid_fd == -1)
 			die("open", "Cannot open PID file");
 	}
@@ -193,9 +194,6 @@ int main(int argc, char *argv[])
 			_exit(0);
 		case 0:
 			setsid();
-			/*
-			 * avoid acquiring a controlling tty
-			 */
 			if (fork())
 				_exit(0);
 		}
@@ -261,12 +259,14 @@ int fork_request(struct request *r, int (*f)(struct request *))
 
 		fd = r->cn->fd;
 		efd = open(child_filename,
-			   O_WRONLY | O_CREAT | O_APPEND, 0666);
+			   O_WRONLY | O_CREAT | O_APPEND, DEFAULT_FILEMODE);
 		if (efd == -1)
 			efd = fd;
 		dup2(efd, STDERR_FILENO);
 		dup2(fd, STDIN_FILENO);
 		dup2(STDIN_FILENO, STDOUT_FILENO);
+		fcntl(STDIN_FILENO, F_SETFL, 0);
+		fcntl(STDOUT_FILENO, F_SETFL, 0);
 		close(fd);
 		if (efd != fd)
 			close(efd);
