@@ -67,7 +67,7 @@ int debug;
 unsigned long fcm; /* should be mode_t */
 int stayroot;
 int amroot;
-int my_pid;
+volatile int my_pid;
 
 static int am_daemon;
 static char *progname;
@@ -125,6 +125,16 @@ static void startup_server(struct server *s)
 
 static void sighandler(int sig)
 {
+/*
+ * If we use vfork(), we must ignore all signals that are delivered when we
+ * are running as a child process (in particular during the window of time
+ * between setuid(u) and execve()). Checking getpid() against my_pid in the
+ * signal handler appears to be the quick-and-dirtiest way to do this.
+ */
+#ifdef HAVE_VFORK
+	if (getpid() != my_pid)
+		return;
+#endif
 	switch (sig) {
 	case SIGTERM:
 	case SIGINT:
@@ -317,15 +327,7 @@ pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd,
 		return -1;
 	case 0:
 		setpgid(0, 0);
-		mysignal(SIGCHLD, SIG_DFL);
-		mysignal(SIGHUP, SIG_DFL);
-		mysignal(SIGTERM, SIG_DFL);
-		mysignal(SIGINT, SIG_DFL);
-		mysignal(SIGQUIT, SIG_DFL);
-		mysignal(SIGUSR1, SIG_DFL);
-		mysignal(SIGUSR2, SIG_DFL);
 		mysignal(SIGPIPE, SIG_DFL);
-		mysignal(SIGWINCH, SIG_DFL);
 		if (coredir) {
 			rl.rlim_cur = rl.rlim_max = 0;
 			setrlimit(RLIMIT_CORE, &rl);
