@@ -424,7 +424,7 @@ static int makedir(struct request *r)
 	static char buf[PATHLEN];
 	char *e;
 
-	construct_url(buf, r->url, r->vs);
+	construct_url(buf, r->url, r);
 	e = buf+strlen(buf);
 	*e++ = '/';
 	*e = '\0';
@@ -581,15 +581,20 @@ static int find_vs(struct request *r)
 		v = v->next;
 	}
 	if (v == 0) {
-		if (gv)
-			v = gv;
-		else
+		v = gv;
+		if (v == 0)
 			return -1;
 	}
 	r->vs = v;
 	v->nrequests++;
+	if (v->host)
+		r->servername = v->host;
+	else if (v->parent->name)
+		r->servername = v->parent->name;
+	else
+		r->servername = r->iphost;
 	if (r->host && v->host == 0) {
-		log(L_ERROR, "No such virtual server: %s", r->host);
+		log(L_ERROR, "No such virtual server: %.50s", r->host);
 		return 1;
 	}
 	return 0;
@@ -834,6 +839,9 @@ static int process_headers(struct request *r)
 	r->c = 0;
 	r->error_file = 0;
 	r->user[0] = '\0';
+	r->servername = 0;
+
+	sprintf(r->iphost, "%.15s", inet_ntoa(r->cn->sock.sin_addr));
 
 	if ((l = getline(r->cn->input)) == 0) {
 		r->error = br_empty; /* can this happen? */
@@ -1131,9 +1139,9 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 	return c;
 }
 
-void construct_url(char *d, char *s, struct virtual *v)
+void construct_url(char *d, char *s, struct request *r)
 {
-	sprintf(d, "http://%s%s", v->fullname, s);
+	sprintf(d, "http://%s%s", r->servername, s);
 }
 
 void escape_url(char *url)
