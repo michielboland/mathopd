@@ -300,6 +300,7 @@ struct connection {
 	int logged;
 	struct timeval itv;
 	struct pipe_params pipe_params;
+	off_t file_offset;
 };
 
 struct connection_list {
@@ -426,4 +427,11 @@ extern void pipe_run(struct connection *);
 extern void init_child(struct connection *, int);
 extern int setup_child_pollfds(int, struct connection *);
 
+#ifdef SENDFILE
+
+/* sendfile */
+
+extern off_t sendfile_connection(struct connection *);
+
+#endif
 #endif
