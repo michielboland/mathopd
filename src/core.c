@@ -330,7 +330,7 @@ static int fill_connection(struct connection *cn)
 }
 #endif
 
-static void end_request(struct connection *cn)
+static void end_response(struct connection *cn)
 {
 #if defined LINUX_SENDFILE || defined FREEBSD_SENDFILE
 	if (cn->rfd != -1)
@@ -361,7 +361,7 @@ static void write_connection(struct connection *cn)
 				return;
 			}
 			if (cn->left == 0)
-		       		end_request(cn);
+		       		end_response(cn);
 			return;
 #else
 			p->start = p->end = p->floor;
@@ -371,7 +371,7 @@ static void write_connection(struct connection *cn)
 				return;
 			}
 			if (n == 0) {
-				end_request(cn);
+				end_response(cn);
 				return;
 			}
 #endif
