@@ -518,6 +518,8 @@ static int process_special(struct request *r)
 		return process_redirect(r);
 	if (!strcasecmp(ct, DUMP_MAGIC_TYPE))
 		return process_dump(r);
+	if (r->status)
+		return 0;
 	r->error_file = r->c->error_404_file;
 	r->status = 404;
 	return 0;
