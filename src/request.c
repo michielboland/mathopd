@@ -371,16 +371,16 @@ static int get_path_info(struct request *r)
 		return -1;
 	s = &r->finfo;
 	p = r->path_translated;
-	start = p + m - 1;
+	start = p + m;
 	end = p + strlen(p);
 	pa = r->path_args;
 	*pa = 0;
 	cp = end;
 	if (debug)
 		log_d("get_path_info: p=%s", p);
-	while (cp > start && cp[-1] == '/')
+	while (cp >= start && cp[-1] == '/')
 		--cp;
-	while (cp > start) {
+	while (cp >= start) {
 		if (cp != end)
 			*cp = 0;
 		rv = stat(p, s);
@@ -393,7 +393,7 @@ static int get_path_info(struct request *r)
 			*cp = 0;
 			return 0;
 		}
-		while (--cp > start && *cp != '/')
+		while (--cp >= start && *cp != '/')
 			;
 	}
 	return -1;
