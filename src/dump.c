@@ -70,23 +70,23 @@ static void dump_connections(FILE *f, struct connection *cn)
 	fprintf(f, "Connections:\n");
 	while (cn) {
 		if (cn->state == HC_FREE)
-			fputc('.', f);
+			putc('.', f);
 		else {
 			switch (cn->action) {
 			case HC_READING:
-				fputc('r', f);
+				putc('r', f);
 				ncrd++;
 				break;
 			case HC_WRITING:
-				fputc('W', f);
+				putc('W', f);
 				ncwr++;
 				break;
 			case HC_WAITING:
-				fputc('-', f);
+				putc('-', f);
 				ncwt++;
 				break;
 			default:
-				fputc('?', f);
+				putc('?', f);
 				break;
 			}
 		}
