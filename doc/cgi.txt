@@ -130,6 +130,42 @@ character, no command-line arguments are passed to the CGI program.
 Instead, the program should use the QUERY_STRING environment variable
 to read the query. The query in QUERY_STRING is not hex-decoded.
 
+Environment Variables
+--------------------------------
+
+In addition to the variables defined by the CGI standard, Mathopd
+sets the following variables.
+
+  SCRIPT_FILENAME
+
+    this variable contains the physical pathname of the
+    script that Mathopd invoked;
+
+  REQUEST_URI
+
+    this variable contains the original Request-URI that
+    was sent by the client;
+
+  REMOTE_PORT
+
+    this variable contains the port number of the client's
+    end of the TCP connection to the web server;
+
+  SERVER_ADDR
+
+    this variable contains the IP address of the local end
+    of the TCP connection to the client.
+
+Note that variables that have a zero-length value are not passed
+in the environment. For example, if a CGI script is invoked from
+a Request-URI that did not contain a query, then there will be
+no QUERY_STRING variable (as opposed to a QUERY_STRING variable
+with an empty value.)
+
+Also note that, starting from version 1.5b10, Mathopd no longer
+sets the REMOTE_HOST variable. Doing so would imply DNS lookups.
+These are no longer done.
+
 Example
 --------------------------------
 
