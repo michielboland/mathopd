@@ -45,6 +45,7 @@ static const char rcsid[] = "$Id$";
 #include <ctype.h>
 #include <string.h>
 #include <fcntl.h>
+#include <pwd.h>
 #include <time.h>
 #include <unistd.h>
 #include "mathopd.h"
@@ -677,30 +678,45 @@ static int check_realm(struct request *r)
 struct control *faketoreal(char *x, char *y, struct request *r, int update)
 {
 	struct control *c;
-	char *s;
+	char *s, *t;
+	struct passwd *p;
 
 	if (r->vs == 0) {
 		log_d("virtualhost not initialized!");
 		return 0;
 	}
-	s = 0;
 	c = r->vs->controls;
 	while (c) {
 		if (c->locations && c->alias) {
 			s = c->exact_match ? exactmatch(x, c->alias) : dirmatch(x, c->alias);
-			if (s && (c->clients == 0 || evaluate_access(r->cn->peer.sin_addr.s_addr, c->clients) == APPLY))
-				break;
+			if (s && (c->clients == 0 || evaluate_access(r->cn->peer.sin_addr.s_addr, c->clients) == APPLY)) {
+				if (c->user_directory == 0) {
+					strcpy(y, c->locations->name);
+					r->location_length = strlen(y);
+					if (c->locations->name[0] == '/' || !c->path_args_ok)
+						strcat(y, s);
+					break;
+				}
+				t = strchr(s, '/');
+				if (t)
+					*t = 0;
+				if (debug)
+					log_d("faketoreal: performing password lookup for user %s", s);
+				p = getpwnam(s);
+				if (t)
+					*t = '/';
+				if (p && p->pw_dir) {
+					r->location_length = sprintf(y, "%s/%s", p->pw_dir, c->locations->name);
+					if (t && (c->locations->name[0] == '/' || !c->path_args_ok))
+						strcat(y, t);
+					break;
+				}
+			}
 		}
 		c = c->next;
 	}
-	if (c) {
-		if (update)
-			c->locations = c->locations->next;
-		strcpy(y, c->locations->name);
-		r->location_length = strlen(y);
-		if (c->locations->name[0] == '/' || !c->path_args_ok)
-			strcat(y, s);
-	}
+	if (c && update)
+		c->locations = c->locations->next;
 	return c;
 }
 
