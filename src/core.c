@@ -844,15 +844,18 @@ void httpd_main(void)
 			dump_pollfds(n, 0);
 		rv = poll(pollfds, n, t);
 		current_time = time(0);
-		if (debug)
-			dump_pollfds(n, 1);
 		if (rv == -1) {
 			if (errno != EINTR) {
 				lerror("poll");
 				break;
-			} else
+			} else {
+				if (debug)
+					log_d("poll interrupted");
 				continue;
+			}
 		}
+		if (debug)
+			dump_pollfds(n, 1);
 		if (current_time != last_time) {
 			if (accepting == 0)
 				accepting = 1;
