@@ -421,9 +421,9 @@ static int check_symlinks(struct request *r)
 
 static int makedir(struct request *r)
 {
-	static char buf[PATHLEN];
-	char *e;
+	char *buf, *e;
 
+	buf = r->path_args;
 	construct_url(buf, r->url, r);
 	e = buf+strlen(buf);
 	*e++ = '/';
@@ -1141,7 +1141,12 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 
 void construct_url(char *d, char *s, struct request *r)
 {
-	sprintf(d, "http://%s%s", r->servername, s);
+	int port = r->cn->s->port;
+
+	if (port == DEFAULT_PORT)
+		sprintf(d, "http://%s%s", r->servername, s);
+	else
+		sprintf(d, "http://%s:%d%s", r->servername, port, s);
 }
 
 void escape_url(char *url)
