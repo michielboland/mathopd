@@ -611,7 +611,6 @@ static void read_connection(struct connection *cn)
 			return;
 		}
 		set_connection_state(cn, HC_WRITING);
-		write_connection(cn);
 	}
 }
 
@@ -706,8 +705,13 @@ static void run_rconnection(struct connection *cn)
 		set_connection_state(cn, HC_CLOSING);
 		return;
 	}
-	if (r & POLLIN)
+	if (r & POLLIN) {
 		read_connection(cn);
+		r &= ~POLLIN;
+		if (cn->connection_state == HC_WRITING)
+			r |= POLLOUT;
+		pollfds[cn->pollno].revents = r;
+	}
 }
 
 static void run_wconnection(struct connection *cn)
