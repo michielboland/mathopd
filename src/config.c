@@ -740,7 +740,6 @@ static const char *config_vhost(struct virtual **vs, struct vserver *s, const ch
 			return e_memory;
 		sanitize_host(v->host);
 	}
-	v->parent = s->server;
 	v->controls = 0; /* filled in later */
 	v->vserver = s;
 	v->next = *vs;
