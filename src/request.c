@@ -702,7 +702,7 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update, int 
 						log_d("overflow in faketoreal");
 						return 0;
 					}
-					l = sprintf(y, "%s/%.*s", p->pw_dir, maxlen - (l + 2), c->locations->name); 
+					l = sprintf(y, "%s/%.*s", p->pw_dir, maxlen - (l + 2), c->locations->name);
 					r->location_length = l;
 					maxlen -= l + 1;
 					if (t && (c->locations->name[0] == '/' || !c->path_args_ok))
