@@ -21,8 +21,6 @@ We are currently at 1.3b7. Changes to the last beta:
 
 	The InputBufSize keyword has been added.
 
-	A HISTORY file was added for your entertainment.
-
 	Negative numbers are no longer allowed in the
 	configuration file.
 
