@@ -1262,3 +1262,9 @@ int process_request(struct request *r)
 	}
 	return r->status >= 0 ? 0 : -1;
 }
+
+int cgi_error(struct request *r)
+{
+	r->status = 500;
+	return prepare_reply(r);
+}
