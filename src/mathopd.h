@@ -229,6 +229,7 @@ struct server {
 	unsigned long naccepts;
 	unsigned long nhandled;
 	struct vserver *vservers;
+	char *s_fullname;
 };
 
 struct request {
