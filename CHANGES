@@ -100,3 +100,7 @@ The server now emits an error message if it cannot open
 any log files.
 
 Support for select() has been removed in favour of poll().
+
+The REQUEST_URI variable is now set in CGI scripts.
+The log buffer is allocated in such a way that overflow of log file entries
+should no longer occur.
