@@ -364,7 +364,7 @@ int process_cgi(struct request *r)
 		g = 0;
 		break;
 	}
-	if (geteuid() == u) {
+	if (amroot && u == server_uid) {
 		log_d("cannot run scripts withouth changing identity");
 		return 500;
 	}
