@@ -719,7 +719,7 @@ static int process_path(struct request *r)
 		return 403;
 	}
 	if (get_mime(r, r->path_translated) == -1)
-		return 500;
+		return 403;
 	switch (r->class) {
 	case CLASS_FILE:
 		return process_fd(r);
