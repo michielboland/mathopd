@@ -456,19 +456,18 @@ void httpd_main(void)
 {
 	struct server *s;
 	struct connection *cn;
-	int error;
 	int rv;
 	int n;
 	short r;
 
 	current_time = startuptime = time(0);
-	error = 0;
 	log_d("*** %s starting", server_version);
 	while (gotsigterm == 0) {
 		if (gotsighup) {
 			gotsighup = 0;
 			init_logs();
-			log_d("logs reopened");
+			if (debug)
+				log_d("logs reopened");
 		}
 		if (gotsigusr1) {
 			gotsigusr1 = 0;
@@ -530,40 +529,36 @@ void httpd_main(void)
 		if (rv == -1) {
 			if (errno != EINTR) {
 				lerror("poll");
-				if (error++) {
-					log_d("whoops");
-					break;
-				}
-			}
-		} else {
-			error = 0;
-			if (rv) {
-				s = servers;
-				while (s) {
-					if (s->fd != -1) {
-						if (pollfds[s->pollno].revents & POLLIN)
-							accept_connection(s);
-					}
-					s = s->next;
-				}
-				cn = connections;
-				while (cn) {
-					if (cn->state == HC_ACTIVE) {
-						r = pollfds[cn->pollno].revents;
-						if (r & POLLIN)
-							read_connection(cn);
-						else if (r & POLLOUT)
-							write_connection(cn);
-						else if (r) {
-							log_d("poll: unexpected event %hd", r);
-							cn->action = HC_CLOSING;
-						}
-					}
-					cn = cn->next;
-				}
-			}
-			cleanup_connections();
+				break;
+			} else
+				continue;
 		}
+		if (rv) {
+			s = servers;
+			while (s) {
+				if (s->fd != -1) {
+					if (pollfds[s->pollno].revents & POLLIN)
+						accept_connection(s);
+				}
+				s = s->next;
+			}
+			cn = connections;
+			while (cn) {
+				if (cn->state == HC_ACTIVE) {
+					r = pollfds[cn->pollno].revents;
+					if (r & POLLIN)
+						read_connection(cn);
+					else if (r & POLLOUT)
+						write_connection(cn);
+					else if (r) {
+						log_d("poll: unexpected event %hd", r);
+						cn->action = HC_CLOSING;
+					}
+				}
+				cn = cn->next;
+			}
+		}
+		cleanup_connections();
 	}
 	log_d("*** shutting down");
 }
