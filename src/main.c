@@ -48,8 +48,6 @@ static const char rcsid[] = "$Id$";
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <pwd.h>
-#include <grp.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -154,7 +152,6 @@ int main(int argc, char *argv[])
 	struct server *s;
 	char buf[10];
 	struct rlimit rl;
-	struct passwd *pwd;
 	const char *message;
 	const char *config_filename;
 
@@ -220,22 +217,18 @@ int main(int argc, char *argv[])
 	}
 	setuid(geteuid());
 	if (geteuid() == 0) {
-		if (user_name == 0)
+		if (server_uid == 0)
 			die(0, "No user specified.");
-		pwd = getpwnam(user_name);
-		if (pwd == 0)
-			die(0, "%s: Unknown user.", user_name);
-		if (pwd->pw_uid == 0)
-			die(0, "%s: Invalid user.", user_name);
 		if (setgroups(0, 0) == -1)
-			die("setgroups", 0);
-		if (setgid(pwd->pw_gid) == -1)
+			if (setgroups(1, &server_gid) == -1)
+				die("setgroups", 0);
+		if (setgid(server_gid) == -1)
 			die("setgid", 0);
 		if (stayroot) {
-			if (seteuid(pwd->pw_uid) == -1)
+			if (seteuid(server_uid) == -1)
 				die("seteuid", 0);
 		} else {
-			if (setuid(pwd->pw_uid) == -1)
+			if (setuid(server_uid) == -1)
 				die("setuid", 0);
 		}
 	}

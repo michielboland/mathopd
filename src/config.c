@@ -64,7 +64,8 @@ struct server *servers;
 struct virtual *virtuals;
 struct vserver *vservers;
 
-char *user_name;
+uid_t server_uid;
+gid_t server_gid;
 
 int log_columns;
 int *log_column;
@@ -169,6 +170,7 @@ static const char e_keyword[] =		"unknown keyword";
 static const char e_memory[] =		"out of memory";
 static const char e_illegalport[] =	"illegal port number";
 static const char e_noinput[] =		"no input";
+static const char e_user_invalid[] =	"invalid user";
 static const char e_user_unknown[] =	"user unknown";
 
 static const char t_close[] =		"unexpected closing brace";
@@ -911,6 +913,24 @@ static const char *config_tuning(struct configuration *p, struct tuning *tp)
 	return 0;
 }
 
+static const char *config_user(struct configuration *p)
+{
+	const char *t;
+	struct passwd *pw;
+
+	t = gettoken(p);
+	if (t != t_string)
+		return t;
+	pw = getpwnam(p->tokbuf);
+	if (pw == 0)
+		return e_user_unknown;
+	if (pw->pw_uid == 0)
+		return e_user_invalid;
+	server_uid = pw->pw_uid;
+	server_gid = pw->pw_gid;
+	return 0;
+}
+
 static const char *config_main(struct configuration *p)
 {
 	const char *t;
@@ -927,7 +947,7 @@ static const char *config_main(struct configuration *p)
 		else if (!strcasecmp(p->tokbuf, c_stay_root))
 			t = config_flag(p, &stayroot);
 		else if (!strcasecmp(p->tokbuf, c_user))
-			t = config_string(p, &user_name);
+			t = config_user(p);
 		else if (!strcasecmp(p->tokbuf, c_pid_file))
 			t = config_string(p, &pid_filename);
 		else if (!strcasecmp(p->tokbuf, c_log))
