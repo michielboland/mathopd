@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003 Michiel Boland.
+ *   Copyright 1996 - 2004 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -261,13 +261,22 @@ static int accept_connection(struct server *s)
 			return 0;
 		l = sizeof sa_remote;
 		fd = accept(s->fd, (struct sockaddr *) &sa_remote, &l);
-		if (fd == -1) {
-			if (errno != EAGAIN) {
+		if (fd == -1)
+			switch (errno) {
+			case EAGAIN:
+				return 0;
+#ifdef ECONNABORTED
+			case ECONNABORTED:
+#endif
+#ifdef EPROTO
+			case EPROTO:
+#endif
+				lerror("accept");
+				continue;
+			default:
 				lerror("accept");
 				return -1;
 			}
-			return 0;
-		}
 		++stats.accepted_connections;
 		if (debug)
 			log_d("accept_connection: %d", fd);
