@@ -181,6 +181,7 @@ struct control {
 	char *child_filename;
 	int dns;
 	struct simple_list *exports;
+	char *script_user;
 };
 
 struct virtual {
