@@ -12,13 +12,12 @@ int nconnections;
 int maxconnections;
 time_t current_time;
 
-int error_file = -1;
-
 static int log_file = -1;
+static int error_file = -1;
 static int agent_file = -1;
 
 #ifdef NEED_STRERROR
-char *strerror(int err)
+const char *strerror(int err)
 {
 	extern int sys_nerr;
 	extern char *sys_errlist[];
@@ -358,7 +357,7 @@ static void init_logs(void)
 }
 
 
-void log(int type, char *fmt, ...)
+void log(int type, const char *fmt, ...)
 {
 	va_list args;
 	char log_line[2*PATHLEN];
@@ -366,23 +365,32 @@ void log(int type, char *fmt, ...)
 	int l;
 	int fd;
 
-	if (type == L_TRANS)
+	switch (type) {
+	case L_TRANS:
 		fd = log_file;
-	else if (type == L_AGENT)
+		break;
+	case L_AGENT:
 		fd = agent_file;
-	else if (type <= log_level)
+		break;
+	case L_DEBUG:
+		if (debug == 0)
+			return;
+	default:
 		fd = error_file;
-	else
-		return;
+	}
 
 	if (fd == -1)
 		return;
 
 	va_start(args, fmt);
+#ifdef BROKEN_SPRINTF
 	vsprintf(log_line, fmt, args);
+	l = strlen(log_line);
+#else
+	l = vsprintf(log_line, fmt, args);
+#endif
 	va_end(args);
 
-	l = strlen(log_line);
 	s = log_line + l;
 	*s++ = '\n';
 	*s = '\0';
@@ -390,7 +398,7 @@ void log(int type, char *fmt, ...)
 	write(fd, log_line, l + 1);
 }
 
-void lerror(char *s)
+void lerror(const char *s)
 {
 	int saved_errno = errno;
 
@@ -445,15 +453,6 @@ void httpd_main(void)
 				cn = cn->next;
 			}
 			log(L_LOG, "connections closed");
-		}
-
-		if (gotsigusr2) {
-			gotsigusr2 = 0;
-			if (log_level >= L_LOGMAX)
-				log_level = L_LOGMIN;
-			else
-				++log_level;
-			log(L_LOG, "new log level: %d", log_level);
 		}
 
 #ifdef POLL
@@ -524,8 +523,8 @@ void httpd_main(void)
 			    gotactive ? &tv : 0);
 #else
 		rv = select(m + 1, &rfds, &wfds, 0, gotactive ? &tv : 0);
-#endif
-#endif
+#endif /* HPUX */
+#endif /* POLL */
 		if (rv == -1) {
 			if (errno != EINTR) {
 #ifdef POLL
