@@ -41,6 +41,7 @@ static const char rcsid[] = "$Id$";
 #include <sys/wait.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <netdb.h>
 #include <unistd.h>
