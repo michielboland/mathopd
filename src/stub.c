@@ -761,9 +761,9 @@ static int childisfinished(struct pipe_params *p)
 {
 	if (p->pstate != 3)
 		return 0;
-	if (p->otop)
+	if (p->otop > p->obp)
 		return 0;
-	if (p->ipp)
+	if (p->ipp > p->pstart)
 		return 0;
 	if (p->istate == 1 && p->imax)
 		return 0;
