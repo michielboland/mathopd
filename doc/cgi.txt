@@ -166,6 +166,27 @@ Also note that, starting from version 1.5b10, Mathopd no longer
 sets the REMOTE_HOST variable. Doing so would imply DNS lookups.
 These are no longer done.
 
+NPH Scripts and Buffering
+--------------------------------
+
+Prior to version 1.5b5, each CGI script launched by Mathopd had
+the be an NPH script. That is, each script had a direct connection
+to the client. And each script had to send a HTTP response-line.
+From version 1.5b5 onwards, the situation is more or less the
+opposite. NPH scripts are no longer possible, in the sense that
+a CGI script is no longer directly connected to the client.
+All output from CGI scripts must pass through the server.
+Scripts that are written as NPH will continue to work though.
+
+Any data that a CGI script sends to its standard output will be
+sent to the client by Mathopd as soon as possible. So, if your
+CGI application sends out a lot of very tiny chunks of data,
+these chunks will be received by the client at about the same
+speed. The downside of that is that Mathopd becomes quite
+busy just copying data to and fro, and will steal precious CPU
+cycles from other programs (including the CGI script itself.)
+Therefore it is recommended that CGI scripts buffer their output.
+
 Example
 --------------------------------
 
