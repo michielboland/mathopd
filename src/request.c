@@ -1496,7 +1496,7 @@ static int prepare_reply(struct request *r)
 		log_d("cl_start is null!?!?");
 		return -1;
 	}
-	sprintf(cl_start, "%*ld", cl_end - cl_start, r->content_length);
+	sprintf(cl_start, "%*ld", (int) (cl_end - cl_start), r->content_length);
 	*cl_end = '\r';
 	return 0;
 }
