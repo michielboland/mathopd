@@ -192,7 +192,7 @@ static time_t timerfc(const char *s)
 	    365L * (year - 1970L) + ((year - 1969L) >> 2))));
 }
 
-static char *rfctime(time_t t, char *buf)
+char *rfctime(time_t t, char *buf)
 {
 	struct tm *tp;
 

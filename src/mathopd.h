@@ -333,6 +333,7 @@ extern int init_pollfds(size_t);
 
 /* request */
 
+extern char *rfctime(time_t, char *);
 extern void init_request(struct request *);
 extern int process_request(struct request *);
 extern struct control *faketoreal(char *, char *, struct request *, int, int);
