@@ -357,6 +357,8 @@ static int get_mime(struct request *r, const char *s)
 		m = m->next;
 	}
 	if (saved_type) {
+		if (debug)
+			log_d("get_mime: processed %s, type=%s, class=%d", s, saved_type, saved_class);
 		r->content_type = saved_type;
 		r->class = saved_class;
 		r->num_content = lm;
