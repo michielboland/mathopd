@@ -108,15 +108,13 @@ static int add_argv(const char *a, const char *b, int decode)
 
 #define ADD_ARGV(x, y, z) if (add_argv(x, y, z) == -1) return -1
 
-static char *dnslookup(struct in_addr ia, int level)
+static char *dnslookup(struct in_addr ia)
 {
 	char **al;
 	struct hostent *h;
 	const char *message;
 	char *tmp;
 
-	if (level == 0)
-		return 0;
 	h = gethostbyaddr((char *) &ia, sizeof ia, AF_INET);
 	if (h == 0 || h->h_name == 0)
 		return 0;
@@ -125,15 +123,13 @@ static char *dnslookup(struct in_addr ia, int level)
 		log_d("dnslookup: strdup failed");
 		return 0;
 	}
-	if (level <= 1)
-		return tmp;
 	message = "name does not match address";
 	h = gethostbyname(tmp);
 	if (h == 0)
 		message = "host not found";
 	else if (h->h_name == 0)
 		message = "h_name == 0";
-	else if (level > 2 && strcasecmp(h->h_name, tmp))
+	else if (strcasecmp(h->h_name, tmp))
 		message = "name not canonical";
 	else if (h->h_addrtype != AF_INET)
 		message = "h_addrtype != AF_INET";
@@ -175,15 +171,17 @@ static int make_cgi_envp(struct request *r)
 		ADD("PATH_INFO", r->path_args);
 	ADD("QUERY_STRING", r->args);
 	ADD("REMOTE_ADDR", r->cn->ip);
-	tmp = dnslookup(r->cn->peer.sin_addr, r->c->dns);
-	if (tmp) {
-		ADD("REMOTE_HOST", tmp);
-		free(tmp);
+	if (r->c->dns) {
+		tmp = dnslookup(r->cn->peer.sin_addr);
+		if (tmp) {
+			ADD("REMOTE_HOST", tmp);
+			free(tmp);
+		}
 	}
 	ADD("REQUEST_METHOD", r->method_s);
 	ADD("SCRIPT_NAME", r->path);
 	ADD("SERVER_NAME", r->servername);
-	sprintf(t, "%d", r->cn->s->port);
+	sprintf(t, "%lu", r->cn->s->port);
 	ADD("SERVER_PORT", t);
 	ADD("SERVER_SOFTWARE", server_version);
 	if (r->protocol_major) {
