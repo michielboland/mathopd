@@ -466,10 +466,12 @@ static int makedir(struct request *r)
 		l = snprintf(r->newloc, PATHLEN, "%s/", r->url);
 	if (l >= PATHLEN) {
 		log_d("makedir: url too large");
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	r->location = r->newloc;
-	return 302;
+	r->status = 302;
+	return 0;
 }
 
 static int append_indexes(struct request *r)
@@ -517,7 +519,8 @@ static int process_special(struct request *r)
 	if (!strcasecmp(ct, DUMP_MAGIC_TYPE))
 		return process_dump(r);
 	r->error_file = r->c->error_404_file;
-	return 404;
+	r->status = 404;
+	return 0;
 }
 
 static int satisfy_range(struct request *r)
@@ -562,10 +565,13 @@ static int process_fd(struct request *r)
 
 	if (r->path_args[0] && r->c->path_args_ok == 0 && (r->path_args[1] || r->isindex == 0)) {
 		r->error_file = r->c->error_404_file;
-		return 404;
+		r->status = 404;
+		return 1;
 	}
-	if (r->method == M_POST)
-		return 405;
+	if (r->method == M_POST) {
+		r->status = 405;
+		return 0;
+	}
 	fd = open(r->path_translated, O_RDONLY | O_NONBLOCK);
 	if (debug)
 		log_d("process_fd: %d %s", fd, r->path_translated);
@@ -573,39 +579,51 @@ static int process_fd(struct request *r)
 		log_d("cannot open %s", r->path_translated);
 		lerror("open");
 		r->error_file = r->c->error_404_file;
-		return 404;
+		r->status = 404;
+		return 1;
 	}
 	if (fstat(fd, &r->finfo) == -1) {
 		lerror("fstat");
 		close(fd);
-		return 500;
+		r->status = 500;
+		return 0;
 	}
 	if (!S_ISREG(r->finfo.st_mode)) {
 		log_d("process_fd: non-regular file %s", r->path_translated);
 		close(fd);
 		r->error_file = r->c->error_404_file;
-		return 404;
+		r->status = 404;
+		return 1;
 	}
 	r->content_length = r->finfo.st_size;
-	r->last_modified = r->finfo.st_mtime;
-	if (r->last_modified <= r->ims) {
-		close(fd);
-		r->num_content = -1;
-		return 304;
-	}
-	if (r->ius && r->last_modified > r->ius) {
-		close(fd);
-		return 412;
-	}
-	if (r->range) {
-		if (satisfy_range(r) == -1) {
+	if (r->status == 0) {
+		r->last_modified = r->finfo.st_mtime;
+		if (r->last_modified <= r->ims) {
 			close(fd);
-			return 416;
+			r->num_content = -1;
+			r->status = 304;
+			return 0;
 		}
-		if (r->range) {
-			if (r->range_floor)
-				lseek(fd, r->range_floor, SEEK_SET);
-			r->content_length = r->range_ceiling - r->range_floor + 1;
+		if (r->ius && r->last_modified > r->ius) {
+			close(fd);
+			r->status = 412;
+			return 0;
+		}
+		if (r->range == 0)
+			r->status = 200;
+		else {
+			if (satisfy_range(r) == -1) {
+				close(fd);
+				r->status = 416;
+				return 0;
+			}
+			if (r->range) {
+				if (r->range_floor)
+					lseek(fd, r->range_floor, SEEK_SET);
+				r->content_length = r->range_ceiling - r->range_floor + 1;
+				r->status = 206;
+			} else
+				r->status = 200;
 		}
 	}
 	if (r->method == M_GET) {
@@ -613,7 +631,7 @@ static int process_fd(struct request *r)
 		r->cn->rfd = fd;
 	} else
 		close(fd);
-	return r->range ? 206 : 200;
+	return 0;
 }
 
 static int find_vs(struct request *r)
@@ -750,66 +768,86 @@ static int process_path(struct request *r)
 {
 	switch (find_vs(r)) {
 	case -1:
-		return 500;
+		r->status = 500;
+		return 0;
 	case 1:
-		return 400;
+		r->status = 400;
+		return 0;
 	}
-	if ((r->c = faketoreal(r->path, r->path_translated, r, 1, sizeof r->path_translated)) == 0)
-		return 500;
+	if ((r->c = faketoreal(r->path, r->path_translated, r, 1, sizeof r->path_translated)) == 0) {
+		r->status = 500;
+		return 0;
+	}
 	if (check_path(r) == -1) {
 		r->error_file = r->c->error_404_file;
-		return 404;
+		r->status = 404;
+		return 1;
 	}
 	if (r->c->accesses && evaluate_access(r->cn->peer.sin_addr.s_addr, r->c->accesses) == DENY) {
 		r->error_file = r->c->error_403_file;
-		return 403;
+		r->status = 403;
+		return 1;
 	}
 	if (r->c->realm && check_realm(r) == -1) {
 		r->error_file = r->c->error_401_file;
-		return 401;
+		r->status = 401;
+		return 1;
 	}
-	return 0;
+	return 1;
 }
 
 static int process_path_translated(struct request *r)
 {
-	if (r->path_translated[0] == 0)
-		return 500;
+	if (r->path_translated[0] == 0) {
+		r->status = 500;
+		return 0;
+	}
 	if (r->path_translated[0] != '/') {
+		if (r->status)
+			return 0;
 		r->location = r->path_translated;
-		return 302;
+		r->status = 302;
+		return 0;
 	}
 	if (get_path_info(r) == -1) {
 		r->error_file = r->c->error_404_file;
-		return 404;
+		r->status = 404;
+		return 1;
 	}
 	if (S_ISDIR(r->finfo.st_mode)) {
+		if (r->status)
+			return 0;
 		if (r->path_args[0] != '/')
 			return makedir(r);
 		if (append_indexes(r) == -1) {
-			if (r->path_args[1] == 0 && r->c->auto_index_command && *r->c->auto_index_command == '/') {
-				if (r->method == M_POST)
-					return 405;
-				r->content_type = r->c->auto_index_command;
-				r->class = CLASS_EXTERNAL;
-				return process_cgi(r);
+			if (r->path_args[1] == 0 && r->c->auto_index_command) {
+				if (r->method == M_POST) {
+					r->status = 405;
+					return 0;
+				}
+				r->error_file = r->c->auto_index_command;
+				return 1;
 			}
 			r->error_file = r->c->error_404_file;
-			return 404;
+			r->status = 404;
+			return 1;
 		}
 	}
 	if (r->path_args[0] && r->c->path_info_ok == 0) {
 		r->error_file = r->c->error_404_file;
-		return 404;
+		r->status = 404;
+		return 1;
 	}
 	if (!S_ISREG(r->finfo.st_mode)) {
 		log_d("%s is not a regular file", r->path_translated);
 		r->error_file = r->c->error_404_file;
-		return 404;
+		r->status = 404;
+		return 1;
 	}
 	if (get_mime(r, r->path_translated) == -1) {
 		r->error_file = r->c->error_404_file;
-		return 404;
+		r->status = 404;
+		return 1;
 	}
 	switch (r->class) {
 	case CLASS_FILE:
@@ -820,7 +858,8 @@ static int process_path_translated(struct request *r)
 		return process_external(r);
 	}
 	log_d("unknown class!?");
-	return 500;
+	r->status = 500;
+	return 0;
 }
 
 static int parse_range_header(struct request *r, const char *s)
@@ -961,8 +1000,10 @@ static int process_headers(struct request *r)
 		r->args = s + 1;
 		*s = 0;
 	}
-	if (parse_http_version(r) == -1)
-		return 400;
+	if (parse_http_version(r) == -1) {
+		r->status = 400;
+		return 0;
+	}
 	n = 0;
 	multiple_range = 0;
 	while ((l = getline(&r->cn->header_input, 1)) != 0) {
@@ -1016,30 +1057,41 @@ static int process_headers(struct request *r)
 			r->method = M_HEAD;
 		else if (strcmp(s, m_post) == 0)
 			r->method = M_POST;
-		else
-			return 501;
+		else {
+			r->status = 501;
+			return 0;
+		}
 	}
 	s = r->url;
-	if (strlen(s) > STRLEN)
-		return 414;
+	if (strlen(s) > STRLEN) {
+		r->status = 414;
+		return 0;
+	}
 	if (*s != '/') {
 		u = strchr(s, '/');
-		if (u == 0 || u[1] != '/' || u[2] == 0 || u[2] == '/')
-			return 400;
+		if (u == 0 || u[1] != '/' || u[2] == 0 || u[2] == '/') {
+			r->status = 400;
+			return 0;
+		}
 		u += 2;
 		s = strchr(u, '/');
-		if (s == 0)
-			return 400;
+		if (s == 0) {
+			r->status = 400;
+			return 0;
+		}
 		memcpy(r->rhost, u, s - u);
 		r->rhost[s - u] = 0;
 		r->host = r->rhost;
 		sanitize_host(r->host);
 	}
-	if (unescape_url(s, r->path) == -1)
-		return 400;
+	if (unescape_url(s, r->path) == -1) {
+		r->status = 400;
+		return 0;
+	}
 	if (r->protocol_major > 1 || (r->protocol_major == 1 && r->protocol_minor > 1)) {
 		log_d("%s: unsupported version HTTP/%d.%d", inet_ntoa(r->cn->peer.sin_addr), r->protocol_major, r->protocol_minor);
-			return 505;
+		r->status = 505;
+		return 0;
 	}
 	if (r->protocol_major) {
 		s = r->connection;
@@ -1051,7 +1103,8 @@ static int process_headers(struct request *r)
 	if (r->in_transfer_encoding) {
 		if (strcasecmp(r->in_transfer_encoding, "chunked")) {
 			log_d("unimplemented transfer-coding \"%s\"", r->in_transfer_encoding);
-			return 501;
+			r->status = 501;
+			return 0;
 		}
 		if (r->in_content_length) {
 			log_d("ignoring Content-Length header from client");
@@ -1062,7 +1115,8 @@ static int process_headers(struct request *r)
 	if (s) {
 		if (*s == '-' || (cl = strtoul(s, &u, 10), u == s || *u || cl >= UINT_MAX)) {
 			log_d("bad Content-Length from client: \"%s\"", s);
-			return 400;
+			r->status = 400;
+			return 0;
 		}
 		r->in_mblen = cl;
 	}
@@ -1095,10 +1149,12 @@ static int process_headers(struct request *r)
 			}
 		}
 	} else if (r->method == M_POST) {
-		if (r->in_content_length == 0)
-			return 411;
+		if (r->in_content_length == 0) {
+			r->status = 411;
+			return 0;
+		}
 	}
-	return 0;
+	return 1;
 }
 
 static int prepare_reply(struct request *r)
@@ -1263,14 +1319,29 @@ void init_request(struct request *r)
 
 int process_request(struct request *r)
 {
-	int s;
+	int s, n;
 
-	r->status = s = process_headers(r);
-	if (s == 0)
-		r->status = s = process_path(r);
-	if (s == 0)
-		r->status = s = process_path_translated(r);
-	if (s > 0)
+	s = process_headers(r);
+	if (s == -1)
+		return -1;
+	if (s) {
+		s = process_path(r);
+		n = 0;
+		do {
+			if (s && r->error_file) {
+				r->location_length = sprintf(r->path_translated, "%.*s", PATHLEN - 1, r->error_file);
+				r->error_file = 0;
+			}
+			if (debug)
+				log_d("process_request: %s", r->path_translated);
+			s = process_path_translated(r);
+		} while (++n < 3 && s == 1);
+		if (n == 3 && s == 1) {
+			log_d("process_request: loop detected");
+			r->status = 500;
+		}
+	}
+	if (r->status)
 		if (prepare_reply(r) == -1) {
 			log_d("cannot prepare reply for client");
 			return -1;
