@@ -789,7 +789,12 @@ static int process_headers(struct request *r)
 	while (*u == ' ')
 		++u;
 	s = strrchr(u, ' ');
-	if (s) {
+	if (s == 0) {
+		if (r->cn->assbackwards == 0) {
+			log_d("version == 0 !?");
+			return -1;
+		}
+	} else {
 		r->version = s + 1;
 		do
 			*s-- = 0;
@@ -830,10 +835,6 @@ static int process_headers(struct request *r)
 			r->in_content_length = s;
 	}
 	s = r->method_s;
-	if (s == 0) {
-		log_d("method_s == 0 !?");
-		return -1;
-	}
 	if (strcmp(s, m_get) == 0)
 		r->method = M_GET;
 	else {
@@ -851,10 +852,6 @@ static int process_headers(struct request *r)
 		}
 	}
 	s = r->url;
-	if (s == 0) {
-		log_d("url == 0 !?");
-		return -1;
-	}
 	if (strlen(s) > STRLEN)
 		return 400;
 	if (unescape_url(s, r->path) == -1)
@@ -866,10 +863,6 @@ static int process_headers(struct request *r)
 		r->protocol_minor = 9;
 	} else {
 		s = r->version;
-		if (s == 0) {
-			log_d("version == 0 !?");
-			return -1;
-		}
 		if (strncmp(s, "HTTP/", 5)) {
 			log_d("%s: unsupported version \"%s\"", inet_ntoa(r->cn->peer.sin_addr), s);
 			return 400;
