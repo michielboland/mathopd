@@ -445,7 +445,7 @@ static void reap_children(void)
 		lerror("waitpid");
 }
 
-static void init_log_d(char *name, int *fdp)
+static int init_log_d(char *name, int *fdp)
 {
 	int fd, nfd;
 	char converted_name[PATHLEN], *n;
@@ -462,22 +462,23 @@ static void init_log_d(char *name, int *fdp)
 		}
 		fd = *fdp;
 		nfd = open(n, O_WRONLY | O_CREAT | O_APPEND, DEFAULT_FILEMODE);
-		if (nfd == -1) {
-			if (fd == -1)
-				gotsigusr2 = 1;
-			return;
+		if (nfd == -1)
+			return fd == -1 ? -1 : 0;
+		if (fd == -1)
+			*fdp = nfd;
+		else if (nfd != fd) {
+			dup2(nfd, fd);
+			close(nfd);
+			nfd = fd;
 		}
 		fcntl(nfd, F_SETFD, FD_CLOEXEC);
-		if (fd != -1)
-			close(fd);
-		*fdp = nfd;
 	}
+	return 0;
 }
 
-static void init_logs(void)
+static int init_logs(void)
 {
-	init_log_d(log_filename, &log_file);
-	init_log_d(error_filename, &error_file);
+	return init_log_d(log_filename, &log_file) == -1 || init_log_d(error_filename, &error_file) == -1 ? -1 : 0;
 }
 
 static void fd_log_d(int fd, const char *fmt, va_list ap)
@@ -550,7 +551,8 @@ void httpd_main(void)
 	while (gotsigterm == 0) {
 		if (gotsighup) {
 			gotsighup = 0;
-			init_logs();
+			if (init_logs() == -1)
+				gotsigusr2 = 1;
 			if (first) {
 				first = 0;
 				log_d("*** %s starting", server_version);
