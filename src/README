@@ -5,7 +5,7 @@ Mathopd in a production environment, and you are not the same
 person as the author, you should stay away from this code, and
 use the stable version instead.
 
-We are currently at 1.3b5. Changes to the last beta:
+We are currently at 1.3b6. Changes to the last beta:
 
     A new file, log.c, has been added to the source.
     This files does all the request logging. It uses an
@@ -13,5 +13,10 @@ We are currently at 1.3b5. Changes to the last beta:
     currently hardcoded in such a way that the logging
     output looks exactly similar to the `old' log format.
     Logging can be customized in later versions.
+
+    The dump() routine has been removed. Instead, a
+    "Dump" specialty has been added. This can be used
+    to view live statistics of your web server using any
+    ordinary web browser.
 
 Michiel Boland <boland@diva.nl>
