@@ -227,7 +227,6 @@ struct request {
 	time_t last_modified;
 	time_t ims;
 	char *location;
-	const char *status_line;
 	char *method_s;
 	char *url;
 	char *args;
@@ -242,7 +241,6 @@ struct request {
 	const char *error_file;
 	char user[16];
 	char newloc[PATHLEN];
-	const char *allowedmethods;
 	size_t location_length;
 	size_t nheaders;
 	struct request_header *headers;
@@ -380,6 +378,7 @@ extern int init_connections(size_t);
 
 extern char *rfctime(time_t, char *);
 extern struct control *faketoreal(char *, char *, struct request *, int, int);
+extern int pool_print(struct pool *, const char *, ...);
 extern void init_request(struct request *);
 extern int process_request(struct request *);
 extern int cgi_error(struct request *);
