@@ -36,8 +36,6 @@
 
 #include "mathopd.h"
 
-static const char fb_no_identity[] = "no user set to run script";
-
 static char **cgi_envp;
 static char **cgi_argv;
 static int cgi_envc;
@@ -323,8 +321,15 @@ static int exec_cgi(struct request *r)
 {
 	if (init_cgi_env(r) == -1)
 		return cgi_error(r, 500, "could not initialize CGI environment");
-	if (become_user(r->c->script_user) == -1) {
-		return cgi_error(r, 403, "cannot set uids");
+	if (r->c->script_user) {
+		if (become_user(r->c->script_user) == -1) {
+			return cgi_error(r, 403, "cannot set uids");
+		}
+	} else if (r->c->run_scripts_as_owner) {
+		return cgi_error(r, 500, "RunScriptsAsOwner not yet implemented");
+	} else {
+		log_d("cannot run scripts withouth changing identity");
+		return cgi_error(r, 403, "script permission denied");
 	}
 	if (geteuid() == 0) {
 		log_d("cannot run scripts as root");
@@ -341,10 +346,5 @@ static int exec_cgi(struct request *r)
 
 int process_cgi(struct request *r)
 {
-	if (r->c->script_user == 0) {
-		r->error = fb_no_identity;
-		r->error_file = r->c->error_403_file;
-		return 403;
-	}
 	return fork_request(r, exec_cgi);
 }
