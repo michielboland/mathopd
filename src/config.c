@@ -89,6 +89,7 @@ static const char c_allow[] =			"Allow";
 static const char c_allow_dotfiles[] =		"AllowDotfiles";
 static const char c_any_host[] =		"AnyHost";
 static const char c_apply[] =			"Apply";
+static const char c_auto_index_command[] =	"AutoIndexCommand";
 static const char c_buf_size[] =		"BufSize";
 static const char c_bytes_read[] =		"BytesRead";
 static const char c_bytes_written[] =		"BytesWritten";
@@ -624,6 +625,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->putenvs = b->putenvs;
 		a->extra_headers = b->extra_headers;
 		a->path_info_ok = b->path_info_ok;
+		a->auto_index_command = b->auto_index_command;
 	} else {
 		a->index_names = 0;
 		a->accesses = 0;
@@ -645,6 +647,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->putenvs = 0;
 		a->extra_headers = 0;
 		a->path_info_ok = 1;
+		a->auto_index_command = 0;
 	}
 	a->next = *as;
 	*as = a;
@@ -726,6 +729,8 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_list(p, &a->extra_headers);
 		else if (!strcasecmp(p->tokbuf, c_path_info))
 			t = config_flag(p, &a->path_info_ok);
+		else if (!strcasecmp(p->tokbuf, c_auto_index_command))
+			t = config_string(p, &a->auto_index_command);
 		else
 			t = e_keyword;
 		if (t)

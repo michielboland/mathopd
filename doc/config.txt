@@ -103,6 +103,14 @@ Keyword: Apply
 Where:   Clients
 Type:    Network
 
+Keyword: AutoIndexCommand
+Where:   Control
+Desc:    If a request for a directory is made, and none of the files
+         specified by IndexNames is found in that directory, mathopd will,
+         as a last resort, run a special CGI script to generate a directory
+         listing. The AutoIndexCommand determines which script exactly.
+         The script must be an absolute pathname.
+
 Keyword: BufSize
 Where:   Tuning
 Type:    Integer

@@ -87,6 +87,7 @@ control-item:
 	"PutEnv" string-block
 	"ExtraHeaders" string-block
 	"PathInfo" flag
+	"AutoIndexCommand" string
 
 server-item:
 	"Port" integer

@@ -172,6 +172,7 @@ struct control {
 	struct simple_list *putenvs;
 	struct simple_list *extra_headers;
 	int path_info_ok;
+	char *auto_index_command;
 };
 
 struct virtual {
