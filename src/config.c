@@ -162,8 +162,7 @@ static const char *gettoken(void)
 		if ((c = getc(stdin)) == EOF) {
 			state = 0;
 			err = t_eof;
-		}
-		else if (c == '\n')
+		} else if (c == '\n')
 			++line;
 		switch (state) {
 		case 1:
@@ -433,8 +432,7 @@ static const char *config_control(struct control **as)
 		a->error_404_file = b->error_404_file;
 		a->do_crypt = b->do_crypt;
 		a->child_filename = b->child_filename;
-	}
-	else {
+	} else {
 		a->index_names = 0;
 		a->accesses = 0;
 		a->mimes = 0;
@@ -467,13 +465,11 @@ static const char *config_control(struct control **as)
 				l->next = l;
 				a->locations = l;
 			}
-		}
-		else if (!strcasecmp(tokbuf, c_alias)) {
+		} else if (!strcasecmp(tokbuf, c_alias)) {
 			GETSTRING();
 			chopslash(tokbuf);
 			COPY(a->alias, tokbuf);
-		}
-		else if (!strcasecmp(tokbuf, c_symlinks))
+		} else if (!strcasecmp(tokbuf, c_symlinks))
 			t = config_flag(&a->symlinksok);
 		else if (!strcasecmp(tokbuf, c_path_args))
 			t = config_flag(&a->path_args_ok);
@@ -689,8 +685,7 @@ static struct pool *new_pool(size_t s)
 		if (t) {
 			p->floor = t;
 			p->ceiling = t + s;
-		}
-		else
+		} else
 			return 0;
 	}
 	return p;
