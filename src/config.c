@@ -1014,6 +1014,7 @@ const char *config(const char *config_filename)
 	tuning.num_headers = DEFAULT_NUM_HEADERS;
 	tuning.script_timeout = DEFAULT_SCRIPT_TIMEOUT;
 	tuning.script_buf_size = DEFAULT_SCRIPT_BUF_SIZE;
+	tuning.script_lo_wat = 0;
 	fcm = DEFAULT_UMASK;
 	stayroot = 0;
 	log_columns = 0;
