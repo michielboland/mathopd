@@ -111,7 +111,7 @@ static int fgetline(char *s, int n, FILE *stream)
 
 int process_imap(struct request *r)
 {
-	char input[PATHLEN], default_url[PATHLEN];
+	char input[STRLEN], default_url[STRLEN];
 	point testpoint, pointarray[MAXVERTS];
 	long dist, mindist;
 	int k, line, sawpoint, text;
@@ -149,7 +149,7 @@ int process_imap(struct request *r)
 	status = 0;
 	url = 0;
 
-	while (fgetline(input, PATHLEN, fp) != -1) {
+	while (fgetline(input, STRLEN, fp) != -1) {
 		++line;
 		k = 0;
 		t = strtok(input, comma);
@@ -259,13 +259,14 @@ int process_imap(struct request *r)
 		return 500;
 	}
 	if (url) {
-		static char buf[PATHLEN];
+		char *location = r->path_args;
 
-		strcpy(buf, url);
-		if (*buf == '/')
-			construct_url(buf, url, r);
-		escape_url(buf);
-		r->location = buf;
+		if (*url == '/')
+			construct_url(location, url, r);
+		else
+			strcpy(location, url);
+		escape_url(location);
+		r->location = location;
 		return 302;
 	}
 	return 204;
