@@ -605,12 +605,8 @@ static int find_vs(struct request *r)
 		}
 	else
 		while (v) {
-			if (v->host == 0) {
-				if (v->anyhost)
-					d = v;
-				else
-					break;
-			}
+			if (v->host == 0 && v->anyhost == 0)
+				break;
 			v = v->next;
 		}
 	if (v == 0) {
