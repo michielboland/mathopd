@@ -473,42 +473,25 @@ static int init_logs(void)
 	return init_log_d(log_filename, &log_file) == -1 || init_log_d(error_filename, &error_file) == -1 ? -1 : 0;
 }
 
-static void fd_log_d(int fd, const char *fmt, va_list ap)
-{
-	char log_line[2*PATHLEN];
-	int l, saved_errno;
-	char *ti;
-
-	saved_errno = errno;
-	ti = ctime(&current_time);
-	l = sprintf(log_line, "%.24s\t", ti ? ti : "???");
-	if (fd != log_file)
-		l += sprintf(log_line + l, "[%d]\t", my_pid);
-	l += vsprintf(log_line + l, fmt, ap);
-	log_line[l] = '\n';
-	write(fd, log_line, l + 1);
-	errno = saved_errno;
-}
-
 void log_d(const char *fmt, ...)
 {
 	va_list ap;
+	char log_line[200];
+	int l, m, n, saved_errno;
+	char *ti;
 
 	if (error_file == -1)
 		return;
 	va_start(ap, fmt);
-	fd_log_d(error_file, fmt, ap);
-	va_end(ap);
-}
-
-void log_trans(const char *fmt, ...)
-{
-	va_list ap;
-
-	if (log_file == -1)
-		return;
-	va_start(ap, fmt);
-	fd_log_d(log_file, fmt, ap);
+	saved_errno = errno;
+	ti = ctime(&current_time);
+	l = sprintf(log_line, "%.24s [%d] ", ti, my_pid);
+	m = sizeof log_line - l - 1;
+	n = vsnprintf(log_line + l, m, fmt, ap);
+	l += n < m ? n : m;
+	log_line[l++] = '\n';
+	write(error_file, log_line, l);
+	errno = saved_errno;
 	va_end(ap);
 }
 
