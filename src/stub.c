@@ -81,22 +81,25 @@ struct cgi_header {
 	const char *name;
 	size_t namelen;
 	const char *value;
-	size_t valuelen;
+	size_t len;
 };
 
 static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, size_t outsize, size_t *r)
 {
-	int s;
-	int c;
+	int addheader, c, s;
 	struct cgi_header headers[100];
-	size_t n;
-	size_t i;
-	const char *p, *tmpname;
-	int status, location;
-	size_t l, tmpnamelen, tmpvaluelen;
+	size_t i, nheaders, status, location;
+	const char *p, *tmpname, *tmpvalue;
+	int havestatus, havelocation, havecolon;
+	size_t len, tmpnamelen, tmpvaluelen;
 
 	tmpname = 0;
-	tmpnamelen = tmpvaluelen = 0;
+	tmpnamelen = 0;
+	tmpvalue = 0;
+	havestatus = 0;
+	havelocation = 0;
+	status = 0;
+	location = 0;
 	if (insize >= 5 && memcmp(inbuf, "HTTP/", 5) == 0) {
 		if (outsize < insize) {
 			log_d("convert_cgi_headers: output buffer is too small");
@@ -108,10 +111,10 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 		return 0;
 	}
 	s = 0;
-	n = 0;
-	l = 0;
-	status = -1;
-	location = -1;
+	nheaders = 0;
+	len = 0;
+	addheader = 0;
+	havecolon = 0;
 	for (i = 0, p = inbuf; i < insize; i++, p++) {
 		c = *p;
 		switch (s) {
@@ -122,119 +125,135 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 				break;
 			default:
 				tmpname = p;
-				l = 0;
+				tmpnamelen = 0;
+				tmpvalue = 0;
+				len = 0;
 				s = 1;
 				break;
 			}
 			break;
 		case 1:
-			++l;
+			++len;
 			switch (c) {
 			case '\r':
 			case '\n':
+				addheader = 1;
 				s = 0;
 				break;
 			case ':':
-				tmpnamelen = l;
-				s = 2;
+				havecolon = 1;
+			case ' ':
+			case '\t':
+				if (tmpnamelen == 0)
+					tmpnamelen = len;
+				break;
+			default:
+				if (tmpnamelen && tmpvalue == 0)
+					tmpvalue = p;
 				break;
 			}
 			break;
-		case 2:
-			switch (c) {
-			case '\r':
-			case '\n':
-				s = 0;
-				break;
-			case ' ':
-			case '\t':
-				break;
-			default:
-				if (n == 100) {
+		}
+		if (addheader) {
+			if (tmpvalue == 0 || havecolon == 0)
+				addheader = 0;
+			else
+				switch (tmpnamelen) {
+				case 4:
+					if (strncasecmp(tmpname, "Date", 4) == 0)
+						addheader = 0;
+					break;
+				case 6:
+					if (strncasecmp(tmpname, "Server", 6) == 0)
+						addheader = 0;
+					else if (strncasecmp(tmpname, "Status", 6) == 0) {
+						if (havestatus)
+							addheader = 0;
+						else {
+							status = nheaders;
+							havestatus = 1;
+						}
+					}
+					break;
+				case 8:
+					if (strncasecmp(tmpname, "Location", 8) == 0) {
+						if (havelocation)
+							addheader = 0;
+						else {
+							location = nheaders;
+							havelocation = 1;
+						}
+					}
+					break;
+				}
+			havecolon = 0;
+			if (addheader == 0) {
+				if (debug)
+					log_d("convert_cgi_headers: disallowing header \"%.*s\"", len, tmpname);
+			} else {
+				if (nheaders == 100) {
 					log_d("convert_cgi_headers: too many header lines");
 					return -1;
 				}
-				headers[n].name = tmpname;
-				headers[n].namelen = tmpnamelen;
-				headers[n].value = p;
-				l = 0;
-				s = 3;
-				break;
+				headers[nheaders].name = tmpname;
+				headers[nheaders].value = tmpvalue;
+				headers[nheaders].namelen = tmpnamelen;
+				headers[nheaders++].len = len;
+				addheader = 0;
 			}
-			break;
-		case 3:
-			++l;
-			switch (c) {
-			case '\r':
-			case '\n':
-				headers[n].valuelen = l;
-				s = 0;
-				++n;
-				break;
-			}
-			break;
 		}
 	}
 	if (s) {
 		log_d("convert_cgi_headers: s=%d!?", s);
 		return -1;
 	}
-	for (i = 0; i < n; i++) {
-		if (headers[i].namelen == 6 && strncasecmp(headers[i].name, "Status", 6) == 0)
-			status = i;
-		else if (headers[i].namelen == 8 && strncasecmp(headers[i].name, "Location", 8) == 0)
-			location = i;
-	}
-	l = 0;
-	if (location != -1 && status == -1) {
-		if (l + 20 > outsize) {
+	len = 0;
+	if (havelocation && havestatus == 0) {
+		if (len + 20 > outsize) {
 			log_d("convert_cgi_headers: no room to put Moved line");
 			return -1;
 		}
-		memcpy(outbuf + l, "HTTP/1.0 302 Moved\r\n", 20);
-		l += 20;
-	} else if (status == -1) {
-		if (l + 17 > outsize) {
+		memcpy(outbuf + len, "HTTP/1.0 302 Moved\r\n", 20);
+		len += 20;
+	} else if (havestatus == 0) {
+		if (len + 17 > outsize) {
 			log_d("convert_cgi_headers: no room to put OK line");
 			return -1;
 		}
-		memcpy(outbuf + l, "HTTP/1.0 200 OK\r\n", 17);
-		l += 17;
+		memcpy(outbuf + len, "HTTP/1.0 200 OK\r\n", 17);
+		len += 17;
 	} else {
-		if (l + headers[status].valuelen + 11 > outsize) {
+		tmpvaluelen = headers[status].len - (headers[status].value - headers[status].name);
+		if (len + tmpvaluelen + 11 > outsize) {
 			log_d("convert_cgi_headers: no room to put status line");
 			return -1;
 		}
-		memcpy(outbuf + l, "HTTP/1.0 ", 9);
-		l += 9;
-		memcpy(outbuf + l, headers[status].value, headers[status].valuelen);
-		l += headers[status].valuelen;
-		outbuf[l++] = '\r';
-		outbuf[l++] = '\n';
+		memcpy(outbuf + len, "HTTP/1.0 ", 9);
+		len += 9;
+		memcpy(outbuf + len, headers[status].value, tmpvaluelen);
+		len += tmpvaluelen;
+		outbuf[len++] = '\r';
+		outbuf[len++] = '\n';
 	}
-	for (i = 0; i < n; i++) {
-		if (i != status) {
-			if (l + headers[i].namelen + headers[i].valuelen + 4 > outsize) {
+	for (i = 0; i < nheaders; i++) {
+		if (havestatus == 0 || i != status) {
+			if (len + headers[i].len + 2 > outsize) {
 				log_d("convert_cgi_headers: no room to put header");
 				return -1;
 			}
-			memcpy(outbuf + l, headers[i].name, headers[i].namelen);
-			l += headers[i].namelen;
-			outbuf[l++] = ':';
-			outbuf[l++] = ' ';
-			memcpy(outbuf + l, headers[i].value, headers[i].valuelen);
-			l += headers[i].valuelen;
-			outbuf[l++] = '\r';
-			outbuf[l++] = '\n';
+			memcpy(outbuf + len, headers[i].name, headers[i].len);
+			len += headers[i].len;
+			outbuf[len++] = '\r';
+			outbuf[len++] = '\n';
 		}
 	}
-	if (l + 2 > outsize) {
+	if (len + 2 > outsize) {
 		log_d("convert_cgi_headers: no room to put trailing newline");
 		return -1;
 	}
-	outbuf[l++] = '\r';
-	outbuf[l++] = '\n';
-	*r = l;
+	outbuf[len++] = '\r';
+	outbuf[len++] = '\n';
+	*r = len;
 	return 0;
 }
 
