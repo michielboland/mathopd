@@ -272,7 +272,7 @@ int main(int argc, char *argv[])
 	mysignal(SIGQUIT, sighandler);
 	mysignal(SIGUSR1, sighandler);
 	mysignal(SIGUSR2, sighandler);
-	mysignal(SIGPIPE, sighandler);
+	mysignal(SIGPIPE, SIG_IGN);
 	my_pid = getpid();
 	if (pid_fd != -1) {
 		ftruncate(pid_fd, 0);
