@@ -139,6 +139,8 @@ struct control {
 	char *realm;
 	char *userfile;
 	char *error_401_file;
+	char *error_403_file;
+	char *error_404_file;
 };
 
 struct virtual {
@@ -201,6 +203,8 @@ struct request {
 	struct control *c;
 	struct stat finfo;
 	int isindex;
+	const char *error_file;
+	char user[16];
 };
 
 struct connection {
@@ -300,7 +304,7 @@ extern void dump(void);
 /* base64 */
 
 extern void base64initialize(void);
-extern int webuserok(const char *, const char *);
+extern int webuserok(const char *, const char *, char *, int);
 
 #ifdef NEED_STRERROR
 extern const char *strerror(int);
