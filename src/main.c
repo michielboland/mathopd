@@ -1,6 +1,6 @@
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.2b4";
+const char server_version[] = "Mathopd/1.2b5";
 
 volatile int gotsigterm;
 volatile int gotsighup;
@@ -48,7 +48,7 @@ static void startup_server(struct server *s)
 		die("setsockopt", 0);
 
 	fcntl(s->fd, F_SETFD, FD_CLOEXEC);
-	fcntl(s->fd, F_SETFL, M_NONBLOCK);
+	fcntl(s->fd, F_SETFL, O_NONBLOCK);
 
 	memset((char *) &sa, 0, sizeof sa);
 	sa.sin_family = AF_INET;
@@ -243,6 +243,8 @@ int main(int argc, char *argv[])
 
 	time(&startuptime);
 	time(&current_time);
+
+	base64initialize();
 
 	httpd_main();
 
