@@ -8,7 +8,7 @@
 
 #include "mathopd.h"
 
-STRING(server_version) = "Mathopd/1.1b12";
+STRING(server_version) = "Mathopd/1.1b13";
 
 volatile int gotsigterm;
 volatile int gotsighup;
@@ -17,6 +17,7 @@ volatile int gotsigusr2;
 volatile int numchildren;
 time_t startuptime;
 int debug;
+int fcm;
 
 static char *progname;
 static int forked;
@@ -134,9 +135,6 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-	umask(0);
-	chdir("/");
-
 #ifdef NO_GETRLIMIT
 	n = sysconf(_SC_OPEN_MAX);
 	if (n == -1)
@@ -152,14 +150,6 @@ int main(int argc, char *argv[])
 		switch(i) {
 		default:
 			close(i);
-			/*
-			 * We still need stdin for our config file
-			 * and stderr for error reporting. See
-			 * below for what is done with these files
-			 * when we have no more need for them.
-			 * NOTE: we assume that these files are
-			 * always open(!).
-			 */
 		case STDIN_FILENO:
 		case STDERR_FILENO:
 			break;
@@ -187,6 +177,14 @@ int main(int argc, char *argv[])
 			die("setuid", 0);
 	}
 
+	if (coredir) {
+		if (chdir(coredir) == -1)
+			die("chdir", 0);
+	} else
+		chdir("/");
+
+	umask(fcm);
+
 	if (pid_filename) {
 		pid_fd = open(pid_filename, O_WRONLY | O_CREAT,
 			      DEFAULT_FILEMODE);
@@ -196,22 +194,12 @@ int main(int argc, char *argv[])
 	else
 		pid_fd = -1;
 
-	if (coredir) {
-		if (chdir(coredir) == -1)
-			die("chdir", 0);
-	}
-
 	if (daemon) {
-		switch (fork()) {
-		case -1:
-			die("fork", 0);
-		default:
+		if (fork())
 			_exit(0);
-		case 0:
-			setsid();
-			if (fork())
-				_exit(0);
-		}
+		setsid();
+		if (fork())
+			_exit(0);
 	}
 
 	mysignal(SIGCHLD, sigchld, SA_RESTART | SA_NOCLDSTOP);
@@ -230,9 +218,9 @@ int main(int argc, char *argv[])
 		close(pid_fd);
 	}
 
-	null_fd = open("/dev/null", O_RDWR);
+	null_fd = open("/", O_RDONLY);
 	if (null_fd == -1)
-		die("open", "Cannot open /dev/null");
+		die("open", "Cannot open /");
 
 	dup2(null_fd, STDIN_FILENO);
 	dup2(null_fd, STDERR_FILENO);
