@@ -453,14 +453,17 @@ static int check_path(struct request *r)
 
 static int makedir(struct request *r)
 {
-	char *buf, *e;
+	int l;
 
-	buf = r->newloc;
-	strcpy(buf, r->url);
-	e = buf + strlen(buf);
-	*e++ = '/';
-	*e = 0;
-	r->location = buf;
+	if (r->args)
+		l = snprintf(r->newloc, PATHLEN, "%s/?%s", r->url, r->args);
+	else
+		l = snprintf(r->newloc, PATHLEN, "%s/", r->url);
+	if (l >= PATHLEN) {
+		log_d("makedir: url too large");
+		return 500;
+	}
+	r->location = r->newloc;
 	return 302;
 }
 
@@ -718,8 +721,7 @@ static int process_path(struct request *r)
 	if (r->path_translated[0] == 0)
 		return 500;
 	if (r->path_translated[0] != '/') {
-		escape_url(r->path_translated, r->newloc);
-		r->location = r->newloc;
+		r->location = r->path_translated;
 		return 302;
 	}
 	if (check_path(r) == -1) {
