@@ -68,14 +68,6 @@
 #include <poll.h>
 #endif
 
-#ifndef SA_RESTART
-#define SA_RESTART 0
-#endif
-
-#ifndef SA_INTERRUPT
-#define SA_INTERRUPT 0
-#endif
-
 #define DEFAULT_BUF_SIZE 12288
 #define INPUT_BUF_SIZE 2048
 #define DEFAULT_NUM_CONNECTIONS 64
@@ -278,7 +270,8 @@ extern volatile int gotsighup;
 extern volatile int gotsigusr1;
 extern volatile int gotsigusr2;
 extern volatile int gotsigwinch;
-extern volatile int numchildren;
+extern volatile int gotsigchld;
+extern int numchildren;
 extern time_t startuptime;
 extern int debug;
 extern int fcm;
