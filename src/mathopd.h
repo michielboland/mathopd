@@ -354,6 +354,7 @@ extern volatile sig_atomic_t gotsigusr1;
 extern volatile sig_atomic_t gotsigusr2;
 extern volatile sig_atomic_t gotsigchld;
 extern volatile sig_atomic_t gotsigquit;
+extern volatile sig_atomic_t gotsigwinch;
 extern int numchildren;
 extern int debug;
 extern unsigned long fcm;
@@ -412,6 +413,7 @@ extern int process_cgi(struct request *);
 /* dump */
 
 extern int process_dump(struct request *);
+extern void internal_dump(void);
 
 /* base64 */
 
