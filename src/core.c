@@ -495,7 +495,7 @@ void log_d(const char *fmt, ...)
 	l += n < m ? n : m;
 	log_line[l++] = '\n';
 	write(error_file, log_line, l);
-	if (am_daemon == 0)
+	if (am_daemon == 0 && forked == 0)
 		write(2, log_line, l);
 	errno = saved_errno;
 	va_end(ap);
