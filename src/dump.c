@@ -98,16 +98,12 @@ static int dump(int fd)
 
 static int do_dump(int fd, const char *name, struct request *r)
 {
-	int rv;
-
-	rv = remove(name);
-	if (rv == -1) {
+	if (remove(name) == -1) {
 		log_d("do_dump: cannot remove temporary file %s", name);
 		lerror("remove");
 		return -1;
 	}
-	rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
-	if (rv == -1) {
+	if (fcntl(fd, F_SETFD, FD_CLOEXEC) == -1) {
 		log_d("do_dump: failed to set FD_CLOEXEC flag !?!?!?");
 		lerror("fcntl");
 		return -1;
@@ -116,8 +112,7 @@ static int do_dump(int fd, const char *name, struct request *r)
 		log_d("do_dump: failed to dump to file %s", name);
 		return -1;
 	}
-	rv = fstat(fd, &r->finfo);
-	if (rv == -1) {
+	if (fstat(fd, &r->finfo) == -1) {
 		lerror("fstat");
 		return -1;
 	}
@@ -142,8 +137,6 @@ int process_dump(struct request *r)
 		lerror("mkstemp");
 		return 500;
 	}
-	if (debug)
-		log_d("process_dump: mkstemp(\"%s\") = %d", tmpbuf, fd);
 	if (do_dump(fd, tmpbuf, r) == -1) {
 		rv = close(fd);
 		return 500;
