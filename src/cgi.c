@@ -117,6 +117,7 @@ static int add_argv(const char *a, const char *b, int decode, struct cgi_paramet
 		if (decode) {
 			if (unescape_url_n(a, tmp, s)) {
 				free(tmp);
+				cp->cgi_argv[cp->cgi_argc] = 0;
 				return -1;
 			}
 		} else {
