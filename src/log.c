@@ -153,6 +153,10 @@ void log_request(struct request *r)
 			sprintf(tmp, "%lu", r->cn->nwritten);
 			s = tmp;
 			break;
+		case ML_QUERY_STRING:
+			if (rok)
+				s = r->args;
+			break;
 		}
 		if (s == 0 || *s == 0) {
 			if (left) {

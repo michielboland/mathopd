@@ -124,6 +124,7 @@ static const char c_on[] =			"On";
 static const char c_path_args[] =		"PathArgs";
 static const char c_pid_file[] =		"PIDFile";
 static const char c_port[] =			"Port";
+static const char c_query_string[] =		"QueryString";
 static const char c_realm[] =			"Realm";
 static const char c_referer[] =			"Referer";
 static const char c_remote_address[] =		"RemoteAddress";
@@ -412,6 +413,8 @@ static const char *config_log(struct configuration *p, int **colsp, int *numcols
 			ml = ML_BYTES_READ;
 		else if (!strcasecmp(p->tokbuf, c_bytes_written))
 			ml = ML_BYTES_WRITTEN;
+		else if (!strcasecmp(p->tokbuf, c_query_string))
+			ml = ML_QUERY_STRING;
 		else
 			return e_keyword;
 		++numcols;
