@@ -290,6 +290,7 @@ static int accept_connection(struct server *s)
 			cn->peer = sa_remote;
 			cn->sock = sa_local;
 			cn->t = current_time;
+			cn->eof = 0;
 			cn->pollno = -1;
 			++stats.nconnections;
 			if (stats.nconnections > stats.maxconnections)
