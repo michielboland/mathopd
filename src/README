@@ -5,42 +5,13 @@ Mathopd in a production environment, and you are not the same
 person as the author, you should stay away from this code, and
 use the stable version instead.
 
-We are currently at 1.3b4. Changes relative to the previous
-beta release:
+We are currently at 1.3b5. Changes to the last beta:
 
-    A new keyword: "ExactMatch"
-
-    An alias that has this keyword is processed if and only if the
-    request-uri exactly maps to the alias. This allows one to do
-    funny things like
-
-     Control {
-       Alias /
-       Location http://some.other.server
-     }
-     Control {
-       Alias /
-       Location /home/www/docs
-       ExactMatch On
-       IndexNames { index.html }
-     }
-
-    There are other applications for this but I leave them to
-    your imagination for now. :)
-
-    Log the url as sent by the client instead of the decoded url.
-    This prevents messy urls like /%09hahaha from currupting our
-    log file.
-
-    We now read all the header lines before starting to look at
-    the first line. This allows us to include more data for diag-
-    nostic logging. We ignore empty lines sent by clients and
-    lines that consist of just one word. Whether this is actually
-    a good thing is another matter but this was the easiest way
-    to code things.
-
-    The first request line (i.e. the "GET / HTTP/1.0" bit) is
-    split up a bit differently in order to work around stupidities
-    like spaces in URLs.
+    A new file, log.c, has been added to the source.
+    This files does all the request logging. It uses an
+    array of things that we should log. The array is
+    currently hardcoded in such a way that the logging
+    output looks exactly similar to the `old' log format.
+    Logging can be customized in later versions.
 
 Michiel Boland <boland@diva.nl>
