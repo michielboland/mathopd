@@ -60,12 +60,12 @@ static int pointincircle(point p, point c[])
 
 static int pointinpoly(point t, point a[], int n)
 {
-	int xflag, yflag, ysign, index;
+	int xflag, yflag, ysign, idx;
 	point *p, *q, *stop;
 
 	if (n < 3)
 		return 0;
-	index = 0;
+	idx = 0;
 	q = a;
 	stop = a + n;
 	p = stop - 1;
@@ -76,15 +76,15 @@ static int pointinpoly(point t, point a[], int n)
 			xflag = p->x >= t.x;
 			if (xflag == (q->x >= t.x)) {
 				if (xflag)
-					index += ysign;
+					idx += ysign;
 			} else if (ysign * ((p->x - t.x) * (q->y - p->y) - (p->y - t.y) * (q->x - p->x)) >= 0)
-				index += ysign;
+				idx += ysign;
 		}
 		++q;
 		if (++p == stop)
 			p = a;
 	}
-	return index;
+	return idx;
 }
 
 static int fgetline(char *s, int n, FILE *stream)
