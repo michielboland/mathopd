@@ -493,7 +493,6 @@ static int append_indexes(struct request *r)
 	}
 	if (i == 0) {
 		*q = 0;
-		r->error_file = r->c->error_404_file;
 		return -1;
 	}
 	return 0;
@@ -823,6 +822,7 @@ static int process_path(struct request *r)
 				r->class = CLASS_EXTERNAL;
 				return fork_request(r, exec_cgi);
 			}
+			r->error_file = r->c->error_404_file;
 			return 404;
 		}
 		
