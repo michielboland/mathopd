@@ -534,7 +534,9 @@ static int scanlflf(struct pipe_params *p)
 			p->error_condition = STUB_ERROR_RESTART;
 			return -1;
 		}
-		if (p->haslen) {
+		if (p->nocontent)
+			p->pstate = 3;
+		else if (p->haslen) {
 			if (p->pstart < p->ipp) {
 				if (p->ipp > p->pstart + p->pmax) {
 					log_d("extra garbage from script ignored");
@@ -561,43 +563,39 @@ static void copychunk(struct pipe_params *p)
 	char chunkbuf[16];
 	size_t chunkheaderlen;
 
-	if (p->nocontent)
-		p->pstart = p->ipp = 0;
-	else {
-		room = p->osize - p->otop;
-		bytestocopy = p->ipp - p->pstart;
-		if (bytestocopy > room)
-			bytestocopy = room;
-		if (bytestocopy && p->chunkit) {
-			chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
-			if (chunkheaderlen + 2 >= room)
-				bytestocopy = 0;
-			else {
-				if (bytestocopy + chunkheaderlen + 2 > room) {
-					bytestocopy -= chunkheaderlen + 2;
-					chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
-				}
-				memcpy(p->obuf + p->otop, chunkbuf, chunkheaderlen);
-				p->otop += chunkheaderlen;
+	room = p->osize - p->otop;
+	bytestocopy = p->ipp - p->pstart;
+	if (bytestocopy > room)
+		bytestocopy = room;
+	if (bytestocopy && p->chunkit) {
+		chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
+		if (chunkheaderlen + 2 >= room)
+			bytestocopy = 0;
+		else {
+			if (bytestocopy + chunkheaderlen + 2 > room) {
+				bytestocopy -= chunkheaderlen + 2;
+				chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
 			}
+			memcpy(p->obuf + p->otop, chunkbuf, chunkheaderlen);
+			p->otop += chunkheaderlen;
 		}
-		if (bytestocopy) {
-			memcpy(p->obuf + p->otop, p->pbuf + p->pstart, bytestocopy);
-			p->otop += bytestocopy;
-			p->pstart += bytestocopy;
-			if (p->pstart == p->ipp)
-				p->pstart = p->ipp = 0;
-			if (p->chunkit) {
-				memcpy(p->obuf + p->otop, "\r\n", 2);
-				p->otop += 2;
-			}
+	}
+	if (bytestocopy) {
+		memcpy(p->obuf + p->otop, p->pbuf + p->pstart, bytestocopy);
+		p->otop += bytestocopy;
+		p->pstart += bytestocopy;
+		if (p->pstart == p->ipp)
+			p->pstart = p->ipp = 0;
+		if (p->chunkit) {
+			memcpy(p->obuf + p->otop, "\r\n", 2);
+			p->otop += 2;
 		}
 	}
 }
 
 static void copylastchunk(struct pipe_params *p)
 {
-	if (p->chunkit && p->nocontent == 0) {
+	if (p->chunkit) {
 		if (p->osize - p->otop >= 5) {
 			memcpy(p->obuf + p->otop, "0\r\n\r\n", 5);
 			p->otop += 5;
