@@ -58,6 +58,7 @@ tuning-item:
 	"NumHeaders" integer
 	"ScriptTimeout" integer
 	"ScriptBufSize" integer
+	"Clobber" flag
 
 control-item:
 	"Location" string

@@ -186,6 +186,16 @@ Desc:    This directive is similar to 'Access', except that it causes
          alias at the bottom, rather than at the top, it will be matched first
          by the server, thus occluding the conditional alias.
 
+Keyword: Clobber
+Where:   Tuning
+Type:    Flag
+Default: On
+Desc:    Normally, Mathopd closes connections that are idle when a new
+         connection arrives and the maximum number of connections has been
+         reached. This behaviour is called 'clobbering'. By setting the
+         'Clobber' flag to 'Off', new connections cannot be made until an
+         existing connection terminates by itself or times out.
+
 Keyword: ContentLength
 Where:   LogFormat
 Desc:    The total size of the resource requested by the client.
