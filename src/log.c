@@ -77,7 +77,6 @@ void log_request(struct request *r)
 	long cl;
 	int i, l, n;
 	int left;
-	char buf[800];
 	char *b;
 	static int l1, l2;
 	int rok;
@@ -91,7 +90,7 @@ void log_request(struct request *r)
 		}
 		return;
 	}
-	left = sizeof buf - log_columns;
+	left = log_buffer_size - log_columns;
 	if (left < 0) {
 		if (l2 == 0) {
 			l2 = 1;
@@ -99,10 +98,10 @@ void log_request(struct request *r)
 		}
 		return;
 	}
-	b = buf;
+	b = log_buffer;
 	rok = r->processed;
 	for (i = 0; i < log_columns; i++) {
-		l = sizeof buf;
+		l = log_buffer_size;
 		s = 0;
 		switch (log_column[i]) {
 		case ML_CTIME:
@@ -193,7 +192,7 @@ void log_request(struct request *r)
 		*b++ = '\t';
 	}
 	b[-1] = '\n';
-	if (write(log_file, buf, b - buf) == -1) {
+	if (write(log_file, log_buffer, b - log_buffer) == -1) {
 		gotsigterm = 1;
 		log_d("log_request: cannot write to log file");
 		lerror("write");
