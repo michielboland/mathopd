@@ -116,7 +116,7 @@ static const char c_log[] =		"Log";
 static const char c_log_format[] =	"LogFormat";
 static const char c_method[] =		"Method";
 static const char c_name[] =		"Name";
-static const char c_noapply[] =		"NoApply";
+static const char c_no_apply[] =	"NoApply";
 static const char c_no_host[] =		"NoHost";
 static const char c_num_connections[] =	"NumConnections";
 static const char c_off[] =		"Off";
@@ -126,10 +126,14 @@ static const char c_pid[] =		"PIDFile";
 static const char c_port[] =		"Port";
 static const char c_realm[] =		"Realm";
 static const char c_referer[] =		"Referer";
+static const char c_remote_address[] =	"RemoteAddress";
+static const char c_remote_port[] =	"RemotePort";
+static const char c_remote_user[] =	"RemoteUser";
 static const char c_root_directory[] =	"RootDirectory";
 static const char c_run_scripts_as_owner[] = "RunScriptsAsOwner";
 static const char c_script_user[] =	"ScriptUser";
 static const char c_server[] =		"Server";
+static const char c_server_name[] =	"ServerName";
 static const char c_specials[] =	"Specials";
 static const char c_status[] =		"Status";
 static const char c_stayroot[] =	"StayRoot";
@@ -384,13 +388,13 @@ static const char *config_log(struct configuration *p, int **colsp, int *numcols
 			return t;
 		if (!strcasecmp(p->tokbuf, c_ctime))
 			ml = ML_CTIME;
-		else if (!strcasecmp(p->tokbuf, c_user))
+		else if (!strcasecmp(p->tokbuf, c_remote_user))
 			ml = ML_USERNAME;
-		else if (!strcasecmp(p->tokbuf, c_address))
+		else if (!strcasecmp(p->tokbuf, c_remote_address))
 			ml = ML_ADDRESS;
-		else if (!strcasecmp(p->tokbuf, c_port))
+		else if (!strcasecmp(p->tokbuf, c_remote_port))
 			ml = ML_PORT;
-		else if (!strcasecmp(p->tokbuf, c_server))
+		else if (!strcasecmp(p->tokbuf, c_server_name))
 			ml = ML_SERVERNAME;
 		else if (!strcasecmp(p->tokbuf, c_method))
 			ml = ML_METHOD;
@@ -527,7 +531,7 @@ static const char *config_acccl(struct configuration *p, struct access **ls, int
 		} else {
 			if (!strcasecmp(p->tokbuf, c_apply))
 				l->type = APPLY;
-			else if (!strcasecmp(p->tokbuf, c_noapply))
+			else if (!strcasecmp(p->tokbuf, c_no_apply))
 				l->type = NOAPPLY;
 			else
 				return e_keyword;
