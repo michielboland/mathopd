@@ -737,12 +737,12 @@ static int process_path(struct request *r)
 		r->error = se_alias;
 		return 500;
 	}
-	if (evaluate_access(r->cn->peer.sin_addr.s_addr, r->c->accesses) == DENY) {
+	if (r->c->accesses && evaluate_access(r->cn->peer.sin_addr.s_addr, r->c->accesses) == DENY) {
 		r->error = fb_active;
 		r->error_file = r->c->error_403_file;
 		return 403;
 	}
-	if (check_realm(r) == -1) {
+	if (r->c->realm && check_realm(r) == -1) {
 		r->error_file = r->c->error_401_file;
 		return 401;
 	}
