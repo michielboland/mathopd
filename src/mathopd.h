@@ -34,10 +34,6 @@
 
 /* In der Halle des Bergk"onigs */
 
-/*
- * $Id$
- */
-
 #ifndef _mathopd_h
 #define _mathopd_h
 
