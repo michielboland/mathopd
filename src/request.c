@@ -206,7 +206,7 @@ static char *rfctime(time_t t, char *buf)
 	return buf;
 }
 
-static char *getline(struct pool *p)
+static char *getline(struct pool *p, int fold)
 {
 	char *s, *olds, *sp, *end;
 	int f;
@@ -221,7 +221,7 @@ static char *getline(struct pool *p)
 	while (s < end) {
 		switch (*s++) {
 		case '\n':
-			if (s == end || (*s != ' ' && *s != '\t')) {
+			if (s == end || fold == 0 || (*s != ' ' && *s != '\t')) {
 				if (f)
 					*sp = 0;
 				else
@@ -914,7 +914,7 @@ static int process_headers(struct request *r)
 	size_t n;
 	int multiple_range;
 
-	l = getline(r->cn->input);
+	l = getline(r->cn->input, 0);
 	if (l == 0)
 		return -1;
 	u = strchr(l, ' ');
@@ -940,7 +940,7 @@ static int process_headers(struct request *r)
 	}
 	n = 0;
 	multiple_range = 0;
-	while ((l = getline(r->cn->input)) != 0) {
+	while ((l = getline(r->cn->input, 1)) != 0) {
 		s = strchr(l, ':');
 		if (s == 0)
 			continue;
