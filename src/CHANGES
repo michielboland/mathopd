@@ -1,4 +1,5 @@
-CHANGES between mathopd-1.3pl2 and mathopd-1.4b6
+CHANGES between the current beta (1.4) and the last
+stable (1.3) version of Mathopd.
 
 A ScriptUser can be defined in a control block. Mathopd will
 change its identity to that of the ScriptUser right before
@@ -92,10 +93,6 @@ ownership, use
     *
    }
   }
-
-You do not normally have to do this though, since
-ownership is not checked if the allowed owner list
-is empty. (hm)
 
 If mathopd is started with the -n flag, diagnostic
 messages are logged to standard error as well as the
