@@ -135,17 +135,17 @@ static const char t_word[] =		"unexpected word";
 #define DEFAULT_LOG_COLUMNS 13
 
 static int default_log_column[] = {
-        ML_CTIME,
-        ML_USERNAME,
-        ML_ADDRESS,
-        ML_PORT,
-        ML_SERVERNAME,
-        ML_METHOD,
-        ML_URI,
-        ML_STATUS,
-        ML_CONTENT_LENGTH,
-        ML_REFERER,
-        ML_USER_AGENT,
+	ML_CTIME,
+	ML_USERNAME,
+	ML_ADDRESS,
+	ML_PORT,
+	ML_SERVERNAME,
+	ML_METHOD,
+	ML_URI,
+	ML_STATUS,
+	ML_CONTENT_LENGTH,
+	ML_REFERER,
+	ML_USER_AGENT,
 	ML_BYTES_READ,
 	ML_BYTES_WRITTEN
 };
