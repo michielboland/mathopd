@@ -90,7 +90,8 @@ enum connection_state {
 	HC_WRITING,
 	HC_WAITING,
 	HC_CLOSING,
-	HC_REINIT
+	HC_REINIT,
+	HC_NEW
 };
 
 enum {
