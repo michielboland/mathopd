@@ -57,7 +57,7 @@
 #define DEFAULT_SCRIPT_TIMEOUT 60
 #define DEFAULT_SCRIPT_BUF_SIZE 4080
 
-#define STRLEN 200
+#define STRLEN 400
 #define PATHLEN (2 * STRLEN)
 
 enum {
