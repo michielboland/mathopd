@@ -187,12 +187,7 @@ request.c:
 	a 404 error is returned rather than a 500 error.
 	This sort of replaces the dummy functionality.
 
-	The "Redirect" magic type has been removed.
-	This feature can be implemented just as wel using
-	plain HTML files with <meta> tags.
-
-	The same goes for the "Refresh" feature. This is now
-	also deprecated.
+	The "Refresh" feature has been removed.
 
 	In the process_fd() function, files are always
 	opened, even in a conditional GET. Also files are
