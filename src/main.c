@@ -88,15 +88,14 @@ static void die(const char *t, const char *fmt, ...)
 
 static void startup_server(struct server *s)
 {
-	int onoff, rv;
+	int onoff;
 	struct sockaddr_in sa;
 
 	s->fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (s->fd == -1)
 		die("socket", 0);
 	onoff = 1;
-	rv = setsockopt(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &onoff, sizeof onoff);
-	if (rv == -1)
+	if (setsockopt(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &onoff, sizeof onoff) == -1)
 		die("setsockopt", "cannot set re-use flag");
 	fcntl(s->fd, F_SETFD, FD_CLOEXEC);
 	fcntl(s->fd, F_SETFL, O_NONBLOCK);
@@ -104,11 +103,9 @@ static void startup_server(struct server *s)
 	sa.sin_family = AF_INET;
 	sa.sin_addr = s->addr;
 	sa.sin_port = htons(s->port);
-	rv = bind(s->fd, (struct sockaddr *) &sa, sizeof sa);
-	if (rv == -1)
+	if (bind(s->fd, (struct sockaddr *) &sa, sizeof sa) == -1)
 		die("bind", "cannot start up server at %s port %lu", inet_ntoa(s->addr), s->port);
-	rv = listen(s->fd, 128);
-	if (rv == -1)
+	if (listen(s->fd, 128) == -1)
 		die("listen", 0);
 }
 
@@ -287,7 +284,7 @@ int main(int argc, char *argv[])
 
 int fork_request(struct request *r, int (*f)(struct request *))
 {
-	int fd, efd, rv;
+	int fd, efd;
 	pid_t pid;
 	char *child_filename;
 
@@ -311,20 +308,19 @@ int fork_request(struct request *r, int (*f)(struct request *))
 				efd = fd;
 			}
 		}
-		rv = dup2(fd, 0);
-		rv = dup2(fd, 1);
-		rv = dup2(efd, 2);
-		rv = fcntl(0, F_SETFL, 0);
-		rv = fcntl(1, F_SETFL, 0);
+		dup2(fd, 0);
+		dup2(fd, 1);
+		dup2(efd, 2);
+		fcntl(0, F_SETFL, 0);
+		fcntl(1, F_SETFL, 0);
 		if (efd == fd) {
-			rv = fcntl(2, F_SETFL, 0);
+			fcntl(2, F_SETFL, 0);
 		}
-		rv = close(fd);
+		close(fd);
 		if (efd != fd) {
-			rv = close(efd);
+			close(efd);
 		}
-		rv = f(r);
-		_exit(rv);
+		_exit(f(r));
 		break;
 	case -1:
 		lerror("fork");
