@@ -984,6 +984,9 @@ Desc:    To allow each user to put up his or her personal pages, use the
          allow some sort of compatibilty to the often used custom to use
          '~username' for user pages.
 
+         If a user does not exist, the control block that contains the
+         UserDirectory item is effectively ignored.
+
 Keyword: UserFile
 Where:   Control
 Type:    String
