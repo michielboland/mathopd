@@ -1,6 +1,6 @@
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.2b1";
+const char server_version[] = "Mathopd/1.2b2";
 
 volatile int gotsigterm;
 volatile int gotsighup;
