@@ -44,6 +44,7 @@ static const char rcsid[] = "$Id$";
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <pwd.h>
 #include <time.h>
@@ -786,6 +787,73 @@ static int process_path(struct request *r)
 	return 500;
 }
 
+static int process_range_header(struct request *r, const char *s)
+{
+	char *t;
+	int suffix;
+	unsigned long u, v;
+
+	while (isspace(*s))
+		++s;
+	if (strncasecmp(s, "bytes", 5))
+		return -1;
+	s += 5;
+	while (isspace(*s))
+		++s;
+	if (*s != '=')
+		return -1;
+	do
+		++s;
+	while (isspace(*s));
+	suffix = *s == '-';
+	if (suffix) {
+		do
+			++s;
+		while (isspace(*s));
+		if (*s == '-')
+			return -1;
+	}
+	u = strtoul(s, &t, 10);
+	if (t == s)
+		return -1;
+	s = t;
+	while (isspace(*s))
+		++s;
+	if (suffix) {
+		if (*s)
+			return -1;
+		r->range = -1;
+		r->range_suffix = u;
+		return 0;
+	}
+	if (*s != '-')
+		return -1;
+	do
+		++s;
+	while (isspace(*s));
+	if (*s == 0) {
+		r->range = 1;
+		r->range_floor = u;
+		return 0;
+	}
+	if (*s == '-')
+		return -1;
+	v = strtoul(s, &t, 10);
+	if (t == s)
+		return -1;
+	s = t;
+	while (isspace(*s))
+		++s;
+	if (*s)
+		return -1;
+	if (v < u)
+		return -1;
+	r->range = 2;
+	r->range_floor = u;
+	r->range_ceiling = v;
+	return 0;
+}
+
 static int process_headers(struct request *r)
 {
 	char *l, *u, *s;
@@ -846,6 +914,10 @@ static int process_headers(struct request *r)
 			r->in_content_type = s;
 		else if (!strcasecmp(l, "Content-length"))
 			r->in_content_length = s;
+		else if (!strcasecmp(l, "Range"))
+			r->range_s = s;
+		else if (!strcasecmp(l, "If-Range"))
+			r->if_range_s = s;
 	}
 	r->nheaders = n;
 	s = r->method_s;
@@ -902,6 +974,19 @@ static int process_headers(struct request *r)
 				return 400;
 			}
 			r->ims = i;
+		}
+		s = r->if_range_s;
+		if (s) {
+			i = timerfc(s);
+			if (i != -1)
+				r->if_range = i;
+		}
+		s = r->range_s;
+		if (s) {
+			if (process_range_header(r, s) == -1)
+				log_d("ignoring Range header \"%s\"", s);
+			else if (debug)
+				log_d("range=%d floor=%lu ceiling=%lu suffix=%lu", r->range, r->range_floor, r->range_ceiling, r->range_suffix);
 		}
 	}
 	return 0;
@@ -1044,6 +1129,13 @@ void init_request(struct request *r)
 	r->allowedmethods = 0;
 	r->location_length = 0;
 	r->nheaders = 0;
+	r->range_s = 0;
+	r->if_range_s = 0;
+	r->if_range = 0;
+	r->range = 0;
+	r->range_floor = 0;
+	r->range_ceiling = 0;
+	r->range_suffix = 0;
 }
 
 int process_request(struct request *r)
