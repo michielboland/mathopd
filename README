@@ -14,5 +14,9 @@ The doc/ directory contains some documentation about running
 this software. It also has detailed descriptions of all
 settings that can be configured.
 
+IMPORTANT: if you are upgrading from version 1.4, please read
+the file doc/CHANGES, in particular all entries that are marked
+with '[!]'.
+
 Michiel Boland
 February 2004
