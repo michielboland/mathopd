@@ -807,7 +807,8 @@ static int process_path_translated(struct request *r)
 		return 0;
 	}
 	if (get_path_info(r) == -1) {
-		log_d("get_path_info failed for %s", r->path_translated);
+		if (debug)
+			log_d("get_path_info failed for %s", r->path_translated);
 		r->error_file = r->c->error_404_file;
 		r->status = 404;
 		return 1;
