@@ -825,7 +825,7 @@ void httpd_main(void)
 			n = setup_server_pollfds(n);
 		n = setup_connection_pollfds(n);
 		n = setup_child_pollfds(n, forked_connections.head);
-		if (n == 0 && accepting) {
+		if (n == 0 && accepting && stats.nconnections == 0) {
 			log_d("no more sockets to poll from");
 			break;
 		}
