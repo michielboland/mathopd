@@ -306,7 +306,6 @@ static int fill_connection(struct connection *cn)
 
 	if (cn->rfd == -1)
 		return 0;
-
 	p = &cn->output;
 	poolleft = p->ceiling - p->end;
 	fileleft = cn->left;
