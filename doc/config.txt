@@ -800,6 +800,10 @@ Desc:    If a CGI or external program is executed, Mathopd will change
          way to set the user for child processes is with the ScriptUser
          keyword. Its argument is a user name that will be looked up in
          the system password file right before execution of each program.
+         The user specified by ScriptUser must be someone else than the
+         'global' user, i.e. the user specified by the User keyword.
+         Note that in order to get CGI to work if mathopd is started by
+         root, the StayRoot flag MUST be set to 'On'.
          See also: StayRoot.
 
 Keyword: Server
