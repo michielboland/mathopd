@@ -346,6 +346,7 @@ extern int unescape_url_n(const char *, char *, size_t);
 
 /* log */
 
+extern int init_log_buffer(size_t);
 extern void log_request(struct request *);
 extern int init_logs(void);
 

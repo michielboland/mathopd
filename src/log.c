@@ -48,10 +48,27 @@ static const char rcsid[] = "$Id$";
 #include <fcntl.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <stdlib.h>
 #include "mathopd.h"
 
 static int log_file = -1;
 static int error_file = -1;
+static char *log_buffer;
+static size_t log_buffer_size;
+
+int init_log_buffer(size_t size)
+{
+	char *b;
+
+	b = malloc(size);
+	if (b == 0)
+		return -1;
+	if (log_buffer)
+		free(log_buffer);
+	log_buffer = b;
+	log_buffer_size = size;
+	return 0;
+}
 
 void log_request(struct request *r)
 {

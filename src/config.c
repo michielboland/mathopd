@@ -996,5 +996,7 @@ const char *config(const char *config_filename)
 		cn->state = HC_FREE;
 		connections = cn;
 	}
+	if (init_log_buffer(tuning.input_buf_size + 1000) == -1)
+		return e_memory;
 	return 0;
 }
