@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003 Michiel Boland.
+ *   Copyright 1996 - 2004 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -54,7 +54,7 @@ static const char rcsid[] = "$Id$";
 #include <time.h>
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.5";
+const char server_version[] = "Mathopd/1.5p1";
 
 volatile sig_atomic_t gotsigterm;
 volatile sig_atomic_t gotsighup;
