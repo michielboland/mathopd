@@ -42,23 +42,25 @@ int process_redirect(struct request *r)
 	char *c;
 	FILE *fp;
 
-	if (r->method != M_GET && r->method != M_HEAD) {
-		r->error = "invalid method for redirect";
+	if (r->method != M_GET && r->method != M_HEAD)
 		return 405;
-	}
 	fp = fopen(r->path_translated, "r");
 	if (fp == 0) {
+		log_d("cannot open redirect file %.200s", r->path_translated);
 		lerror("fopen");
-		r->error = "cannot open redirect file";
 		return 500;
 	}
-	fgets(buf, STRLEN, fp);
+	if (fgets(buf, STRLEN, fp) == 0) {
+		fclose(fp);
+		log_d("failed to read from redirect file");
+		return 500;
+	}
 	fclose(fp);
 	c = strchr(buf, '\n');
 	if (c)
 		*c = 0;
 	else {
-		r->error = "redirect url too long";
+		log_d("redirect url too long");
 		return 500;
 	}
 	escape_url(buf, r->newloc);
