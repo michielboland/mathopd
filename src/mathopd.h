@@ -123,7 +123,9 @@ enum {
 	ML_STATUS,
 	ML_CONTENT_LENGTH,
 	ML_REFERER,
-	ML_USER_AGENT
+	ML_USER_AGENT,
+	ML_BYTES_READ,
+	ML_BYTES_WRITTEN
 };
 
 struct pool {
@@ -211,6 +213,7 @@ struct server {
 
 struct request {
 	struct connection *cn;
+	int processed;
 	struct virtual *vs;
 	char *user_agent;
 	char *referer;
@@ -270,6 +273,7 @@ struct connection {
 	struct connection *next;
 	unsigned long nread;
 	unsigned long nwritten;
+	long left;
 };
 
 struct tuning {
