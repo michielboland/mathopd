@@ -68,6 +68,7 @@ static STRING(c_name) =			"Name";
 static STRING(c_num_connections) =	"NumConnections";
 static STRING(c_off) =			"Off";
 static STRING(c_on) =			"On";
+static STRING(c_path_args) =		"PathArgs";
 static STRING(c_pid) =			"PIDFile";
 static STRING(c_port) =			"Port";
 static STRING(c_root_directory) =	"RootDirectory";
@@ -403,6 +404,7 @@ static const char *config_control(struct control **as)
 		a->accesses = b->accesses;
 		a->mimes = b->mimes;
 		a->symlinksok = b->symlinksok;
+		a->path_args_ok = b->path_args_ok;
 		a->loglevel = b->loglevel;
 	}
 	else {
@@ -410,6 +412,7 @@ static const char *config_control(struct control **as)
 		a->accesses = 0;
 		a->mimes = 0;
 		a->symlinksok = 0;
+		a->path_args_ok = 0;
 		a->loglevel = 0;
 	}
 	a->next = *as;
@@ -437,6 +440,8 @@ static const char *config_control(struct control **as)
 		}
 		else if (strceq(tokbuf, c_symlinks))
 			t = config_flag(&a->symlinksok);
+		else if (strceq(tokbuf, c_path_args))
+			t = config_flag(&a->path_args_ok);
 		else if (strceq(tokbuf, c_loglevel))
 			t = config_int(&a->loglevel);
 		else if (strceq(tokbuf, c_index_names))
