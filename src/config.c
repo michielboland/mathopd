@@ -200,7 +200,7 @@ static const char *gettoken(struct configuration *p)
 {
 	int c;
 	char w;
-	int i;
+	size_t i;
 	char state;
 	const char *t;
 
