@@ -49,27 +49,39 @@ static void init_pool(struct pool *p)
 	p->state = 0;
 }
 
-static void reinit_connection(struct connection *cn, int action)
+static void init_connection(struct connection *cn)
+{
+	init_pool(cn->input);
+	init_pool(cn->output);
+	cn->assbackwards = 1;
+	cn->keepalive = 0;
+	cn->nread = 0;
+	cn->nwritten = 0;
+	cn->left = 0;
+	cn->r->processed = 0;
+}
+
+static void reinit_connection(struct connection *cn)
 {
 	int rv;
 
+	log_request(cn->r);
 	if (cn->rfd != -1) {
 		rv = close(cn->rfd);
 		if (debug)
 			log_d("reinit_connection: close(%d) = %d", cn->rfd, rv);
 		cn->rfd = -1;
 	}
-	init_pool(cn->input);
-	init_pool(cn->output);
-	cn->assbackwards = 1;
-	cn->keepalive = 0;
-	cn->action = action;
+	init_connection(cn);
+	cn->action = HC_WAITING;
 }
 
 static void close_connection(struct connection *cn)
 {
 	int rv;
 
+	if (cn->nread || cn->nwritten)
+		log_request(cn->r);
 	--nconnections;
 	rv = close(cn->fd);
 	if (debug)
@@ -168,7 +180,8 @@ static void accept_connection(struct server *s)
 			++nconnections;
 			if (nconnections > maxconnections)
 				maxconnections = nconnections;
-			reinit_connection(cn, HC_READING);
+			init_connection(cn);
+			cn->action = HC_READING;
 		}
 	} while (tuning.accept_multi);
 }
@@ -183,11 +196,11 @@ static int fill_connection(struct connection *cn)
 		return 0;
 	p = cn->output;
 	poolleft = p->ceiling - p->end;
-	fileleft = cn->r->content_length;
+	fileleft = cn->left;
 	n = fileleft > poolleft ? poolleft : (int) fileleft;
 	if (n <= 0)
 		return 0;
-	cn->r->content_length -= n;
+	cn->left -= n;
 	m = read(cn->rfd, p->end, n);
 	if (debug)
 		log_d("fill_connection: read(%d, %p, %d) = %d", cn->rfd, p->end, n, m);
@@ -215,7 +228,7 @@ static void write_connection(struct connection *cn)
 			n = fill_connection(cn);
 			if (n <= 0) {
 				if (n == 0 && cn->keepalive)
-					reinit_connection(cn, HC_WAITING);
+					reinit_connection(cn);
 				else
 					cn->action = HC_CLOSING;
 				return;
@@ -236,6 +249,7 @@ static void write_connection(struct connection *cn)
 				return;
 			}
 		}
+		cn->nwritten += m;
 		if (cn->r->vs)
 			cn->r->vs->nwritten += m;
 		p->start += m;
@@ -380,18 +394,24 @@ static void read_connection(struct connection *cn)
 	if (debug)
 		log_d("read_connection: recv(%d, %p, %d, 0) = %d", fd, p->end, i, nr);
 	if (nr != i) {
-		if (nr == -1)
+		if (nr == -1) {
 			log_d("error reading from %s", cn->ip);
 			lerror("recv");
+		} else {
+			cn->nread += nr;
+			log_d("read_connection: %d != %d!", nr, i);
+		}
 		cn->action = HC_CLOSING;
 		return;
 	}
+	cn->nread += nr;
 	p->end += i;
 	p->state = state;
 	if (state == 8) {
 		if (process_request(cn->r) == -1 || fill_connection(cn) == -1)
 			cn->action = HC_CLOSING;
 		else {
+			cn->left = cn->r->content_length;
 			cn->action = HC_WRITING;
 			write_connection(cn);
 		}
