@@ -41,8 +41,6 @@ Return 404 rather than 400, if check_path() fails.
 Do not open a custom error file if the request method is
 HEAD.
 
-Send a Refresh: header only if the status is 200.
-
 The configuration file can now be specified on the
 command line rather than fed through standard input.
 
@@ -94,3 +92,6 @@ ownership, use
 If mathopd is started with the -n flag, diagnostic
 messages are logged to standard error as well as the
 ErrorLog.
+
+The Refresh: keyword has been removed while I search
+for something better.

@@ -183,7 +183,6 @@ struct control {
 	struct simple_list *locations;
 	struct access *clients;
 	char *admin;
-	unsigned long refresh;
 	char *realm;
 	char *userfile;
 	char *error_401_file;

@@ -258,13 +258,8 @@ static int output_headers(struct pool *p, struct request *r)
 		rfctime(current_time, gbuf));
 	if (r->allowedmethods)
 		b += sprintf(b, "Allow: %s\r\n", r->allowedmethods);
-	if (r->c) {
-		if (r->status == 200) {
-			if (r->c->refresh)
-				b += sprintf(b, "Refresh: %lu\r\n", r->c->refresh);
-		} else if (r->status == 401 && r->c->realm)
-			b += sprintf(b, "WWW-Authenticate: Basic realm=\"%s\"\r\n", r->c->realm);
-	}
+	if (r->c && r->c->realm && r->status == 401)
+		b += sprintf(b, "WWW-Authenticate: Basic realm=\"%s\"\r\n", r->c->realm);
 	if (r->num_content >= 0) {
 		b += sprintf(b, "Content-type: %s\r\n", r->content_type);
 		cl = r->content_length;

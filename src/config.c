@@ -113,7 +113,6 @@ static const char c_pid[] =		"PIDFile";
 static const char c_port[] =		"Port";
 static const char c_realm[] =		"Realm";
 static const char c_referer[] =		"Referer";
-static const char c_refresh[] =		"Refresh";
 static const char c_root_directory[] =	"RootDirectory";
 static const char c_run_scripts_as_owner[] = "RunScriptsAsOwner";
 static const char c_script_user[] =	"ScriptUser";
@@ -595,7 +594,6 @@ static const char *config_control(FILE *f, struct control **as)
 		a->mimes = b->mimes;
 		a->path_args_ok = b->path_args_ok;
 		a->admin = b->admin;
-		a->refresh = b->refresh;
 		a->realm = b->realm;
 		a->userfile = b->userfile;
 		a->error_401_file = b->error_401_file;
@@ -614,7 +612,6 @@ static const char *config_control(FILE *f, struct control **as)
 		a->mimes = 0;
 		a->path_args_ok = 0;
 		a->admin = 0;
-		a->refresh = 0;
 		a->realm = 0;
 		a->userfile = 0;
 		a->error_401_file = 0;
@@ -665,8 +662,6 @@ static const char *config_control(FILE *f, struct control **as)
 			t = config_mime(f, &a->mimes, CLASS_EXTERNAL);
 		else if (!strcasecmp(tokbuf, c_admin))
 			t = config_string(f, &a->admin);
-		else if (!strcasecmp(tokbuf, c_refresh))
-			t = config_int(f, &a->refresh);
 		else if (!strcasecmp(tokbuf, c_realm))
 			t = config_string(f, &a->realm);
 		else if (!strcasecmp(tokbuf, c_userfile))
