@@ -413,7 +413,7 @@ int process_cgi(struct request *r)
 	r->cn->pid = pid;
 	fcntl(p[0], F_SETFL, O_NONBLOCK);
 	o = tuning.script_lo_wat;
-	if (setsockopt(p[0], SOL_SOCKET, SO_RCVLOWAT, &o, sizeof o) == -1) {
+	if (o && setsockopt(p[0], SOL_SOCKET, SO_RCVLOWAT, &o, sizeof o) == -1) {
 		lerror("SO_RCVLOWAT");
 		close(p[0]);
 		destroy_parameters(cp);
