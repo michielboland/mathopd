@@ -182,7 +182,7 @@ static void accept_connection(struct server *s)
 			cn->rfd = -1;
 			cn->peer = sa_remote;
 			cn->sock = sa_local;
-			cn->t = cn->it = current_time;
+			cn->t = current_time;
 			++nconnections;
 			if (nconnections > maxconnections)
 				maxconnections = nconnections;

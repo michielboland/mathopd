@@ -244,7 +244,6 @@ struct connection {
 	struct sockaddr_in peer;
 	struct sockaddr_in sock;
 	time_t t;
-	time_t it;
 	struct pool *input;
 	struct pool *output;
 	int assbackwards;
