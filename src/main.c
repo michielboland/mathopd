@@ -118,7 +118,7 @@ static void startup_server(struct server *s)
 	}
 	fcntl(s->fd, F_SETFD, FD_CLOEXEC);
 	fcntl(s->fd, F_SETFL, O_NONBLOCK);
-	if (bind(s->fd, s->s_addr, s->s_addrlen) == -1)
+	if (bind(s->fd, s->server_addr, s->server_addrlen) == -1)
 		die("bind", "cannot start up server at %s port %s", s->addr ? s->addr : "[any]", s->port);
 	if (listen(s->fd, s->backlog) == -1)
 		die("listen", 0);

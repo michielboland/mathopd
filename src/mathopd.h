@@ -191,8 +191,8 @@ struct server_sockopts {
 
 struct server {
 	int fd;
-	size_t s_addrlen;
-	struct sockaddr *s_addr;
+	size_t server_addrlen;
+	struct sockaddr *server_addr;
 	struct virtual *children;
 	struct control *controls;
 	struct server *next;

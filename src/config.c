@@ -733,10 +733,12 @@ static const char *config_sockopts(struct configuration *p, struct server_sockop
 	if ((t = gettoken(p)) != t_open)
 		return t;
 	while ((t = gettoken(p)) != t_close) {
+#ifdef IPV6_V6ONLY
 		if (!strcasecmp(p->tokbuf, "v6only")) {
 			l = IPPROTO_IPV6;
 			n = IPV6_V6ONLY;
 		} else
+#endif
 			return "unknown socket option";
 		t = config_flag(p, &o);
 		if (t)
@@ -809,16 +811,16 @@ static const char *config_server(struct configuration *p, struct server **ss)
 		fprintf(stderr, "address %s port %s: %s\n", s->addr ? s->addr : "[any]", s->port, gai_strerror(rv));
 		return e_illegalport;
 	}
-	s->s_addr = malloc(res->ai_addrlen);
-	if (s->s_addr == 0) {
+	s->server_addr = malloc(res->ai_addrlen);
+	if (s->server_addr == 0) {
 		freeaddrinfo(res);
 		return e_memory;
 	}
 	s->family = res->ai_family;
 	s->socktype = res->ai_socktype;
 	s->protocol = res->ai_protocol;
-	memcpy(s->s_addr, res->ai_addr, res->ai_addrlen);
-	s->s_addrlen = res->ai_addrlen;
+	memcpy(s->server_addr, res->ai_addr, res->ai_addrlen);
+	s->server_addrlen = res->ai_addrlen;
 	freeaddrinfo(res);
 	num_servers++;
 	s->next = *ss;
