@@ -230,8 +230,11 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 		tmp = cgi_envar(r->headers[n].rh_name);
 		if (tmp == 0)
 			return -1;
-		if (add(tmp, r->headers[n].rh_value, 0, cp) == -1)
+		if (add(tmp, r->headers[n].rh_value, 0, cp) == -1) {
+			free(tmp);
 			return -1;
+		}
+		free(tmp);
 	}
 	if (add("GATEWAY_INTERFACE", "CGI/1.1", 0, cp) == -1)
 		return -1;
