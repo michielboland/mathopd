@@ -110,16 +110,6 @@ enum {
 	HC_CLOSING
 };
 
-enum {
-	L_LOG,
-	L_PANIC,
-	L_ERROR,
-	L_WARNING,
-	L_TRANS,
-	L_AGENT,
-	L_DEBUG
-};
-
 struct pool {
 	char *floor;
 	char *ceiling;
@@ -305,7 +295,8 @@ extern int nconnections;
 extern int maxconnections;
 extern time_t current_time;
 
-extern void log(int, const char *, ...);
+extern void log_d(const char *, ...);
+extern void log_trans(const char *, ...);
 extern void lerror(const char *);
 extern void httpd_main(void);
 
