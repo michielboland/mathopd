@@ -1,6 +1,6 @@
 Changes between Mathopd 1.5 and Mathopd 1.6
 
-The '*' character in Error40[134]File and AutoIndexCommand is
+The '*' character in Error*File and AutoIndexCommand is
 replaced with the current value of the Host header.
 
 If the Error*File is not present, the original HTTP status code
