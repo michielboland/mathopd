@@ -313,7 +313,7 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 		len += l;
 	}
 	if (pp->cn->r->protocol_minor == 0 && pp->cn->keepalive) {
-		l = sprintf(buf, "Connection: Keep-Alive\r\n");
+		l = sprintf(buf, "Connection: keep-alive\r\n");
 		if (len + l > pp->osize)
 			return no_room();
 		memcpy(pp->obuf + len, buf, l);

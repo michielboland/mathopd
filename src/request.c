@@ -297,9 +297,9 @@ static int output_headers(struct pool *p, struct request *r)
 		b += sprintf(b, "Content-Range: bytes %lu-%lu/%lu\r\n", r->range_floor, r->range_ceiling, r->range_total);
 	if (r->cn->keepalive) {
 		if (r->protocol_minor == 0)
-			b += sprintf(b, "Connection: Keep-Alive\r\n");
+			b += sprintf(b, "Connection: keep-alive\r\n");
 	} else if (r->protocol_minor)
-		b += sprintf(b, "Connection: Close\r\n");
+		b += sprintf(b, "Connection: close\r\n");
 	if (r->c && (r->status == 200 || r->status == 206))
 		for (h = r->c->extra_headers; h; h = h->next)
 			b += sprintf(b, "%s\r\n", h->name);
@@ -1075,9 +1075,9 @@ static int process_headers(struct request *r)
 	if (r->protocol_major) {
 		s = r->connection;
 		if (r->protocol_minor)
-			r->cn->keepalive = !(s && strcasecmp(s, "Close") == 0);
+			r->cn->keepalive = !(s && strcasecmp(s, "close") == 0);
 		else
-			r->cn->keepalive = s && strcasecmp(s, "Keep-Alive") == 0;
+			r->cn->keepalive = s && strcasecmp(s, "keep-alive") == 0;
 	}
 	if (r->in_transfer_encoding) {
 		if (strcasecmp(r->in_transfer_encoding, "chunked")) {
