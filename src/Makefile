@@ -4,7 +4,7 @@ CC=gcc
 CFLAGS=-Wall -O
 CPPFLAGS=
 LDFLAGS=
-LIBS=
+LIBS=-lcrypt
 
 BIN=mathopd
 OBJS=	base64.o cgi.o config.o core.o dummy.o imap.o log.o main.o \
