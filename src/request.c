@@ -374,9 +374,9 @@ static int get_path_info(struct request *r)
 		rv = stat(p, s);
 		if (debug) {
 			if (rv == -1)
-				log(L_DEBUG, "get_path_info: stat(\"%s\", ...) = %d", p, rv, s->st_mode);
+				log(L_DEBUG, "get_path_info: stat(\"%s\") = %d", p, rv, s->st_mode);
 			else
-				log(L_DEBUG, "get_path_info: stat(\"%s\", ...) = %d; st_mode = %#o", p, rv, s->st_mode);
+				log(L_DEBUG, "get_path_info: stat(\"%s\") = %d; st_mode = %#o", p, rv, s->st_mode);
 		}
 		if (cp != end)
 			*cp = '/';
@@ -436,9 +436,9 @@ static int check_symlinks(struct request *r)
 			rv = lstat(b, &buf);
 			if (debug) {
 				if (rv == -1)
-					log(L_DEBUG, "check_symlinks: lstat(\"%s\", ...) = %d", b, rv, buf.st_mode);
+					log(L_DEBUG, "check_symlinks: lstat(\"%s\") = %d", b, rv, buf.st_mode);
 				else
-					log(L_DEBUG, "check_symlinks: lstat(\"%s\", ...) = %d; st_mode = %#o", b, rv, buf.st_mode);
+					log(L_DEBUG, "check_symlinks: lstat(\"%s\") = %d; st_mode = %#o", b, rv, buf.st_mode);
 			}
 			if (rv == -1) {
 				lerror("lstat");
@@ -480,7 +480,7 @@ static int append_indexes(struct request *r)
 		strcpy(q, i->name);
 		rv = stat(p, &r->finfo);
 		if (debug)
-			log(L_DEBUG, "append_indexes: stat(\"%s\", ...) = %d", p, rv);
+			log(L_DEBUG, "append_indexes: stat(\"%s\") = %d", p, rv);
 		if (rv != -1)
 			break;
 		i = i->next;
