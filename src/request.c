@@ -35,7 +35,7 @@
 
 /* Mysterons */
 
-static const char rcsid[] = "$Id: request.c,v 1.294.2.1 2004/03/31 11:17:46 boland Exp $";
+static const char rcsid[] = "$Id: request.c,v 1.294.2.2 2004/11/27 14:26:46 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -1505,7 +1505,7 @@ static int prepare_reply(struct request *r)
 		log_d("cl_start is null!?!?");
 		return -1;
 	}
-	sprintf(cl_start, "%*ld", cl_end - cl_start, r->content_length);
+	sprintf(cl_start, "%*ld", (int) (cl_end - cl_start), r->content_length);
 	*cl_end = '\r';
 	return 0;
 }
