@@ -75,7 +75,6 @@ static struct connection_list waiting_connections;
 static struct connection_list reading_connections;
 static struct connection_list writing_connections;
 static struct connection_list forked_connections;
-static struct connection_list reinit_connections;
 
 static void c_unlink(struct connection *c, struct connection_list *l)
 {
@@ -140,9 +139,6 @@ void set_connection_state(struct connection *c, enum connection_state state)
 	case HC_FORKED:
 		o = &forked_connections;
 		break;
-	case HC_REINIT:
-		o = &reinit_connections;
-		break;
 	default:
 		log_d("set_connection_state: unknown state: %d", state);
 		abort();
@@ -165,9 +161,6 @@ void set_connection_state(struct connection *c, enum connection_state state)
 		break;
 	case HC_FORKED:
 		n = &forked_connections;
-		break;
-	case HC_REINIT:
-		n = &reinit_connections;
 		break;
 	default:
 		log_d("set_connection_state: unknown state: %d", state);
@@ -211,7 +204,7 @@ static void init_connection(struct connection *cn)
 	cn->pid = 0;
 }
 
-static void reinit_connection(struct connection *cn)
+void reinit_connection(struct connection *cn)
 {
 	++nrequests;
 	log_request(cn->r);
@@ -769,14 +762,6 @@ static void timeout_connections(struct connection *c, time_t t)
 
 static void cleanup_connections(void)
 {
-	struct connection *c, *n;
-
-	c = reinit_connections.head;
-	while (c) {
-		n = c->next;
-		reinit_connection(c);
-		c = n;
-	}
 	timeout_connections(waiting_connections.head, tuning.timeout);
 	timeout_connections(reading_connections.head, tuning.timeout);
 	timeout_connections(writing_connections.head, tuning.timeout);

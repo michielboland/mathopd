@@ -776,10 +776,17 @@ static void close_child(struct pipe_params *p, int nextaction)
 {
 	if (p->cn) {
 		close(p->pfd);
-		if (nextaction == HC_CLOSING)
+		switch (nextaction) {
+		case HC_CLOSING:
 			close_connection(p->cn);
-		else
+			break;
+		case HC_REINIT:
+			reinit_connection(p->cn);
+			break;
+		default:
 			set_connection_state(p->cn, nextaction);
+			break;
+		}
 	}
 	p->cn = 0;
 	p_unlink(p, &busy_pipes);
