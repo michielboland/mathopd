@@ -5,17 +5,19 @@ Mathopd in a production environment, and you are not the same
 person as the author, you should stay away from this code, and
 use the stable version instead.
 
-We are currently at 1.3b3. Changes relative to the previous
+We are currently at 1.3b4. Changes relative to the previous
 beta release:
 
-  - ChildLog is now a control item, so you can have different
-    childlogs for different servers, etc.
- 
-  - A 'dummy' specialty has been added. Request for dummies always
-    return 404 errors. This can be used to hide certain files that
-    you don't want people to see.
+  - Major changes in request.c:
 
-  - A handler for SIGQUIT has been added. Use this signal to
-    toggle debugging on a live server.
+    Log the url as sent by the client instead of the decoded url.
+
+    We now read all the header lines before starting to look at
+    the first line. This allows us to include more data for diag-
+    nostic logging. We ignore empty lines sent by clients and
+    lines that consist of just one word. (Since these really are
+    errors, these are logged.) The first request line (i.e. the
+    "GET / HTTP/1.0" bit) is split up a bit differently in order
+    to work around stupidities like spaces in URLs.
 
 Michiel Boland <boland@diva.nl>
