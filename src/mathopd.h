@@ -203,7 +203,7 @@ struct server {
 	struct virtual *children;
 	struct control *controls;
 	struct server *next;
-	int pollno;
+	int pollindex;
 	struct vserver *vservers;
 	unsigned long backlog;
 };
@@ -300,8 +300,8 @@ struct connection {
 	struct pool client_input;
 	struct pool script_input;
 	int keepalive;
-	int pollno;
-	int rpollno;
+	int pollindex;
+	int rpollindex;
 	unsigned long nread;
 	unsigned long nwritten;
 	long left;
@@ -377,6 +377,8 @@ extern time_t current_time;
 extern struct pollfd *pollfds;
 extern struct connection *connection_array;
 extern void set_connection_state(struct connection *, enum connection_state);
+extern int allocate_pollindex(int, short);
+extern int free_pollindex(int);
 extern int reinit_connection(struct connection *);
 extern void close_connection(struct connection *);
 extern void log_socket_error(int, const char *);
