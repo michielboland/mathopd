@@ -138,15 +138,73 @@ static int fgetline(char *s, int n, struct file_buf *p)
 	return 0;
 }
 
+struct token {
+	int pos;
+	int len;
+};
+
+static int separate(const char *s, struct token *t, int m)
+{
+	int c, i, j, n, state;
+
+	i = 0;
+	n = 0;
+	state = 0;
+	while (n < m) {
+		c = s[i];
+		switch (state) {
+		case 0:
+			switch (c) {
+			case 0:
+			case '\r':
+			case '\n':
+			case '#':
+				return n;
+			case ',':
+			case ' ':
+			case '(':
+			case ')':
+			case '\t':
+				break;
+			default:
+				j = i;
+				state = 1;
+				break;
+			}
+			break;
+		case 1:
+			switch (c) {
+			case 0:
+			case '\r':
+			case '\n':
+			case '#':
+				t[n].pos = j;
+				t[n++].len = i - j;
+				return n;
+			case ',':
+			case ' ':
+			case '(':
+			case ')':
+			case '\t':
+				t[n].pos = j;
+				t[n++].len = i - j;
+				state = 0;
+				break;
+			}
+		}
+		++i;
+	}
+}
+
 static int f_process_imap(struct request *r, int fd)
 {
 	char input[STRLEN], default_url[STRLEN], buf[4096];
+	struct token tok[2 * MAXVERTS + 2];
 	point testpoint, pointarray[MAXVERTS];
 	long dist, mindist;
-	int k, l, line, sawpoint, text;
+	int i, k, l, line, sawpoint, text;
 	char *t, *u, *v, *w, *url;
 	const char *status;
-	static const char comma[] = ", ()\t\r\n";
 	struct file_buf fb;
 
 	fb.fb_fd = fd;
@@ -176,31 +234,25 @@ static int f_process_imap(struct request *r, int fd)
 
 	while (fgetline(input, STRLEN, &fb) != -1) {
 		++line;
-		k = 0;
-		t = strtok(input, comma);
-		if (t == 0 || *t == 0 || *t == '#')
+		l = separate(input, tok, 2 * MAXVERTS + 2);
+		if (l < 2)
 			continue;
-		u = strtok(0, comma);
-		if (u == 0 || *u == 0) {
-			status = "Missing URL";
+		if (l % 2) {
+			status = "odd number of coords";
 			break;
 		}
-		while ((v = strtok(0, comma)) != 0) {
-			if (k >= MAXVERTS)
-				break;
-			if ((w = strtok(0, comma)) == 0) {
-				k = -1;
-				break;
-			}
-			pointarray[k].x = atol(v);
-			pointarray[k++].y = atol(w);
+		t = input + tok[0].pos;
+		t[tok[0].len] = 0;
+		u = input + tok[1].pos;
+		u[tok[1].len] = 0;
+		i = 2;
+		k = 0;
+		while (i < l) {
+			pointarray[k].x = atol(input + tok[i++].pos);
+			pointarray[k++].y = atol(input + tok[i++].pos);
 		}
 		if (k >= MAXVERTS) {
 			status = "too many points";
-			break;
-		}
-		if (k == -1) {
-			status = "odd number of coords";
 			break;
 		}
 		if (!strcmp(t, "default"))
