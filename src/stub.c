@@ -562,6 +562,8 @@ void init_child(struct pipe_params *p, struct request *r, int fd)
 	p->cn = r->cn;
 	r->cn->state = HC_FORKED;
 	p->error_condition = 0;
+	p->cpollno = -1;
+	p->ppollno = -1;
 }
 
 int setup_child_pollfds(int n)
