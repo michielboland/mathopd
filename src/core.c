@@ -1,7 +1,7 @@
 /*
  * core.c - socket level code for Mathopd
  *
- * Copyright 1996, Michiel Boland
+ * Copyright 1996, 1997, Michiel Boland
  */
 
 /* Les trois soers aveugles */
@@ -165,29 +165,36 @@ static void write_connection(struct connection *cn)
 	struct pool *p = cn->output;
 	int m, n;
 
-	n = p->end - p->start;
-	if (n == 0) {
-		init_pool(p);
-		n = fill_connection(cn);
-		if (n <= 0) {
-			if (n == 0 && cn->keepalive)
-				reinit_connection(cn, HC_WAITING);
-			else
-				cn->action = HC_CLOSING;
-			return;
+	while (1) {
+		n = p->end - p->start;
+		if (n == 0) {
+			init_pool(p);
+			n = fill_connection(cn);
+			if (n <= 0) {
+				if (n == 0 && cn->keepalive)
+					reinit_connection(cn, HC_WAITING);
+				else
+					cn->action = HC_CLOSING;
+				return;
+			}
 		}
-	}
 
-	m = send(cn->fd, p->start, n, 0);
-	log(L_DEBUG, "send(%d) = %d", n, m);
-	if (m == -1) {
-		if (errno != EPIPE)
-			lerror("send");
-		cn->action = HC_CLOSING;
-			return;
+		cn->t = current_time;
+
+		m = send(cn->fd, p->start, n, 0);
+		log(L_DEBUG, "send(%d) = %d", n, m);
+		if (m == -1) {
+			switch (errno) {
+			default:
+				log(L_ERROR, "error sending to %s", cn->ip);
+				lerror("send");
+				cn->action = HC_CLOSING;
+			case M_AGAIN:
+				return;
+			}
+		}
+		p->start += m;
 	}
-	p->start += m;
-	cn->t = current_time;
 }
 
 static void read_connection(struct connection *cn)
@@ -352,8 +359,10 @@ static void read_connection(struct connection *cn)
 		if (process_request(cn->r) == -1
 		    || fill_connection(cn) == -1)
 			cn->action = HC_CLOSING;
-		else
+		else {
 			cn->action = HC_WRITING;
+			write_connection(cn);
+		}
 	}
 	cn->t = current_time;
 }
