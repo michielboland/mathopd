@@ -57,6 +57,7 @@ tuning-item:
 	"AcceptMulti" flag
 	"NumHeaders" integer
 	"ScriptTimeout" integer
+	"ScriptBufSize" integer
 
 control-item:
 	"Location" string

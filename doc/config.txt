@@ -696,6 +696,15 @@ Desc:    Normally, if the server is started as root and the StayRoot flag
          This is not recommended, since it is possible to trick mathopd
          using symbolic links.
 
+Keyword: ScriptBufSize
+Where:   Tuning
+Type:    Integer
+Default: 4080
+Desc:    The server uses three buffers for CGI scripts. The size of these
+         is determined by the value of ScriptBufSize. (Actually one of these
+         buffers is made slightly larger than the others to create extra room
+         for 'chunk' delimiters.)
+
 Keyword: ScriptTimeout
 Where:   Tuning
 Type:    Integer
