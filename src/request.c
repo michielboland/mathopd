@@ -372,8 +372,12 @@ static int get_path_info(struct request *r)
 		if (cp != end)
 			*cp = '\0';
 		rv = stat(p, s);
-		if (debug)
-			log(L_DEBUG, "get_path_info: stat(\"%s\", ...) = %d; st_mode = %#o", p, rv, s->st_mode);
+		if (debug) {
+			if (rv == -1)
+				log(L_DEBUG, "get_path_info: stat(\"%s\", ...) = %d", p, rv, s->st_mode);
+			else
+				log(L_DEBUG, "get_path_info: stat(\"%s\", ...) = %d; st_mode = %#o", p, rv, s->st_mode);
+		}
 		if (cp != end)
 			*cp = '/';
 		if (rv != -1) {
@@ -430,8 +434,12 @@ static int check_symlinks(struct request *r)
 		} else if (flag) {
 			flag = 0;
 			rv = lstat(b, &buf);
-			if (debug)
-				log(L_DEBUG, "check_symlinks: lstat(\"%s\", ...) = %d; st_mode = %#o", b, rv, buf.st_mode);
+			if (debug) {
+				if (rv == -1)
+					log(L_DEBUG, "check_symlinks: lstat(\"%s\", ...) = %d", b, rv, buf.st_mode);
+				else
+					log(L_DEBUG, "check_symlinks: lstat(\"%s\", ...) = %d; st_mode = %#o", b, rv, buf.st_mode);
+			}
 			if (rv == -1) {
 				lerror("lstat");
 				return -1;
@@ -567,8 +575,12 @@ static int add_fd(struct request *r, const char *filename)
 	if (fd == -1)
 		return -1;
 	rv = fstat(fd, &s);
-	if (debug)
-		log(L_DEBUG, "add_fd: fstat(%d) = %d; st_mode = %#o", fd, rv, s.st_mode);
+	if (debug) {
+		if (rv == -1)
+			log(L_DEBUG, "add_fd: fstat(%d) = %d", fd, rv, s.st_mode);
+		else
+			log(L_DEBUG, "add_fd: fstat(%d) = %d; st_mode = %#o", fd, rv, s.st_mode);
+	}
 	if (!S_ISREG(s.st_mode)) {
 		log(L_WARNING, "non-plain file %s", filename);
 		rv = close(fd);
