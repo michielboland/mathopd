@@ -217,9 +217,9 @@ void log_d(const char *fmt, ...)
 {
 	va_list ap;
 	char log_line[1000];
-	int n, saved_errno;
+	int m, n, saved_errno;
 	char *ti;
-	size_t l, m;
+	size_t l;
 
 	if (error_file == -1 && am_daemon)
 		return;
