@@ -678,6 +678,13 @@ Desc:    Normally, if the server is started as root and the StayRoot flag
          This is not recommended, since it is possible to trick mathopd
          using symbolic links.
 
+Keyword: ScriptTimeout
+Where:   Tuning
+Type:    Integer
+Default: 60
+Desc:    This timeout determines how long, measured in seconds, scripts
+         can run without generating any output.
+
 Keyword: ScriptUser
 Where:   Control
 Type:    String

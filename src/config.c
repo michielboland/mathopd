@@ -135,6 +135,7 @@ static const char c_remote_port[] =		"RemotePort";
 static const char c_remote_user[] =		"RemoteUser";
 static const char c_root_directory[] =		"RootDirectory";
 static const char c_run_scripts_as_owner[] =	"RunScriptsAsOwner";
+static const char c_script_timeout[] =		"ScriptTimeout";
 static const char c_script_user[] =		"ScriptUser";
 static const char c_server[] =			"Server";
 static const char c_server_name[] =		"ServerName";
@@ -851,6 +852,8 @@ static const char *config_tuning(struct configuration *p, struct tuning *tp)
 			t = config_flag(p, &tp->accept_multi);
 		else if (!strcasecmp(p->tokbuf, c_num_headers))
 			t = config_int(p, &tp->num_headers);
+		else if (!strcasecmp(p->tokbuf, c_script_timeout))
+			t = config_int(p, &tp->script_timeout);
 		else
 			t = e_keyword;
 		if (t)
@@ -952,6 +955,7 @@ const char *config(const char *config_filename)
 	tuning.timeout = DEFAULT_TIMEOUT;
 	tuning.accept_multi = 1;
 	tuning.num_headers = DEFAULT_NUM_HEADERS;
+	tuning.script_timeout = DEFAULT_SCRIPT_TIMEOUT;
 	fcm = DEFAULT_UMASK;
 	stayroot = 0;
 	log_columns = 0;

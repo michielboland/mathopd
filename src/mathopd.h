@@ -54,6 +54,7 @@
 #define DEFAULT_TIMEOUT 60
 #define DEFAULT_UMASK 022
 #define DEFAULT_NUM_HEADERS 100
+#define DEFAULT_SCRIPT_TIMEOUT 60
 
 #define STRLEN 400
 #define PATHLEN (2 * STRLEN)
@@ -314,6 +315,7 @@ struct tuning {
 	unsigned long timeout;
 	int accept_multi;
 	unsigned long num_headers;
+	unsigned long script_timeout;
 };
 
 /* main */
