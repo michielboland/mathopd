@@ -302,6 +302,8 @@ pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd,
 #endif
 	switch (pid) {
 	default:
+		if (debug)
+			log_d("child process %d created", pid);
 		setpgid(pid, pid);
 	case -1:
 		sigprocmask(SIG_SETMASK, &oset, 0);
