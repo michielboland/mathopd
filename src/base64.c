@@ -106,7 +106,7 @@ static int pwok(const char *good, const char *guess, int do_crypt)
 #ifdef MATHOPD_CRYPT
 	return strcmp(good, do_crypt ? crypt(guess, good) : guess) == 0;
 #else
-	return strcmp(good, guess) == 0;
+	return do_crypt ? 0 : strcmp(good, guess) == 0;
 #endif
 }
 
