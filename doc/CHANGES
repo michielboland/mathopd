@@ -212,3 +212,7 @@ stub.c:
 	This is a new file that contains code to pass data from and to
 	clients and CGI scripts. Originally this code was in the 'phpstub'
 	program, but it has since been mutilated beyond all recognition.
+
+sendfile.c:
+
+	This is a new file. It contains hooks into the sendfile() function.
