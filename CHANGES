@@ -104,3 +104,10 @@ Support for select() has been removed in favour of poll().
 The REQUEST_URI variable is now set in CGI scripts.
 The log buffer is allocated in such a way that overflow of log file entries
 should no longer occur.
+
+A 'userdirectory' keyword has been added. It can be used
+to implement user directories. See the sample configuration
+file for an example. Note that Mathopd does not try to do
+any clever username-to-homedirectory caching or similar so
+if you use this feature you may see a significant performance
+drop.
