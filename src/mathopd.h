@@ -269,6 +269,24 @@ struct request {
 	size_t in_mblen;
 };
 
+struct cgi_header {
+	const char *name;
+	size_t namelen;
+	const char *value;
+	size_t len;
+};
+
+struct pipe_params {
+	int state;
+	size_t imax;
+	int chunkit;
+	int nocontent;
+	int haslen;
+	size_t pmax;
+	int error_condition;
+	struct cgi_header *cgi_headers;
+};
+
 struct connection {
 	struct connection *next;
 	struct connection *prev;
@@ -280,47 +298,25 @@ struct connection {
 	struct sockaddr_in peer;
 	struct sockaddr_in sock;
 	time_t t;
-	struct pool input;
+	struct pool header_input;
 	struct pool output;
+	struct pool client_input;
+	struct pool script_input;
 	int keepalive;
 	int pollno;
+	int rpollno;
 	unsigned long nread;
 	unsigned long nwritten;
 	long left;
 	int logged;
 	struct timeval itv;
 	pid_t pid;
+	struct pipe_params pipe_params;
 };
 
 struct connection_list {
 	struct connection *head;
 	struct connection *tail;
-};
-
-struct pipe_params_list {
-	struct pipe_params *head;
-	struct pipe_params *tail;
-};
-
-struct pipe_params {
-	struct pipe_params *next;
-	struct pipe_params *prev;
-	struct pool client_input;
-	struct pool client_output;
-	struct pool script_input;
-	int state;
-	int cfd;
-	int pfd;
-	size_t imax;
-	int chunkit;
-	int nocontent;
-	int haslen;
-	size_t pmax;
-	int cpollno;
-	int ppollno;
-	int error_condition;
-	struct connection *cn;
-	time_t t;
 };
 
 struct tuning {
@@ -433,12 +429,9 @@ extern void lerror(const char *);
 
 /* stub */
 
-extern struct pipe_params *new_pipe_params(void);
-extern int init_children(size_t);
-extern void init_child(struct pipe_params *, struct request *, int);
-extern int setup_child_pollfds(int);
-extern void close_children(void);
-extern int run_children(void);
-extern void cleanup_children(void);
+extern void pipe_run(struct connection *);
+extern void init_child(struct connection *, int);
+extern int setup_child_pollfds(int, struct connection *);
+extern void cleanup_children(struct connection *);
 
 #endif
