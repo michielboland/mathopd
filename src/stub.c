@@ -354,29 +354,30 @@ static void pipe_run(struct pipe_params *p)
 			bytestoread = p->isize - p->ibp;
 			if (bytestoread > p->imax)
 				bytestoread = p->imax;
-			if (bytestoread == 0)
-				log_d("pipe_run: no bytes to read!?!?");
-			else {
-				r = read(p->cfd, p->ibuf + p->ibp, bytestoread);
-				switch (r) {
-				case -1:
-					if (errno == EAGAIN)
-						break;
-					if (errno != ECONNRESET && errno != EPIPE)
-						lerror("pipe_run: error reading from client");
-					p->error_condition = STUB_ERROR_CLIENT;
-					return;
-				case 0:
-					log_d("pipe_run: client went away while posting data");
-					p->error_condition = STUB_ERROR_CLIENT;
-					return;
-				default:
-					p->t = current_time;
-					p->cn->nread += r;
-					p->ibp += r;
-					p->imax -= r;
+			if (bytestoread == 0) {
+				log_d("pipe_run: nothing to read from client!");
+				p->error_condition = STUB_ERROR_CLIENT;
+				return;
+			}
+			r = read(p->cfd, p->ibuf + p->ibp, bytestoread);
+			switch (r) {
+			case -1:
+				if (errno == EAGAIN)
 					break;
-				}
+				if (errno != ECONNRESET && errno != EPIPE)
+					lerror("pipe_run: error reading from client");
+				p->error_condition = STUB_ERROR_CLIENT;
+				return;
+			case 0:
+				log_d("pipe_run: client went away while posting data");
+				p->error_condition = STUB_ERROR_CLIENT;
+				return;
+			default:
+				p->t = current_time;
+				p->cn->nread += r;
+				p->ibp += r;
+				p->imax -= r;
+				break;
 			}
 		}
 		if (revents & POLLOUT) {
@@ -408,16 +409,21 @@ static void pipe_run(struct pipe_params *p)
 			bytestoread = p->psize - p->ipp;
 			if (p->haslen && bytestoread > p->pmax)
 				bytestoread = p->pmax;
+			if (bytestoread == 0) {
+				log_d("pipe_run: nothing to read from pipe");
+				p->error_condition = STUB_ERROR_PIPE;
+				return;
+			}
 			r = read(p->pfd, p->pbuf + p->ipp, bytestoread);
 			switch (r) {
 			case -1:
 				if (errno == EAGAIN)
 					break;
 				lerror("pipe_run: error reading from script");
-				p->pstate = 2;
-				break;
+				p->error_condition = STUB_ERROR_PIPE;
+				return;
 			case 0:
-				if (p->state == 0) {
+				if (p->state != 2) {
 					log_d("pipe_run: premature end of script headers");
 					p->error_condition = STUB_ERROR_PIPE;
 					return;
