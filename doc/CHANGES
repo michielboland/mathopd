@@ -51,6 +51,8 @@ config.c:
 		AutoIndexCommand
 		Backlog
 		TimeTaken
+		LocalAddress
+		LocalPort
 
 	The following keywords have been removed:-
 
