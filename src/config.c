@@ -75,6 +75,7 @@ static const char c_control[] =		"Control";
 static const char c_core_directory[] =	"CoreDirectory";
 static const char c_default_name[] =	"DefaultName";
 static const char c_deny[] =		"Deny";
+static const char c_dns[] =		"DNSLevel";
 static const char c_do_crypt[] =	"EncryptedUserFile";
 static const char c_error[] =		"ErrorLog";
 static const char c_error_401_file[] =	"Error401File";
@@ -484,6 +485,7 @@ static const char *config_control(struct control **as)
 		a->error_404_file = b->error_404_file;
 		a->do_crypt = b->do_crypt;
 		a->child_filename = b->child_filename;
+		a->dns = b->dns;
 	} else {
 		a->index_names = 0;
 		a->accesses = 0;
@@ -499,6 +501,7 @@ static const char *config_control(struct control **as)
 		a->error_404_file = 0;
 		a->do_crypt = 0;
 		a->child_filename = 0;
+		a->dns = 1;
 	}
 	a->next = *as;
 	*as = a;
@@ -557,6 +560,8 @@ static const char *config_control(struct control **as)
 			t = config_string(&a->child_filename);
 		else if (!strcasecmp(tokbuf, c_exact_match))
 			t = config_flag(&a->exact_match);
+		else if (!strcasecmp(tokbuf, c_dns))
+			t = config_int(&a->dns);
 		else
 			t = e_keyword;
 		if (t)
