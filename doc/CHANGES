@@ -27,7 +27,8 @@ mathopd.h:
 	members to request structure; num_headers to tuning.
 	Added extra_headers to control.
 	Added range_s, if_range_s, if_range, range, range_floor,
-	range_ceiling, range_suffix, range_total to request.
+	range_ceiling, range_suffix, range_total, ius_s and
+	ius to request.
 
 	Removed: cookie from request structure.
 
@@ -44,3 +45,6 @@ request.c:
 	200, 206 or 416 status based on range headers. Deal with "If-Range"
 	headers. Added process_range_header(). Ignore (and log) multiple
 	Range headers and requests for multiple ranges.
+
+	Return 412 error for GET requests with If-Unmodified-Since header
+	if applicable.
