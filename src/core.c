@@ -133,6 +133,7 @@ static void accept_connection(struct server *s)
 		lsa = sizeof sa_local;
 		if (getsockname(fd, (struct sockaddr *) &sa_local, &lsa) == -1) {
 			lerror("getsockname");
+			close(fd);
 			break;
 		}
 		cn = connections;
@@ -424,7 +425,6 @@ static void reap_children(void)
 {
 	int status, pid;
 
-	gotsigchld = 0;
 	while (1) {
 		pid = waitpid(-1, &status, WNOHANG | WUNTRACED);
 		if (pid <= 0)
@@ -562,8 +562,10 @@ void httpd_main(void)
 			nuke_servers();
 			log_d("servers closed");
 		}
-		if (gotsigchld)
+		if (gotsigchld) {
+			gotsigchld = 0;
 			reap_children();
+		}
 		if (gotsigquit) {
 			gotsigquit = 0;
 			debug = debug == 0;
