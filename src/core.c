@@ -69,6 +69,9 @@ time_t current_time;
 
 struct pollfd *pollfds;
 
+int available_connections;
+unsigned long nrequests;
+
 static void init_pool(struct pool *p)
 {
 	p->start = p->end = p->floor;
@@ -89,6 +92,7 @@ static void init_connection(struct connection *cn)
 
 static void reinit_connection(struct connection *cn)
 {
+	++nrequests;
 	log_request(cn->r);
 	cn->logged = 1;
 	if (cn->rfd != -1) {
@@ -97,18 +101,25 @@ static void reinit_connection(struct connection *cn)
 	}
 	init_connection(cn);
 	cn->action = HC_WAITING;
+	++available_connections;
 }
 
 static void close_connection(struct connection *cn)
 {
-	if (cn->nread || cn->nwritten || cn->logged == 0)
+	if (cn->nread || cn->nwritten || cn->logged == 0) {
+		++nrequests;
 		log_request(cn->r);
+	}
 	--nconnections;
+	if (debug)
+		log_d("close_connection: fd=%d", cn->fd);
 	close(cn->fd);
 	if (cn->rfd != -1) {
 		close(cn->rfd);
 		cn->rfd = -1;
 	}
+	if (cn->action != HC_WAITING)
+		++available_connections;
 	cn->state = HC_FREE;
 }
 
@@ -144,6 +155,8 @@ static int accept_connection(struct server *s)
 	struct connection *cn, *cw;
 
 	do {
+		if (available_connections == 0)
+			return 0;
 		l = sizeof sa_remote;
 		fd = accept(s->fd, (struct sockaddr *) &sa_remote, &l);
 		if (fd == -1) {
@@ -153,6 +166,8 @@ static int accept_connection(struct server *s)
 			}
 			return 0;
 		}
+		if (debug)
+			log_d("accept_connection: fd=%d", fd);
 		s->naccepts++;
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		fcntl(fd, F_SETFL, O_NONBLOCK);
@@ -193,6 +208,7 @@ static int accept_connection(struct server *s)
 			init_connection(cn);
 			cn->logged = 0;
 			cn->action = HC_READING;
+			--available_connections;
 		}
 	} while (tuning.accept_multi);
 	return 0;
@@ -272,7 +288,10 @@ static void read_connection(struct connection *cn)
 
 	p = cn->input;
 	state = p->state;
-	cn->action = HC_READING;
+	if (cn->action == HC_WAITING) {
+		cn->action = HC_READING;
+		--available_connections;
+	}
 	fd = cn->fd;
 	i = p->ceiling - p->end;
 	if (i == 0) {
@@ -593,6 +612,7 @@ void httpd_main(void)
 	time_t last_time;
 
 	accepting = 1;
+	available_connections = tuning.num_connections;
 	last_time = current_time = startuptime = time(0);
 	hours = current_time / 3600;
 	log_d("*** %s starting", server_version);
@@ -627,7 +647,7 @@ void httpd_main(void)
 				log_d("debugging turned off");
 		}
 		n = 0;
-		if (accepting)
+		if (accepting && available_connections)
 			n = setup_server_pollfds(n);
 		n = setup_connection_pollfds(n);
 		n = setup_child_pollfds(n);
@@ -657,7 +677,7 @@ void httpd_main(void)
 			}
 		}
 		if (rv) {
-			if (accepting && run_servers() == -1)
+			if (accepting && available_connections && run_servers() == -1)
 				accepting = 0;
 			run_connections();
 			run_children();
