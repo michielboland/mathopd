@@ -1,11 +1,3 @@
-/*
- * extras.c - Mathopd server extensions
- *
- * Copyright 1996, 1997, Michiel Boland
- */
-
-/* Peg */
-
 #include "mathopd.h"
 
 static char **cgi_envp;
