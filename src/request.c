@@ -41,7 +41,6 @@ static const char rcsid[] = "$Id$";
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <errno.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -573,14 +572,8 @@ static int process_fd(struct request *r)
 	if (fd == -1) {
 		log_d("cannot open %s", r->path_translated);
 		lerror("open");
-		switch (errno) {
-		case EMFILE:
-		case ENFILE:
-			return 503;
-		default:
-			r->error_file = r->c->error_404_file;
-			return 404;
-		}
+		r->error_file = r->c->error_404_file;
+		return 404;
 	}
 	if (fstat(fd, &r->finfo) == -1) {
 		lerror("fstat");
@@ -617,7 +610,7 @@ static int process_fd(struct request *r)
 	}
 	if (r->method == M_GET) {
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
-		r->cn->request.fd = fd;
+		r->cn->rfd = fd;
 	} else
 		close(fd);
 	return r->range ? 206 : 200;
@@ -650,7 +643,7 @@ static int add_fd(struct request *r, const char *filename)
 		return -1;
 	}
 	fcntl(fd, F_SETFD, FD_CLOEXEC);
-	r->cn->request.fd = fd;
+	r->cn->rfd = fd;
 	r->content_length = s.st_size;
 	return 0;
 }

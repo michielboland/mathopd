@@ -174,11 +174,11 @@ void log_request(struct request *r)
 			s = r->args;
 			break;
 		case ML_TIME_TAKEN:
-			sprintf(tmp, "%.6f", tvdiff(tv, r->cn->itv));
+			sprintf(tmp, "%.6f", (tv.tv_sec + 1e-6 * tv.tv_usec) - (r->cn->itv.tv_sec + 1e-6 * r->cn->itv.tv_usec));
 			s = tmp;
 			break;
 		case ML_MICRO_TIME:
-			sprintf(tmp, "%.6f", tvtodouble(tv));
+			sprintf(tmp, "%.6f", tv.tv_sec + 1e-6 * tv.tv_usec);
 			s = tmp;
 			break;
 		}

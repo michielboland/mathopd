@@ -62,13 +62,6 @@
 #define STRLEN 400
 #define PATHLEN (2 * STRLEN)
 
-#define tvtodouble(tv) \
-	((tv).tv_sec + 1e-6 * (tv).tv_usec)
-
-#define tvdiff(tv1, tv2) \
-	(((tv1).tv_sec + 1e-6 * (tv1).tv_usec) - \
-	((tv2).tv_sec + 1e-6 * (tv2).tv_usec))
-
 enum {
 	ALLOW,
 	DENY,
@@ -196,19 +189,14 @@ struct vserver {
 	struct vserver *next;
 };
 
-struct connection_fd {
-	int fd;
-	int pollindex;
-	short events;
-};
-
 struct server {
-	struct connection_fd sock;
+	int fd;
 	unsigned long port;
 	struct in_addr addr;
 	struct virtual *children;
 	struct control *controls;
 	struct server *next;
+	int pollno;
 	struct vserver *vservers;
 	unsigned long backlog;
 };
@@ -295,8 +283,8 @@ struct connection {
 	enum connection_state connection_state;
 	struct request *r;
 	struct server *s;
-	struct connection_fd client;
-	struct connection_fd request;
+	int fd;
+	int rfd;
 	struct sockaddr_in peer;
 	struct sockaddr_in sock;
 	time_t t;
@@ -305,6 +293,8 @@ struct connection {
 	struct pool client_input;
 	struct pool script_input;
 	int keepalive;
+	int pollno;
+	int rpollno;
 	unsigned long nread;
 	unsigned long nwritten;
 	long left;
@@ -438,10 +428,5 @@ extern int init_cgi_headers(void);
 extern void pipe_run(struct connection *);
 extern void init_child(struct connection *, int);
 extern int setup_child_pollfds(int, struct connection *);
-
-/* select */
-
-extern void selectforoutput(struct connection_fd *);
-extern void selectforinput(struct connection_fd *);
 
 #endif

@@ -329,9 +329,9 @@ static int readfromclient(struct connection *p)
 		log_d("readfromclient: bytestoread is zero!");
 		return 0;
 	}
-	r = recv(p->client.fd, p->client_input.end, bytestoread, 0);
+	r = recv(p->fd, p->client_input.end, bytestoread, 0);
 	if (debug)
-		log_d("readfromclient: %d %d %d %d", p->client.fd, p->client_input.end - p->client_input.floor, bytestoread, r);
+		log_d("readfromclient: %d %d %d %d", p->fd, p->client_input.end - p->client_input.floor, bytestoread, r);
 	switch (r) {
 	case -1:
 		switch (errno) {
@@ -371,9 +371,9 @@ static int readfromchild(struct connection *p)
 		log_d("readfromchild: bytestoread is zero!");
 		return 0;
 	}
-	r = recv(p->request.fd, p->script_input.end, bytestoread, 0);
+	r = recv(p->rfd, p->script_input.end, bytestoread, 0);
 	if (debug)
-		log_d("readfromchild: %d %d %d %d", p->request.fd, p->script_input.end - p->script_input.floor, bytestoread, r);
+		log_d("readfromchild: %d %d %d %d", p->rfd, p->script_input.end - p->script_input.floor, bytestoread, r);
 	switch (r) {
 	case -1:
 		if (errno == EAGAIN)
@@ -418,9 +418,9 @@ static int writetoclient(struct connection *p)
 		log_d("writetoclient: bytestowrite is zero!");
 		return 0;
 	}
-	r = send(p->client.fd, p->output.start, bytestowrite, 0);
+	r = send(p->fd, p->output.start, bytestowrite, 0);
 	if (debug)
-		log_d("writetoclient: %d %d %d %d", p->client.fd, p->output.start - p->output.floor, bytestowrite, r);
+		log_d("writetoclient: %d %d %d %d", p->fd, p->output.start - p->output.floor, bytestowrite, r);
 	switch (r) {
 	case -1:
 		switch (errno) {
@@ -455,9 +455,9 @@ static int writetochild(struct connection *p)
 		log_d("writetochild: bytestowrite is zero!");
 		return 0;
 	}
-	r = send(p->request.fd, p->client_input.start, bytestowrite, 0);
+	r = send(p->rfd, p->client_input.start, bytestowrite, 0);
 	if (debug)
-		log_d("writetochild: %d %d %d %d", p->request.fd, p->client_input.start - p->client_input.floor, bytestowrite, r);
+		log_d("writetochild: %d %d %d %d", p->rfd, p->client_input.start - p->client_input.floor, bytestowrite, r);
 	switch (r) {
 	case -1:
 		if (errno == EAGAIN)
@@ -602,15 +602,15 @@ void pipe_run(struct connection *p)
 	short cevents, pevents;
 	int canwritetoclient, canwritetochild;
 
-	cevents = p->client.pollindex != -1 ? pollfds[p->client.pollindex].revents : 0;
-	pevents = p->request.pollindex != -1 ? pollfds[p->request.pollindex].revents : 0;
+	cevents = p->pollno != -1 ? pollfds[p->pollno].revents : 0;
+	pevents = p->rpollno != -1 ? pollfds[p->rpollno].revents : 0;
 	if (cevents & POLLERR) {
-		log_socket_error(p->client.fd, "pipe_run: error on client socket");
+		log_socket_error(p->fd, "pipe_run: error on client socket");
 		close_connection(p);
 		return;
 	}
 	if (pevents & POLLERR) {
-		log_socket_error(p->request.fd, "pipe_run: error on child socket");
+		log_socket_error(p->rfd, "pipe_run: error on child socket");
 		close_connection(p);
 		return;
 	}
@@ -660,9 +660,9 @@ void init_child(struct connection *p, int fd)
 	p->script_input.start = p->script_input.end = p->script_input.floor;
 	p->script_input.state = 1;
 	p->pipe_params.state = 0;
-	if (p->request.fd != -1)
+	if (p->rfd != -1)
 		abort();
-	p->request.fd = fd;
+	p->rfd = fd;
 	p->pipe_params.chunkit = r->protocol_minor > 0;
 	p->pipe_params.nocontent = r->method == M_HEAD;
 	p->pipe_params.haslen = 0;
@@ -696,8 +696,8 @@ void init_child(struct connection *p, int fd)
 		p->pipe_params.imax = 0;
 	}
 	set_connection_state(p, HC_FORKED);
-	p->client.pollindex = -1;
-	p->request.pollindex = -1;
+	p->pollno = -1;
+	p->rpollno = -1;
 }
 
 int setup_child_pollfds(int n, struct connection *p)
@@ -713,22 +713,22 @@ int setup_child_pollfds(int n, struct connection *p)
 		if (p->output.end > p->output.start || (p->pipe_params.state == 2 && p->script_input.start < p->script_input.end && p->output.end == p->output.floor))
 			e |= POLLOUT;
 		if (e) {
-			pollfds[n].fd = p->client.fd;
+			pollfds[n].fd = p->fd;
 			pollfds[n].events = e;
-			p->client.pollindex = n++;
+			p->pollno = n++;
 		} else
-			p->client.pollindex = -1;
+			p->pollno = -1;
 		e = 0;
 		if (p->script_input.state == 1 && p->script_input.end < p->script_input.ceiling && (p->pipe_params.chunkit || p->pipe_params.haslen == 0 || p->pipe_params.pmax))
 			e |= POLLIN;
 		if (p->client_input.end > p->client_input.start)
 			e |= POLLOUT;
 		if (e) {
-			pollfds[n].fd = p->request.fd;
+			pollfds[n].fd = p->rfd;
 			pollfds[n].events = e;
-			p->request.pollindex = n++;
+			p->rpollno = n++;
 		} else
-			p->request.pollindex = -1;
+			p->rpollno = -1;
 		p = q;
 	}
 	return n;

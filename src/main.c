@@ -102,26 +102,25 @@ static void die(const char *t, const char *fmt, ...)
 
 static void startup_server(struct server *s)
 {
-	int fd, onoff;
+	int onoff;
 	struct sockaddr_in sa;
 
-	fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (fd == -1)
+	s->fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (s->fd == -1)
 		die("socket", 0);
 	onoff = 1;
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &onoff, sizeof onoff) == -1)
+	if (setsockopt(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &onoff, sizeof onoff) == -1)
 		die("setsockopt", "cannot set re-use flag");
-	fcntl(fd, F_SETFD, FD_CLOEXEC);
-	fcntl(fd, F_SETFL, O_NONBLOCK);
+	fcntl(s->fd, F_SETFD, FD_CLOEXEC);
+	fcntl(s->fd, F_SETFL, O_NONBLOCK);
 	memset((char *) &sa, 0, sizeof sa);
 	sa.sin_family = AF_INET;
 	sa.sin_addr = s->addr;
 	sa.sin_port = htons(s->port);
-	if (bind(fd, (struct sockaddr *) &sa, sizeof sa) == -1)
+	if (bind(s->fd, (struct sockaddr *) &sa, sizeof sa) == -1)
 		die("bind", "cannot start up server at %s port %lu", inet_ntoa(s->addr), s->port);
-	if (listen(fd, s->backlog) == -1)
+	if (listen(s->fd, s->backlog) == -1)
 		die("listen", 0);
-	s->sock.fd = fd;
 }
 
 static void sighandler(int sig)

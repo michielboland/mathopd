@@ -113,9 +113,9 @@ static void fdump(FILE *f, struct request *r)
 	fprintf(f, "Number of requests executed: %lu\n", stats.nrequests);
 	fprintf(f, "\n");
 	getrusage(RUSAGE_SELF, &ru);
-	fprintf(f, "CPU time used by this process: %11.2f user %11.2f system\n", tvtodouble(ru.ru_utime), tvtodouble(ru.ru_stime));
+	fprintf(f, "CPU time used by this process: %11.2f user %11.2f system\n", ru.ru_utime.tv_sec + 1e-6 * ru.ru_utime.tv_usec, ru.ru_stime.tv_sec + 1e-6 * ru.ru_stime.tv_usec);
 	getrusage(RUSAGE_CHILDREN, &ru);
-	fprintf(f, "                     children: %11.2f user %11.2f system\n\n", tvtodouble(ru.ru_utime), tvtodouble(ru.ru_stime));
+	fprintf(f, "                     children: %11.2f user %11.2f system\n\n", ru.ru_utime.tv_sec + 1e-6 * ru.ru_utime.tv_usec, ru.ru_stime.tv_sec + 1e-6 * ru.ru_stime.tv_usec);
 	stats.maxconnections = stats.nconnections;
 	dump_connections(f, r ? r->cn : 0);
 	fprintf(f, "*** End of dump\n");
@@ -174,7 +174,7 @@ int process_dump(struct request *r)
 	r->last_modified = r->finfo.st_mtime;
 	if (r->method == M_GET) {
 		lseek(fd, 0, SEEK_SET);
-		r->cn->request.fd = fd;
+		r->cn->rfd = fd;
 	} else
 		close(fd);
 	r->content_type = "text/plain";
@@ -196,7 +196,7 @@ void internal_dump(void)
 		return;
 	}
 	gettimeofday(&tv, 0);
-	fprintf(f, "*** Dump performed at %.6f\n", tvtodouble(tv));
+	fprintf(f, "*** Dump performed at %.6f\n", tv.tv_sec + 1e-6 * tv.tv_usec);
 	fdump(f, 0);
 	fclose(f);
 }
