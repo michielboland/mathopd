@@ -21,3 +21,4 @@ $(OBJS): $(DEPENDS)
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 clean:
 	rm -f $(BIN) $(OBJS)
+.PHONY: install clean
