@@ -53,7 +53,7 @@ static const char rcsid[] = "$Id$";
 #include <stdarg.h>
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.4b9";
+const char server_version[] = "Mathopd/1.4b10";
 
 volatile int gotsigterm;
 volatile int gotsighup;
