@@ -671,7 +671,7 @@ static int find_vs(struct request *r)
 		}
 	if (v == 0) {
 		if (d == 0)
-			return 1;
+			return -1;
 		v = d;
 	}
 	r->vs = v;
@@ -780,11 +780,7 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update, int 
 
 static int process_path(struct request *r)
 {
-	switch (find_vs(r)) {
-	case -1:
-		r->status = 500;
-		return 0;
-	case 1:
+	if (find_vs(r) == -1) {
 		r->status = 400;
 		return 0;
 	}
