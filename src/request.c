@@ -1253,7 +1253,6 @@ void init_request(struct request *r)
 	r->ius_s = 0;
 	r->ius = 0;
 	r->rhost[0] = 0;
-	r->forked = 0;
 	r->in_transfer_encoding = 0;
 	r->in_mblen = 0;
 }
