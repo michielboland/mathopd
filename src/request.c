@@ -814,8 +814,6 @@ static int process_headers(struct request *r)
 			r->user_agent = s;
 		else if (!strcasecmp(l, "Referer"))
 			r->referer = s;
-		else if (!strcasecmp(l, "From"))
-			r->from = s;
 		else if (!strcasecmp(l, "Authorization"))
 			r->authorization = s;
 		else if (!strcasecmp(l, "Cookie"))
@@ -1016,7 +1014,6 @@ static void init_request(struct request *r)
 	r->vs = 0;
 	r->user_agent = 0;
 	r->referer = 0;
-	r->from = 0;
 	r->authorization = 0;
 	r->cookie = 0;
 	r->host = 0;

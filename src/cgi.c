@@ -190,8 +190,6 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 		return -1;
 	if (add("HTTP_HOST", r->host, 0, cp) == -1)
 		return -1;
-	if (add("HTTP_FROM", r->from, 0, cp) == -1)
-		return -1;
 	if (add("HTTP_REFERER", r->referer, 0, cp) == -1)
 		return -1;
 	if (add("HTTP_USER_AGENT", r->user_agent, 0, cp) == -1)

@@ -195,7 +195,6 @@ struct request {
 	struct virtual *vs;
 	char *user_agent;
 	char *referer;
-	char *from;
 	char *authorization;
 	char *cookie;
 	char *host;
