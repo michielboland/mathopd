@@ -588,24 +588,6 @@ static int add_fd(struct request *r, const char *filename)
 	return 0;
 }
 
-static int hostmatch(const char *s, const char *t)
-{
-	size_t l;
-
-	l = strlen(t);
-	if (strncasecmp(s, t, l))
-		return 0;
-	switch (s[l]) {
-	case 0:
-	case ':':
-		return 1;
-	case '.':
-		if (s[l + 1] == 0)
-			return 1;
-	}
-	return 0;
-}
-
 static int find_vs(struct request *r)
 {
 	struct virtual *v, *d;
@@ -615,7 +597,7 @@ static int find_vs(struct request *r)
 	if (r->host)
 		while (v) {
 			if (v->host) {
-				if (hostmatch(r->host, v->host))
+				if (strcmp(r->host, v->host) == 0)
 					break;
 			} else if (v->anyhost)
 				d = v;
@@ -710,6 +692,8 @@ static int process_path(struct request *r)
 {
 	int rv;
 
+	if (r->host)
+		sanitize_host(r->host);
 	switch (find_vs(r)) {
 	case -1:
 		return 500;

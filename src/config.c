@@ -728,6 +728,7 @@ static const char *config_vhost(struct virtual **vs, struct vserver *s, const ch
 	else {
 		if ((v->host = strdup(host)) == 0)
 			return e_memory;
+		sanitize_host(v->host);
 	}
 	v->fullname = 0;
 	v->parent = s->server;

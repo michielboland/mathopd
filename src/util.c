@@ -81,3 +81,20 @@ int unescape_url_n(const char *from, char *to, size_t n)
 	*to = 0;
 	return 0;
 }
+
+void sanitize_host(char *s)
+{
+	int c, l;
+
+	l = 0;
+	while ((c = *s) != 0) {
+		if (c == ':') {
+			*s = 0;
+			break;
+		}
+		*s++ = tolower(c);
+		l = c;
+	}
+	if (l == '.')
+		s[-1] = 0;
+}
