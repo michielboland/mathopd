@@ -61,4 +61,7 @@ We are currently at 1.3b7. Changes to the last beta:
 	"Export" is now defined inside Control blocks, not
 	globally.
 
+	The targets 'all' and 'install' are added to the
+	Makefile.
+
 Michiel Boland <boland@diva.nl>
