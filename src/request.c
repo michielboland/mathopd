@@ -765,12 +765,12 @@ static int process_headers(struct request *r)
 		}
 		while (*l == ' ')
 			++l;
-		r->method_s = l;
 		u = strchr(l, ' ');
 		if (u)
 			break;
 		log_d("ignoring garbage \"%.80s\" from %s", l, r->cn->ip);
 	}
+	r->method_s = l;
 	*u++ = 0;
 	while (*u == ' ')
 		++u;
