@@ -68,8 +68,7 @@ of 'cgi'.
 
 It is also possible to have several ScriptUsers, for instance, one
 for each virtual server. It is also possible to disallow CGI
-altogether by not specifying any ScriptUser, or an invalid
-ScriptUser.
+altogether by not specifying any ScriptUser.
 
 An example.
 
