@@ -91,11 +91,12 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 	struct cgi_header headers[100];
 	size_t n;
 	size_t i;
-	const char *p;
-	int status;
-	int location;
-	size_t l;
+	const char *p, *tmpname;
+	int status, location;
+	size_t l, tmpnamelen, tmpvaluelen;
 
+	tmpname = 0;
+	tmpnamelen = tmpvaluelen = 0;
 	if (insize >= 5 && memcmp(inbuf, "HTTP/", 5) == 0) {
 		if (outsize < insize) {
 			log_d("convert_cgi_headers: output buffer is too small");
@@ -115,33 +116,50 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 		c = *p;
 		switch (s) {
 		case 0:
-			if (isalpha(c)) {
-				if (n == 100) {
-					log_d("convert_cgi_headers: too many header lines");
-					return -1;
-				}
-				headers[n].name = p;
+			switch (c) {
+			case '\r':
+			case '\n':
+				break;
+			default:
+				tmpname = p;
 				l = 0;
 				s = 1;
+				break;
 			}
 			break;
 		case 1:
 			++l;
-			if (c == ':') {
-				headers[n].namelen = l;
+			switch (c) {
+			case '\r':
+			case '\n':
+				s = 0;
+				break;
+			case ':':
+				tmpnamelen = l;
 				s = 2;
+				break;
 			}
 			break;
 		case 2:
-			if (!isspace(c)) {
+			switch (c) {
+			case '\r':
+			case '\n':
+				s = 0;
+				break;
+			case ' ':
+			case '\t':
+				break;
+			default:
+				if (n == 100) {
+					log_d("convert_cgi_headers: too many header lines");
+					return -1;
+				}
+				headers[n].name = tmpname;
+				headers[n].namelen = tmpnamelen;
 				headers[n].value = p;
 				l = 0;
-				if (headers[n].namelen == 6 && strncasecmp(headers[n].name, "Status", 6) == 0) {
-					headers[n].namelen = 0;
-					status = n;
-				} else if (headers[n].namelen == 8 && strncasecmp(headers[n].name, "Location", 8) == 0)
-					location = n;
 				s = 3;
+				break;
 			}
 			break;
 		case 3:
@@ -152,6 +170,7 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 				headers[n].valuelen = l;
 				s = 0;
 				++n;
+				break;
 			}
 			break;
 		}
@@ -159,6 +178,12 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 	if (s) {
 		log_d("convert_cgi_headers: s=%d!?", s);
 		return -1;
+	}
+	for (i = 0; i < n; i++) {
+		if (headers[i].namelen == 6 && strncasecmp(headers[i].name, "Status", 6) == 0)
+			status = i;
+		else if (headers[i].namelen == 8 && strncasecmp(headers[i].name, "Location", 8) == 0)
+			location = i;
 	}
 	l = 0;
 	if (location != -1 && status == -1) {
@@ -188,7 +213,7 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 		outbuf[l++] = '\n';
 	}
 	for (i = 0; i < n; i++) {
-		if (headers[i].namelen) {
+		if (i != status) {
 			if (l + headers[i].namelen + headers[i].valuelen + 4 > outsize) {
 				log_d("convert_cgi_headers: no room to put header");
 				return -1;
