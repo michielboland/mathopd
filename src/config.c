@@ -303,7 +303,8 @@ static const char *config_string(struct configuration *p, char **a)
 {
 	const char *t;
 
-	if ((t = gettoken(p)) != t_string && t != t_word) return t;
+	if ((t = gettoken(p)) != t_string && t != t_word)
+		return t;
 	COPY(*a, p->tokbuf);
 	return 0;
 }
@@ -314,7 +315,8 @@ static const char *config_int(struct configuration *p, unsigned long *i)
 	unsigned long u;
 	const char *t;
 
-	if ((t = gettoken(p)) != t_word) return t;
+	if ((t = gettoken(p)) != t_word)
+		return t;
 	u = strtoul(p->tokbuf, &e, 0);
 	if (*e || e == p->tokbuf)
 		return e_inval;
@@ -326,7 +328,8 @@ static const char *config_flag(struct configuration *p, int *i)
 {
 	const char *t;
 
-	if ((t = gettoken(p)) != t_word) return t;
+	if ((t = gettoken(p)) != t_word)
+		return t;
 	if (!strcasecmp(p->tokbuf, c_off))
 		*i = 0;
 	else if (!strcasecmp(p->tokbuf, c_on))
@@ -341,7 +344,8 @@ static const char *config_address(struct configuration *p, struct in_addr *b)
 	struct in_addr ia;
 	const char *t;
 
-	if ((t = gettoken(p)) != t_string && t != t_word) return t;
+	if ((t = gettoken(p)) != t_string && t != t_word)
+		return t;
 	if (inet_aton(p->tokbuf, &ia) == 0)
 		return e_bad_addr;
 	*b = ia;
@@ -353,9 +357,11 @@ static const char *config_list(struct configuration *p, struct simple_list **ls)
 	struct simple_list *l;
 	const char *t;
 
-	if ((t = gettoken(p)) != t_open) return t;
+	if ((t = gettoken(p)) != t_open)
+		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_string && t != t_word) return t;
+		if (t != t_string && t != t_word)
+			return t;
 		ALLOC(l);
 		COPY(l->name, p->tokbuf);
 		l->next = *ls;
@@ -374,9 +380,11 @@ static const char *config_log(struct configuration *p, int **colsp, int *numcols
 	ml = 0;
 	cols = *colsp;
 	numcols = *numcolsp;
-	if ((t = gettoken(p)) != t_open) return t;
+	if ((t = gettoken(p)) != t_open)
+		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_word) return t;
+		if (t != t_word)
+			return t;
 		if (!strcasecmp(p->tokbuf, c_ctime))
 			ml = ML_CTIME;
 		else if (!strcasecmp(p->tokbuf, c_user))
@@ -424,13 +432,17 @@ static const char *config_mime(struct configuration *p, struct mime **ms, int cl
 	char *name, *s;
 	const char *t;
 
-	if ((t = gettoken(p)) != t_open) return t;
+	if ((t = gettoken(p)) != t_open)
+		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_string && t != t_word) return t;
+		if (t != t_string && t != t_word)
+			return t;
 		COPY(name, p->tokbuf);
-		if ((t = gettoken(p)) != t_open) return t;
+		if ((t = gettoken(p)) != t_open)
+			return t;
 		while ((t = gettoken(p)) != t_close) {
-			if (t != t_string && t != t_word) return t;
+			if (t != t_string && t != t_word)
+				return t;
 			ALLOC(m);
 			m->class = class;
 			m->name = name;
@@ -496,9 +508,11 @@ static const char *config_acccl(struct configuration *p, struct access **ls, int
 	unsigned long sz;
 	const char *t;
 
-	if ((t = gettoken(p)) != t_open) return t;
+	if ((t = gettoken(p)) != t_open)
+		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_word) return t;
+		if (t != t_word)
+			return t;
 		ALLOC(l);
 		l->next = *ls;
 		*ls = l;
@@ -517,7 +531,8 @@ static const char *config_acccl(struct configuration *p, struct access **ls, int
 			else
 				return e_keyword;
 		}
-		if ((t = gettoken(p)) != t_word) return t;
+		if ((t = gettoken(p)) != t_word)
+			return t;
 		sl = strchr(p->tokbuf, '/');
 		if (sl == 0)
 			return e_bad_network;
@@ -552,22 +567,26 @@ static const char *config_owners(struct configuration *p, struct file_owner **op
 	struct group *gr;
 	const char *t;
 
-	if ((t = gettoken(p)) != t_open) return t;
+	if ((t = gettoken(p)) != t_open)
+		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_word) return t;
+		if (t != t_word)
+			return t;
 		ALLOC(o);
 		o->next = *op;
 		*op = o;
 		if (!strcasecmp(p->tokbuf, c_user)) {
 			o->type = FO_USER;
-			if ((t = gettoken(p)) != t_string && t != t_word) return t;
+			if ((t = gettoken(p)) != t_string && t != t_word)
+				return t;
 			pw = getpwnam(p->tokbuf);
 			if (pw == 0)
 				return e_unknown_user;
 			o->user = pw->pw_uid;
 		} else if (!strcasecmp(p->tokbuf, c_group)) {
 			o->type = FO_GROUP;
-			if ((t = gettoken(p)) != t_string && t != t_word) return t;
+			if ((t = gettoken(p)) != t_string && t != t_word)
+				return t;
 			gr = getgrnam(p->tokbuf);
 			if (gr == 0)
 				return e_unknown_group;
@@ -642,12 +661,15 @@ static const char *config_control(struct configuration *p, struct control **as)
 	}
 	a->next = *as;
 	*as = a;
-	if ((t = gettoken(p)) != t_open) return t;
+	if ((t = gettoken(p)) != t_open)
+		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_word) return t;
+		if (t != t_word)
+			return t;
 		if (!strcasecmp(p->tokbuf, c_location)) {
 			ALLOC(l);
-			if ((t = gettoken(p)) != t_string && t != t_word) return t;
+			if ((t = gettoken(p)) != t_string && t != t_word)
+				return t;
 			chopslash(p->tokbuf);
 			COPY(l->name, p->tokbuf);
 			if (a->locations) {
@@ -659,7 +681,8 @@ static const char *config_control(struct configuration *p, struct control **as)
 			}
 			continue;
 		} else if (!strcasecmp(p->tokbuf, c_alias)) {
-			if ((t = gettoken(p)) != t_string && t != t_word) return t;
+			if ((t = gettoken(p)) != t_string && t != t_word)
+				return t;
 			chopslash(p->tokbuf);
 			COPY(a->alias, p->tokbuf);
 			continue;
@@ -749,11 +772,14 @@ static const char *config_virtual(struct configuration *p, struct vserver **vs, 
 	nameless = 1;
 	v->next = *vs;
 	*vs = v;
-	if ((t = gettoken(p) != t_open) return t;
+	if ((t = gettoken(p)) != t_open)
+		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_word) return t;
+		if (t != t_word)
+			return t;
 		if (!strcasecmp(p->tokbuf, c_host)) {
-			if ((t = gettoken(p)) != t_string && t != t_word) return t;
+			if ((t = gettoken(p)) != t_string && t != t_word)
+				return t;
 			nameless = 0;
 			t = config_vhost(&parent->children, v, p->tokbuf);
 		} else if (!strcasecmp(p->tokbuf, c_nohost)) {
@@ -787,9 +813,11 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	s->naccepts = 0;
 	s->nhandled = 0;
 	*ss = s;
-	if ((t = gettoken(p)) != t_open) return t;
+	if ((t = gettoken(p)) != t_open)
+		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_word) return t;
+		if (t != t_word)
+			return t;
 		if (!strcasecmp(p->tokbuf, c_port))
 			t = config_int(p, &s->port);
 		else if (!strcasecmp(p->tokbuf, c_name))
@@ -850,9 +878,11 @@ static const char *config_tuning(struct configuration *p, struct tuning *tp)
 {
 	const char *t;
 
-	if ((t = gettoken(p)) != t_open) return t;
+	if ((t = gettoken(p)) != t_open)
+		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_word) return t;
+		if (t != t_word)
+			return t;
 		if (!strcasecmp(p->tokbuf, c_timeout))
 			t = config_int(p, &tp->timeout);
 		else if (!strcasecmp(p->tokbuf, c_buf_size))
@@ -876,7 +906,8 @@ static const char *config_main(struct configuration *p)
 	const char *t;
 
 	while ((t = gettoken(p)) != t_eof) {
-		if (t != t_word) return t;
+		if (t != t_word)
+			return t;
 		if (!strcasecmp(p->tokbuf, c_root_directory))
 			t = config_string(p, &rootdir);
 		else if (!strcasecmp(p->tokbuf, c_core_directory))
