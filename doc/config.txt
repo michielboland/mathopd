@@ -114,6 +114,7 @@ Desc:    If a request for a directory is made, and none of the files
 Keyword: Backlog
 Where:   Server
 Type:    Integer
+Default: 128
 Desc:    The value of Backlog determines the number of connections that can
          be made while the server is busy handling the active connections
          (that is, not accepting new connections.) This is an experimental
@@ -122,9 +123,10 @@ Desc:    The value of Backlog determines the number of connections that can
 Keyword: BufSize
 Where:   Tuning
 Type:    Integer
+Default: 12288
 Desc:    The server uses two buffers to store incoming and outgoing data.
          The size of the outgoing buffer is determined by the value of the
-         BufSize keyword. The default value is 12288 (12Kbytes.)
+         BufSize keyword.
          Larger buffers can lead to less system calls, but also increase the
          amount of memory used by the server process.
 
@@ -704,7 +706,7 @@ Desc:    Normally, if the server is started as root and the StayRoot flag
 Keyword: ScriptBufSize
 Where:   Tuning
 Type:    Integer
-Default: 4080
+Default: 4096
 Desc:    The server uses three buffers for CGI scripts. The size of these
          is determined by the value of ScriptBufSize. (Actually one of these
          buffers is made slightly larger than the others to create extra room
