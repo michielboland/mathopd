@@ -1098,6 +1098,10 @@ static int process_headers(struct request *r)
 		r->host = r->rhost;
 		sanitize_host(r->host);
 	}
+	if (r->host && r->host[0] == 0) {
+		r->status = 400;
+		return 0;
+	}
 	if (unescape_url(s, r->path) == -1) {
 		r->status = 400;
 		return 0;
