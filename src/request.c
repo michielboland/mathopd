@@ -574,12 +574,17 @@ static int find_vs(struct request *r)
 		v = v->next;
 	}
 	if (v == 0) {
-		if (r->host || gv == 0)
-			return 1;
-		v = gv;
+		if (gv)
+			v = gv;
+		else
+			return -1;
 	}
 	r->vs = v;
 	v->nrequests++;
+	if (r->host && v->host == 0) {
+		log(L_ERROR, "No such virtual server: %s", r->host);
+		return 1;
+	}
 	return 0;
 }
 
@@ -607,9 +612,13 @@ static int check_realm(struct request *r)
 static int process_path(struct request *r)
 {
 	log(L_DEBUG, "process_path starting: find_vs,");
-	if (find_vs(r)) {
+	switch (find_vs(r)) {
+	case -1:
 		r->error = se_no_virtual;
 		return 500;
+	case 0:
+		r->error = se_no_virtual;
+		return 404;
 	}
 	log(L_DEBUG, " faketoreal,");
 	if ((r->c = faketoreal(r->path, r->path_translated, r, 1)) == 0) {
