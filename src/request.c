@@ -1202,6 +1202,7 @@ static int process_headers(struct request *r)
 			log_d("ignoring Content-Length header from client");
 			r->in_content_length = 0;
 		}
+		r->cn->keepalive = 0;
 	}
 	s = r->in_content_length;
 	if (s) {
