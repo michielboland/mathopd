@@ -198,42 +198,184 @@ Type:    Integer
 Default: 2048
 
 Keyword: Location
+Where:   Control
+Type:    String
+
 Keyword: Log
+Where:   Global
+Type:    String
+Desc:    This keyword determines where the access log is stored. The
+         server creates one and only one access log, regardless of the
+         number of (virtual) servers. The log file must be writeable
+         by the user the server runs as. If no log file exists, Mathopd
+         will try to create one. In that case, the server must also have
+         write access to the directory that will contain the log file.
+         There are some hacks that make it easier to maintain logs
+         for distinct time periods. Before Mathopd tries to open the
+         log file, it will expand any '%' constructs in the log file
+         name, similar to date(1) and strftime(3). For example, if
+
+           Log /var/mathopd/log.%Y%m%d
+
+         is used, Mathopd will expand the %Y, %m and %d in the file
+         name, to something like /var/mathopd/log.20020831
+         Mathopd automatically rotates the log file every hour.
+         If during this process Mathopd cannot create a new log file
+         for any reason, it will continue to append to the old log.
+         The format of the access log is determined by whatever is
+         specified in the LogFormat block (see below.)
+
 Keyword: LogFormat
+Where:   Global
+Type:    Block
+
 Keyword: LogGMT
+Where:   Global
+Type:    Flag
+Default: Off
+Desc:    Normally time stamps in log files are in local time. If
+         LogGMT is set to 'On', time stamps are in GMT. Note that
+         this setting also affects naming of log files when
+         '%' constructions are used. (See the 'Log' keyword.)
+
 Keyword: Method
+Where:   LogFormat
+
 Keyword: Name
+Where:   Server
+Type:    String
+Desc:    The value of this parameter is passed to CGI programs in the
+         SERVER_NAME environment variable, if no match is found for a
+         virtual server using Host headers.
+
 Keyword: NoApply
+Where:   Clients
+Type:    Network
+
 Keyword: NoHost
+Where:   Virtual
+Desc:    A Virtual server that has the "NoHost" keyword will be used when
+         no Host header is sent by the client.
+
 Keyword: NumConnections
+Where:   Tuning
+Type:    Integer
+Default: 64
+Desc:    The NumConnections parameter is the #1 tunable for Mathopd. It
+         determines how many simultaneous requests can be handled.
+         The default is probably too low for high-traffic systems.
+         Mathopd uses a fixed block of memory for each connection, so
+         the higher you set this tunable, the more memory the server
+         will use.
+
 Keyword: PIDFile
+Where:   Global
+Type:    String
+Desc:    The PIDFile keyword specifies a file in which the server will
+         record its process ID, for tracking purposes.
+
 Keyword: PathArgs
+Where:   Control
+Type:    Flag
+
 Keyword: Port
+Where:   Server
+Type:    Integer
+Default: 80
+
 Keyword: PutEnv
+Where:   Control
+Type:    Block
+
 Keyword: QueryString
+Where:   LogFormat
+
 Keyword: Realm
+Where:   Control
+Type:    String
+
 Keyword: Referer
+Where:   LogFormat
+
 Keyword: RemoteAddress
+Where:   LogFormat
+
 Keyword: RemotePort
+Where:   LogFormat
+
 Keyword: RemoteUser
+Where:   LogFormat
+
 Keyword: RootDirectory
+Where:   Global
+Type:    String
+
 Keyword: RunScriptsAsOwner
+Where:   Control
+Type:    Flag
+Default: Off
+
 Keyword: ScriptUser
+Where:   Control
+Type:    String
+
 Keyword: Server
+Where:   Global
+Type:    Block
+
 Keyword: ServerName
+Where:   LogFormat
+
 Keyword: Specials
+Where:   Control
+Type:    Block
+
 Keyword: Status
+Where:   LogFormat
+
 Keyword: StayRoot
+Where:   Global
+Type:    Flag
+Default: Off
+
 Keyword: Timeout
+Where:   Tuning
+Type:    Integer
+Default: 60
+
 Keyword: Tuning
+Where:   Global
+Type:    Block
+
 Keyword: Types
+Where:   Control
+Type:    Block
+
 Keyword: Umask
+Where:   Global
+Type:    Integer
+Default: 022
+
 Keyword: Uri
+Where:   LogFormat
+
 Keyword: User
+Where:   Global
+Type:    String
+
 Keyword: UserAgent
+Where:   LogFormat
+
 Keyword: UserDirectory
+Where:   Control
+Type:    Flag
+
 Keyword: UserFile
+Where:   Control
+Type:    String
+
 Keyword: Version
+Where:   LogFormat
 
 Keyword: Virtual
 Where:   Server
