@@ -77,7 +77,6 @@ static struct connection_list writing_connections;
 static struct connection_list forked_connections;
 static struct connection_list reinit_connections;
 static struct connection_list closing_connections;
-static struct connection_list new_connections;
 
 static void c_unlink(struct connection *c, struct connection_list *l)
 {
@@ -148,9 +147,6 @@ void set_connection_state(struct connection *c, enum connection_state state)
 	case HC_CLOSING:
 		o = &closing_connections;
 		break;
-	case HC_NEW:
-		o = &new_connections;
-		break;
 	default:
 		log_d("set_connection_state: unknown state: %d", state);
 		abort();
@@ -179,9 +175,6 @@ void set_connection_state(struct connection *c, enum connection_state state)
 		break;
 	case HC_CLOSING:
 		n = &closing_connections;
-		break;
-	case HC_NEW:
-		n = &new_connections;
 		break;
 	default:
 		log_d("set_connection_state: unknown state: %d", state);
@@ -348,12 +341,13 @@ static int accept_connection(struct server *s)
 			cn->peer = sa_remote;
 			cn->sock = sa_local;
 			cn->t = current_time;
+			cn->pollno = -1;
 			++nconnections;
 			if (nconnections > maxconnections)
 				maxconnections = nconnections;
 			init_connection(cn);
 			cn->logged = 0;
-			set_connection_state(cn, HC_NEW);
+			set_connection_state(cn, HC_WAITING);
 		}
 	} while (tuning.accept_multi);
 	return 0;
@@ -703,9 +697,13 @@ static void log_connection_error(struct connection *cn)
 
 static void run_rconnection(struct connection *cn)
 {
+	int n;
 	short r;
 
-	r = pollfds[cn->pollno].revents;
+	n = cn->pollno;
+	if (n == -1)
+		return;
+	r = pollfds[n].revents;
 	if (r & POLLERR) {
 		log_connection_error(cn);
 		set_connection_state(cn, HC_CLOSING);
@@ -716,15 +714,19 @@ static void run_rconnection(struct connection *cn)
 		r &= ~POLLIN;
 		if (cn->connection_state == HC_WRITING)
 			r |= POLLOUT;
-		pollfds[cn->pollno].revents = r;
+		pollfds[n].revents = r;
 	}
 }
 
 static void run_wconnection(struct connection *cn)
 {
+	int n;
 	short r;
 
-	r = pollfds[cn->pollno].revents;
+	n = cn->pollno;
+	if (n == -1)
+		return;
+	r = pollfds[n].revents;
 	if (r & POLLERR) {
 		log_connection_error(cn);
 		set_connection_state(cn, HC_CLOSING);
@@ -787,12 +789,6 @@ static void cleanup_connections(void)
 	while (c) {
 		n = c->next;
 		close_connection(c);
-		c = n;
-	}
-	c = new_connections.head;
-	while (c) {
-		n = c->next;
-		set_connection_state(c, HC_WAITING);
 		c = n;
 	}
 	timeout_connections(waiting_connections.head, tuning.timeout);
