@@ -102,10 +102,7 @@ void log_request(struct request *r)
 		s = 0;
 		switch (log_column[i]) {
 		case ML_CTIME:
-			if (log_gmt)
-				tp = gmtime(&current_time);
-			else
-				tp = localtime(&current_time);
+			tp = log_gmt ? gmtime(&current_time) : localtime(&current_time);
 			s = asctime(tp);
 			l = 24;
 			break;
