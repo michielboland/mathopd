@@ -96,3 +96,7 @@ ownership, use
 You do not normally have to do this though, since
 ownership is not checked if the allowed owner list
 is empty. (hm)
+
+If mathopd is started with the -n flag, diagnostic
+messages are logged to standard error as well as the
+ErrorLog.
