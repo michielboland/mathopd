@@ -292,7 +292,6 @@ int main(int argc, char *argv[])
 
 int fork_request(struct request *r, int (*f)(struct request *))
 {
-	int fd, efd;
 	pid_t pid;
 
 	if (forked)
@@ -301,32 +300,19 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		log_d("ChildLog must be set");
 		return 500;
 	}
-	efd = open_log(r->c->child_filename);
-	if (efd == -1)
-		return 500;
-	if (debug)
-		log_d("fork_request: efd=%d", efd);
 	pid = fork();
 	switch (pid) {
 	case 0:
 		my_pid = getpid();
 		forked = 1;
-		fd = r->cn->fd;
-		fcntl(fd, F_SETFL, 0);
-		dup2(fd, 0);
-		dup2(fd, 1);
-		dup2(efd, 2);
-		close(fd);
-		close(efd);
-		_exit(f(r));
+		_exit(cgi_stub(r, f));
 		break;
 	case -1:
 		lerror("fork");
 		return 503;
 	default:
-		close(efd);
 		if (debug)
-			log_d("child process %d created", pid);
+			log_d("fork_request: child process %d created", pid);
 		r->status_line = "---";
 	}
 	return -1;
