@@ -755,7 +755,6 @@ static const char *config_virtual(struct configuration *p, struct vserver **vs, 
 
 	if ((v = malloc(sizeof *v)) == 0)
 		return e_memory;
-	v->server = parent;
 	v->controls = parent->controls;
 	v->next = *vs;
 	*vs = v;
