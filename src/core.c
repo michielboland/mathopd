@@ -931,6 +931,8 @@ int init_connections(size_t n)
 		if ((cn->output = new_pool(tuning.buf_size)) == 0)
 			return -1;
 		cn->r->cn = cn;
+		cn->next = 0;
+		cn->prev = 0;
 		cn->connection_state = HC_UNATTACHED;
 		set_connection_state(cn, HC_FREE);
 	}
