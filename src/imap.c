@@ -48,8 +48,7 @@ typedef struct {
 
 static int pointinrect(point p, point c[])
 {
-	return (((c[0].x >= p.x) != (c[1].x >= p.x))
-		&& ((c[0].y >= p.y) != (c[1].y >= p.y)));
+	return (((c[0].x >= p.x) != (c[1].x >= p.x)) && ((c[0].y >= p.y) != (c[1].y >= p.y)));
 }
 
 static long sqr(long x)
@@ -59,8 +58,7 @@ static long sqr(long x)
 
 static int pointincircle(point p, point c[])
 {
-	return (sqr(c[0].x - p.x) + sqr(c[0].y - p.y)
-		<= sqr(c[0].x - c[1].x) + sqr(c[0].y - c[1].y));
+	return (sqr(c[0].x - p.x) + sqr(c[0].y - p.y) <= sqr(c[0].x - c[1].x) + sqr(c[0].y - c[1].y));
 }
 
 static int pointinpoly(point t, point a[], int n)
@@ -74,16 +72,15 @@ static int pointinpoly(point t, point a[], int n)
 	q = a;
 	stop = a + n;
 	p = stop - 1;
-
 	while (q < stop) {
-		if ((yflag = (p->y >= t.y)) != (q->y >= t.y)) {
+		yflag = p->y >= t.y;
+		if (yflag != (q->y >= t.y)) {
 			ysign = yflag ? -1 : 1;
-			if ((xflag = (p->x >= t.x)) == (q->x >= t.x)) {
+			xflag = p->x >= t.x;
+			if (xflag == (q->x >= t.x)) {
 				if (xflag)
 					index += ysign;
-			}
-			else if (ysign * ((p->x - t.x) * (q->y - p->y) -
-					  (p->y - t.y) * (q->x - p->x)) >= 0)
+			} else if (ysign * ((p->x - t.x) * (q->y - p->y) - (p->y - t.y) * (q->x - p->x)) >= 0)
 				index += ysign;
 		}
 		++q;
@@ -142,14 +139,12 @@ int process_imap(struct request *r)
 		r->error = "cannot open map file";
 		return 500;
 	}
-
 	line = 0;
 	sawpoint = 0;
 	*default_url = '\0';
 	mindist = 0;
 	status = 0;
 	url = 0;
-
 	while (fgetline(input, STRLEN, fp) != -1) {
 		++line;
 		k = 0;
@@ -179,18 +174,14 @@ int process_imap(struct request *r)
 			status = "odd number of coords";
 			break;
 		}
-
 		if (!strcmp(t, "default"))
 			strcpy(default_url, u);
-
 		else if (!strcmp(t, "text")) {
 			if (text) {
 				url = u;
 				break;
 			}
-		}
-
-		else if (!strcmp(t, "point")) {
+		} else if (!strcmp(t, "point")) {
 			if (k < 1) {
 				status = "no point";
 				break;
@@ -202,9 +193,7 @@ int process_imap(struct request *r)
 				mindist = dist;
 				strcpy(default_url, u);
 			}
-		}
-
-		else if (!strcmp(t, "rect")) {
+		} else if (!strcmp(t, "rect")) {
 			if (k < 2) {
 				status = "too few rect points";
 				break;
@@ -213,9 +202,7 @@ int process_imap(struct request *r)
 				url = u;
 				break;
 			}
-		}
-
-		else if (!strcmp(t, "circle")) {
+		} else if (!strcmp(t, "circle")) {
 			if (k < 2) {
 				status = "too few circle points";
 				break;
@@ -224,9 +211,7 @@ int process_imap(struct request *r)
 				url = u;
 				break;
 			}
-		}
-
-		else if (!strcmp(t, "spoly")) {
+		} else if (!strcmp(t, "spoly")) {
 			if (k < 3) {
 				status = "too few spoly points";
 				break;
@@ -235,9 +220,7 @@ int process_imap(struct request *r)
 				url = u;
 				break;
 			}
-		}
-
-		else if (!strcmp(t, "poly")) {
+		} else if (!strcmp(t, "poly")) {
 			if (k < 3) {
 				status = "too few poly points";
 				break;
@@ -246,9 +229,7 @@ int process_imap(struct request *r)
 				url = u;
 				break;
 			}
-		}
-
-		else {
+		} else {
 			status = "unknown keyword";
 			break;
 		}
