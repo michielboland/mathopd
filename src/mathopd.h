@@ -378,7 +378,6 @@ extern struct pollfd *pollfds;
 extern struct connection *connection_array;
 extern void set_connection_state(struct connection *, enum connection_state);
 extern int allocate_pollindex(int, short);
-extern int free_pollindex(int);
 extern int reinit_connection(struct connection *);
 extern void close_connection(struct connection *);
 extern void log_socket_error(int, const char *);
