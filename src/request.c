@@ -501,6 +501,8 @@ static int process_special(struct request *r)
 		return process_cgi(r);
 	if (!strcasecmp(ct, IMAP_MAGIC_TYPE))
 		return process_imap(r);
+	if (!strcasecmp(ct, REDIRECT_MAGIC_TYPE))
+		return process_redirect(r);
 	if (!strcasecmp(ct, DUMP_MAGIC_TYPE))
 		return process_dump(r);
 	r->error_file = r->c->error_404_file;

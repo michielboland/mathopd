@@ -45,6 +45,7 @@
 
 #define CGI_MAGIC_TYPE "CGI"
 #define IMAP_MAGIC_TYPE "Imagemap"
+#define REDIRECT_MAGIC_TYPE "Redirect"
 #define DUMP_MAGIC_TYPE "Dump"
 
 #define DEFAULT_BUF_SIZE 12288
@@ -333,6 +334,10 @@ extern int process_dump(struct request *);
 /* base64 */
 
 extern int webuserok(const char *, const char *, char *, int, int);
+
+/* redirect */
+
+extern int process_redirect(struct request *);
 
 /* util */
 
