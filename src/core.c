@@ -683,7 +683,7 @@ void httpd_main(void)
 							else if (r & POLLOUT)
 								write_connection(cn);
 							else if (r) {
-								log_d("dropping %s: unexpected event %hd", cn->ip, r);
+								log_d("poll: unexpected event %hd", r);
 								cn->action = HC_CLOSING;
 							}
 						}
