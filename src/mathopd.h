@@ -160,6 +160,19 @@ struct simple_list {
 	struct simple_list *next;
 };
 
+enum {
+	FO_USER,
+	FO_GROUP,
+	FO_WORLD
+};
+
+struct file_owner {
+	int type;
+	uid_t user;
+	gid_t group;
+	struct file_owner *next;
+};
+
 struct control {
 	char *alias;
 	int path_args_ok;
@@ -184,6 +197,7 @@ struct control {
 	char *script_user;
 	int run_scripts_as_owner;
 	int max_age;
+	struct file_owner *allowed_owners;
 };
 
 struct virtual {
@@ -312,6 +326,7 @@ extern int fcm;
 extern int stayroot;
 extern int my_pid;
 extern int fork_request(struct request *, int (*)(struct request *));
+extern int am_daemon;
 
 /* config */
 
