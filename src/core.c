@@ -537,29 +537,34 @@ void log_socket_error(int fd, const char *s)
 	errno = errno_save;
 }
 
-static void run_connections(void)
+static void run_connection(struct connection *cn)
 {
-	struct connection *cn;
 	short r;
 	char buf[60];
 
+	r = pollfds[cn->pollno].revents;
+	if (r & POLLERR) {
+		sprintf(buf, "error on connection to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
+		log_socket_error(cn->fd, buf);
+		cn->action = HC_CLOSING;
+	} else if (r & POLLIN)
+		read_connection(cn);
+	else if (r & POLLOUT)
+		write_connection(cn);
+	else if (r) {
+		log_d("poll: unexpected event %hd", r);
+		cn->action = HC_CLOSING;
+	}
+}
+
+static void run_connections(void)
+{
+	struct connection *cn;
+
 	cn = connections;
 	while (cn) {
-		if (cn->pollno != -1) {
-			r = pollfds[cn->pollno].revents;
-			if (r & POLLERR) {
-				sprintf(buf, "error on connection to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
-				log_socket_error(cn->fd, buf);
-				cn->action = HC_CLOSING;
-			} else if (r & POLLIN)
-				read_connection(cn);
-			else if (r & POLLOUT)
-				write_connection(cn);
-			else if (r) {
-				log_d("poll: unexpected event %hd", r);
-				cn->action = HC_CLOSING;
-			}
-		}
+		if (cn->pollno != -1)
+			run_connection(cn);
 		cn = cn->next;
 	}
 }
