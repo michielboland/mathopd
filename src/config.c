@@ -192,7 +192,7 @@ int inet_aton(const char *cp, struct in_addr *pin)
 	unsigned long ia;
 
 	ia = inet_addr(cp);
-	if (ia == (unsigned long) -1)
+	if (ia == -1)
 		return 0;
 	pin->s_addr = ia;
 	return 1;
