@@ -79,8 +79,7 @@ main.c:
 	underlying connection into something that the stub can handle.
 
 	The second argument to the listen() call is now dynamic via
-	the Backlog keyword. The listen backlog now defaults to 5,
-	rather than 128, which appears to make more sense.
+	the Backlog keyword.
 
 request.c:
 
