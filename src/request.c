@@ -758,19 +758,19 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update, int 
 					p = getpwnam(s);
 					if (t)
 						*t = '/';
-					if (p == 0 || p->pw_dir == 0)
-						return 0;
-					l = strlen(p->pw_dir);
-					if (l + 2 > maxlen) {
-						log_d("overflow in faketoreal");
-						return 0;
+					if (p && p->pw_dir) {
+						l = strlen(p->pw_dir);
+						if (l + 2 > maxlen) {
+							log_d("overflow in faketoreal");
+							return 0;
+						}
+						l = sprintf(y, "%s/%.*s", p->pw_dir, maxlen - (l + 2), c->locations->name); 
+						r->location_length = l;
+						maxlen -= l + 1;
+						if (t && (c->locations->name[0] == '/' || !c->path_args_ok))
+							sprintf(y + l, "%.*s", maxlen, t);
+						break;
 					}
-					l = sprintf(y, "%s/%.*s", p->pw_dir, maxlen - (l + 2), c->locations->name);
-					r->location_length = l;
-					maxlen -= l + 1;
-					if (t && (c->locations->name[0] == '/' || !c->path_args_ok))
-						sprintf(y + l, "%.*s", maxlen, t);
-					break;
 				}
 			}
 		}
