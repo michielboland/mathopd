@@ -61,6 +61,7 @@ tuning-item:
 	"Clobber" flag
 	"Wait" integer
 	"NumProcesses" integer
+	"Greedy" flag
 
 control-item:
 	"Location" string

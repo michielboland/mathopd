@@ -344,6 +344,11 @@ Desc:    The value of 'Family' determines the address family used by the
          on IPv4 addresses as well, depending on the operating system.
          See also the discussion of "v6only" at the Options keyword.
 
+Keyword: Greedy
+Where:   Tuning
+Type:    Flag
+Default: On
+
 Keyword: Host
 Where:   Virtual
 Type:    String
