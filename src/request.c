@@ -1072,7 +1072,7 @@ static int process_headers(struct request *r)
 	}
 	if (unescape_url(s, r->path) == -1)
 		return 400;
-	if (r->protocol_major > 1 || r->protocol_minor > 1) {
+	if (r->protocol_major > 1 || (r->protocol_major == 1 && r->protocol_minor > 1)) {
 		log_d("%s: unsupported version HTTP/%d.%d", inet_ntoa(r->cn->peer.sin_addr), r->protocol_major, r->protocol_minor);
 			return 505;
 	}
