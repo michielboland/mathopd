@@ -37,6 +37,18 @@
 
 static const char rcsid[] = "$Id$";
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <pwd.h>
+#include <grp.h>
+#ifdef POLL
+#include <poll.h>
+#endif
 #include "mathopd.h"
 
 struct tuning tuning;
@@ -139,7 +151,6 @@ static const char e_help[] =		"unknown error (help)";
 static const char e_inval[] =		"illegal quantity";
 static const char e_keyword[] =		"unknown keyword";
 static const char e_memory[] =		"out of memory";
-static const char e_nodefault[] =	"DefaultName not set";
 static const char e_illegalport[] =	"Illegal port number";
 static const char e_noinput[] =		"no input";
 static const char e_unknown_user[] =	"unknown user";
