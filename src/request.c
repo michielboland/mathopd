@@ -976,6 +976,32 @@ static int parse_http_version(struct request *r)
 	return 0;
 }
 
+static int parse_connection_header(struct request *r, const char *s)
+{
+	const char *c;
+	size_t l;
+
+	if (strchr(s, '"'))
+		return -1;
+	do {
+		c = strchr(s, ',');
+		l = c == 0 ? strlen(s) : c - s;
+		while (l > 0 && s[l - 1] == ' ')
+			--l;
+		if (debug)
+			log_d("parse_connection_header: \"%.*s\"", l, s);
+		if (strncasecmp(s, "keep-alive", l) == 0)
+			r->cn->keepalive = 1;
+		else if (strncasecmp(s, "close", l) == 0)
+			r->cn->keepalive = 0;
+		if (c)
+			while (*c == ',' || *c == ' ')
+				++c;
+		s = c;
+	} while (s && *s);
+	return 0;
+}
+
 static int process_headers(struct request *r)
 {
 	char *l, *u, *s;
@@ -1011,6 +1037,8 @@ static int process_headers(struct request *r)
 		r->status = 400;
 		return 0;
 	}
+	if (r->protocol_major)
+		r->cn->keepalive = 1;
 	n = 0;
 	multiple_range = 0;
 	while ((l = getline(&r->cn->header_input, 1)) != 0) {
@@ -1035,9 +1063,14 @@ static int process_headers(struct request *r)
 		else if (!strcasecmp(l, "Host")) {
 			sanitize_host(s);
 			r->host = s;
-		} else if (!strcasecmp(l, "Connection"))
-			r->connection = s;
-		else if (!strcasecmp(l, "If-Modified-Since"))
+		} else if (!strcasecmp(l, "Connection")) {
+			if (parse_connection_header(r, s) == -1) {
+				if (debug)
+					log_d("parse_connection_header failed for \"%s\"", s);
+				r->status = 400;
+				return 0;
+			}
+		} else if (!strcasecmp(l, "If-Modified-Since"))
 			r->ims_s = s;
 		else if (!strcasecmp(l, "If-Unmodified-Since"))
 			r->ius_s = s;
@@ -1121,13 +1154,6 @@ static int process_headers(struct request *r)
 		log_d("%s: unsupported version HTTP/%d.%d", inet_ntoa(r->cn->peer.sin_addr), r->protocol_major, r->protocol_minor);
 		r->status = 505;
 		return 0;
-	}
-	if (r->protocol_major) {
-		s = r->connection;
-		if (r->protocol_minor)
-			r->cn->keepalive = !(s && strcasecmp(s, "close") == 0);
-		else
-			r->cn->keepalive = s && strcasecmp(s, "keep-alive") == 0;
 	}
 	if (r->in_transfer_encoding) {
 		if (strcasecmp(r->in_transfer_encoding, "chunked")) {
@@ -1382,7 +1408,6 @@ void init_request(struct request *r)
 	r->host = 0;
 	r->in_content_type = 0;
 	r->in_content_length = 0;
-	r->connection = 0;
 	r->ims_s = 0;
 	r->path[0] = 0;
 	r->path_translated[0] = 0;
