@@ -33,10 +33,11 @@ cgi.c:
 	External scripts can now be called with added command-line
 	arguments.
 
-	Allow ScriptUser to be of the form "UID/GID", where UID
-	and GID are numbers. That way, password lookups are
-	voided. This feature is a HACK and might go away at any
-	time.
+	The DNS lookup code has been removed. This means that
+	REMOTE_HOST will never be set.
+
+	The ChildLog is now strftime-expanded, just like the
+	other logs.
 
 config.c:
 
@@ -51,12 +52,19 @@ config.c:
 		Backlog
 		TimeTaken
 
-	The "Name" keyword has been removed since it no longer
-	has any function.
+	The following keywords have been removed:-
+
+		DNSLookups
+		Name
 
 	The "Virtual" keyword may now be used in a global context
 	as well. If used that way, the virtual server(s) that it
 	defines will be inherited by all subsequent Server blocks.
+
+	The value for the User parameter is now immediately checked
+	at configuration time, and the user and group IDs are stored
+	then. The ScriptUser gets a similar treatment. This means
+	that after startup, no password lookups will be done.
 
 core.c:
 
@@ -98,18 +106,19 @@ log.c:
 
 main.c:
 
-	Allow ChildLogs that can be %-expanded, just like the other
-	log files (via open_log).
+	If we are not running as a daemon, do not close all file
+	descriptors.
 
-	The fork_request now creates a socket pair to communicate with
-	the child process, and calls init_child(), which converts the
-	underlying connection into something that the stub can handle.
+	The fork_request function has been removed, since most of
+	the work is now done in the main process (in cgi.c).
+	Instead, we have a spawn() function, that forks, does a
+	minimum amount of initialization routines, like change
+	user-id, current directory, and so on, and then immediately
+	calls exec. On some platforms we can even use vfork() rather
+	then fork() to achieve a rather dramatic speedup.
 
 	The second argument to the listen() call is now dynamic via
 	the Backlog keyword.
-
-	In fork_request, each child process is placed in a separate
-	process group.
 
 request.c:
 
@@ -132,7 +141,7 @@ request.c:
 	treat it as a continuation of the Request-Line.
 
 	Return a 400 rather than 404 error if a virtual server cannot be
-	found. This is required by RFC2616. 
+	found. This is required by RFC2616.
 
 	Allow requests with an absolute URI in the Request-Line
 	("GET http://localhost/ HTTP/1.1").
@@ -160,6 +169,5 @@ request.c:
 
 stub.c:
 
-	New file. This file is imported from the phpstub program. This
-	means that phpstub is now obsolete (as far as Mathopd 1.5 is
-	concerned.)
+	New file. This file has been imported from the phpstub program,
+	and then mutilated beyond all recognition.
