@@ -681,8 +681,8 @@ static int process_path(struct request *r)
 	}
 	log(L_DEBUG, " redirect check,");
 	if (r->path_translated[0] != '/') {
-		escape_url(r->path_translated);
-		r->location = r->path_translated;
+		escape_url(r->path_translated, r->path_args);
+		r->location = r->path_args;
 		return 302;
 	}
 	log(L_DEBUG, " evaluate_access,");
@@ -1182,49 +1182,4 @@ void construct_url(char *d, char *s, struct request *r)
 		sprintf(d, "http://%s%s", r->servername, s);
 	else
 		sprintf(d, "http://%s:%d%s", r->servername, port, s);
-}
-
-void escape_url(char *url)
-{
-	static const char hex[] = "0123456789abcdef";
-	char scratch[PATHLEN];
-	char *s;
-	register char c;
-
-	s = strcpy(scratch, url);
-	while ((c = *s++) != '\0') {
-		switch (c) {
-		case '%':
-		case ' ':
-		case '?':
-		case '+':
-		case '&':
-			*url++ = '%';
-			*url++ = hex[(c >> 4) & 15];
-			*url++ = hex[c & 15];
-			break;
-		default:
-			*url++ = c;
-			break;
-		}
-	}
-	*url = 0;
-}
-
-int unescape_url(char *s, char *t)
-{
-	char c, x1, x2;
-
-#define hexdigit(x) (((x) <= '9') ? (x) - '0' : ((x) & 7) + 9)
-
-	while ((c = *s++) != '\0')
-		if (c == '%') {
-			if (isxdigit(x1 = *s++) && isxdigit(x2 = *s++))
-				*t++ = ((hexdigit(x1) << 4) + hexdigit(x2));
-			else
-				return -1;
-		}
-		else *t++ = c;
-	*t = '\0';
-	return 0;
 }
