@@ -1,11 +1,3 @@
-/*
- * extras.c - Mathopd server extensions
- *
- * Copyright 1996, 1997, Michiel Boland
- */
-
-/* Hanc marginis exiguitas non caperet */
-
 #include "mathopd.h"
 
 #define MAXVERTS 100
@@ -86,7 +78,7 @@ int process_imap(struct request *r)
 	int k, line, sawpoint, text;
 	char *s, *t, *u, *v, *w, *url;	const char *status;
 	FILE *fp;
-	static STRING(comma) = ", ()\t\r\n";
+	static const char comma[] = ", ()\t\r\n";
 
 	if (r->method == M_HEAD)
 		return 204;
@@ -148,17 +140,17 @@ int process_imap(struct request *r)
 			break;
 		}
 
-		if (streq(t, "default"))
+		if (!strcmp(t, "default"))
 			strcpy(default_url, u);
 
-		else if (streq(t, "text")) {
+		else if (!strcmp(t, "text")) {
 			if (text) {
 				url = u;
 				break;
 			}
 		}
 
-		else if (streq(t, "point")) {
+		else if (!strcmp(t, "point")) {
 			if (k < 1) {
 				status = "no point";
 				break;
@@ -172,7 +164,7 @@ int process_imap(struct request *r)
 			}
 		}
 
-		else if (streq(t, "rect")) {
+		else if (!strcmp(t, "rect")) {
 			if (k < 2) {
 				status = "too few rect points";
 				break;
@@ -183,7 +175,7 @@ int process_imap(struct request *r)
 			}
 		}
 
-		else if (streq(t, "circle")) {
+		else if (!strcmp(t, "circle")) {
 			if (k < 2) {
 				status = "too few circle points";
 				break;
@@ -194,7 +186,7 @@ int process_imap(struct request *r)
 			}
 		}
 
-		else if (streq(t, "spoly")) {
+		else if (!strcmp(t, "spoly")) {
 			if (k < 3) {
 				status = "too few spoly points";
 				break;
@@ -205,7 +197,7 @@ int process_imap(struct request *r)
 			}
 		}
 
-		else if (streq(t, "poly")) {
+		else if (!strcmp(t, "poly")) {
 			if (k < 3) {
 				status = "too few poly points";
 				break;
