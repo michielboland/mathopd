@@ -1373,6 +1373,8 @@ static int prepare_reply(struct request *r)
 	const char *status_line;
 	char *cl_start, *cl_end;
 
+	if (r->forked)
+		return 0;
 	if (r->in_mblen || r->in_transfer_encoding) {
 		if (debug)
 			log_d("client sent request-body; turning off keepalive");
@@ -1540,6 +1542,7 @@ void init_request(struct request *r)
 	r->in_mblen = 0;
 	r->curdir[0] = 0;
 	r->send_continue = 0;
+	r->forked = 0;
 }
 
 int process_request(struct request *r)
