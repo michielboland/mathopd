@@ -216,6 +216,18 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 	}
 	if (add("QUERY_STRING", r->args, 0, cp) == -1)
 		return -1;
+	if (r->args) {
+		tmp = malloc(strlen(r->url) + strlen(r->args) + 2);
+		if (tmp == 0)
+			return -1;
+		sprintf(tmp, "%s?%s", r->url, r->args);
+		if (add("REQUEST_URI", tmp, 0, cp) == -1) {
+			free(tmp);
+			return -1;
+		}
+		free(tmp);
+	} else if (add("REQUEST_URI", r->url, 0, cp) == -1)
+		return -1;
 	sprintf(t, "%s", inet_ntoa(r->cn->peer.sin_addr));
 	if (add("REMOTE_ADDR", t, 0, cp) == -1)
 		return -1;
