@@ -54,8 +54,6 @@ static const char rcsid[] = "$Id$";
 #include <ctype.h>
 #include "mathopd.h"
 
-#define PLBUFSIZE 4080
-
 struct cgi_header {
 	const char *name;
 	size_t namelen;
@@ -80,9 +78,9 @@ int init_children(size_t n)
 	for (i = 0; i < n; i++){
 		if ((p = malloc(sizeof *p)) == 0)
 			return -1;
-		p->isize = PLBUFSIZE;
-		p->osize = PLBUFSIZE + 16;
-		p->psize = PLBUFSIZE;
+		p->isize = tuning.script_buf_size;
+		p->osize = tuning.script_buf_size + 16;
+		p->psize = tuning.script_buf_size;
 		if ((p->ibuf = malloc(p->isize)) == 0)
 			return -1;
 		if ((p->obuf = malloc(p->osize)) == 0)
@@ -504,7 +502,7 @@ static void pipe_run(struct pipe_params *p)
 					p->pmax -= p->ipp - p->pstart;
 			}
 		} else if (p->pstart == p->psize) {
-			log_d("pipe_run: too many headers");
+			log_d("pipe_run: buffer full");
 			p->error_condition = STUB_ERROR_RESTART;
 			return;
 		}
