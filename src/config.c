@@ -148,6 +148,7 @@ static const char c_umask[] =			"Umask";
 static const char c_uri[] =			"Uri";
 static const char c_user[] =			"User";
 static const char c_user_agent[] =		"UserAgent";
+static const char c_user_directory[] =		"UserDirectory";
 static const char c_user_file[] =		"UserFile";
 static const char c_version[] =			"Version";
 
@@ -587,6 +588,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 	a->alias = 0;
 	a->clients = 0;
 	a->exact_match = 0;
+	a->user_directory = 0;
 	if (b) {
 		a->index_names = b->index_names;
 		a->accesses = b->accesses;
@@ -696,6 +698,8 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_flag(p, &a->run_scripts_as_owner);
 		else if (!strcasecmp(p->tokbuf, c_allow_dotfiles))
 			t = config_flag(p, &a->allow_dotfiles);
+		else if (!strcasecmp(p->tokbuf, c_user_directory))
+			t = config_flag(p, &a->user_directory);
 		else
 			t = e_keyword;
 		if (t)

@@ -157,6 +157,7 @@ struct control {
 	char *script_user;
 	int run_scripts_as_owner;
 	int allow_dotfiles;
+	int user_directory;
 };
 
 struct virtual {
