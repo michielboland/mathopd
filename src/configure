@@ -926,7 +926,7 @@ else
 fi
 done
 
-for ac_func in iet_aton
+for ac_func in inet_aton
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
 echo "configure:933: checking for $ac_func" >&5
@@ -1322,7 +1322,7 @@ cat >> $CONFIG_STATUS <<EOF
 
 EOF
 cat >> $CONFIG_STATUS <<\EOF
-echo timestamp > stamp-h
+
 exit 0
 EOF
 chmod +x $CONFIG_STATUS
