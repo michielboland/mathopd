@@ -442,7 +442,7 @@ static void cleanup_connections(void)
 	}
 }
 
-void reap_children(void)
+static void reap_children(void)
 {
 	int errno_save, status, pid;
 
