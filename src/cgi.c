@@ -42,8 +42,6 @@ static const char rcsid[] = "$Id$";
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <pwd.h>
-#include <grp.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
@@ -388,7 +386,6 @@ int process_cgi(struct request *r)
 	struct cgi_parameters *cp;
 	uid_t u;
 	gid_t g;
-	struct passwd *pw;
 	struct pipe_params *pp;
 	int p[2], efd;
 	pid_t pid;
@@ -408,20 +405,19 @@ int process_cgi(struct request *r)
 	}
 	if (pp == 0)
 		return 503;
-	if (r->c->script_user) {
-		pw = getpwnam(r->c->script_user);
-		if (pw == 0) {
-			log_d("%s: user unknown", r->c->script_user);
-			return 500;
-		}
-		u = pw->pw_uid;
-		g = pw->pw_gid;
-	} else if (r->c->run_scripts_as_owner) {
+	switch (r->c->script_identity) {
+	case SI_CHANGETOFIXED:
+		u = r->c->script_uid;
+		g = r->c->script_gid;
+		break;
+	case SI_CHANGETOOWNER:
 		u = r->finfo.st_uid;
 		g = r->finfo.st_gid;
-	} else {
+		break;
+	default:
 		u = 0;
 		g = 0;
+		break;
 	}
 	if (geteuid() == u) {
 		log_d("cannot run scripts withouth changing identity");

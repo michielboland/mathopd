@@ -121,6 +121,12 @@ enum {
 	STUB_ERROR_RESTART
 };
 
+enum {
+	SI_DONOTCHANGE,
+	SI_CHANGETOFIXED,
+	SI_CHANGETOOWNER
+};
+
 struct pool {
 	char *floor;
 	char *ceiling;
@@ -168,8 +174,9 @@ struct control {
 	char *child_filename;
 	int dns;
 	struct simple_list *exports;
-	char *script_user;
-	int run_scripts_as_owner;
+	int script_identity;
+	uid_t script_uid;
+	gid_t script_gid;
 	int allow_dotfiles;
 	int user_directory;
 	struct simple_list *putenvs;

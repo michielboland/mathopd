@@ -41,6 +41,7 @@ static const char rcsid[] = "$Id$";
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -169,6 +170,7 @@ static const char e_keyword[] =		"unknown keyword";
 static const char e_memory[] =		"out of memory";
 static const char e_illegalport[] =	"illegal port number";
 static const char e_noinput[] =		"no input";
+static const char e_user_unknown[] =	"user unknown";
 
 static const char t_close[] =		"unexpected closing brace";
 static const char t_eof[] =		"unexpected end of file";
@@ -592,6 +594,36 @@ static void chopslash(char *s)
 		*t = 0;
 }
 
+static const char *config_script_user(struct configuration *p, struct control *c)
+{
+	const char *t;
+	struct passwd *pw;
+
+	t = gettoken(p);
+	if (t != t_string)
+		return t;
+	pw = getpwnam(p->tokbuf);
+	if (pw == 0)
+		return e_user_unknown;
+	c->script_identity = SI_CHANGETOFIXED;
+	c->script_uid = pw->pw_uid;
+	c->script_gid = pw->pw_gid;
+	return 0;
+}
+
+static const char *config_run_scripts_as_owner(struct configuration *p, struct control *c)
+{
+	const char *t;
+	int o;
+
+	t = config_flag(p, &o);
+	if (t)
+		return t;
+	if (o)
+		c->script_identity = SI_CHANGETOOWNER;
+	return 0;
+}
+
 static const char *config_control(struct configuration *p, struct control **as)
 {
 	struct control *a, *b;
@@ -623,8 +655,9 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->child_filename = b->child_filename;
 		a->dns = b->dns;
 		a->exports = b->exports;
-		a->script_user = b->script_user;
-		a->run_scripts_as_owner = b->run_scripts_as_owner;
+		a->script_identity = b->script_identity;
+		a->script_uid = b->script_uid;
+		a->script_gid = b->script_gid;
 		a->allow_dotfiles = b->allow_dotfiles;
 		a->putenvs = b->putenvs;
 		a->extra_headers = b->extra_headers;
@@ -645,8 +678,9 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->child_filename = 0;
 		a->dns = 1;
 		a->exports = 0;
-		a->script_user = 0;
-		a->run_scripts_as_owner = 0;
+		a->script_identity = SI_DONOTCHANGE;
+		a->script_uid = 0;
+		a->script_gid = 0;
 		a->allow_dotfiles = 0;
 		a->putenvs = 0;
 		a->extra_headers = 0;
@@ -720,9 +754,9 @@ static const char *config_control(struct configuration *p, struct control **as)
 		else if (!strcasecmp(p->tokbuf, c_exact_match))
 			t = config_flag(p, &a->exact_match);
 		else if (!strcasecmp(p->tokbuf, c_script_user))
-			t = config_string(p, &a->script_user);
+			t = config_script_user(p, a);
 		else if (!strcasecmp(p->tokbuf, c_run_scripts_as_owner))
-			t = config_flag(p, &a->run_scripts_as_owner);
+			t = config_run_scripts_as_owner(p, a);
 		else if (!strcasecmp(p->tokbuf, c_allow_dotfiles))
 			t = config_flag(p, &a->allow_dotfiles);
 		else if (!strcasecmp(p->tokbuf, c_user_directory))
