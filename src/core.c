@@ -43,8 +43,8 @@ int nconnections;
 int maxconnections;
 time_t current_time;
 
-static int log_file = -1;
-static int error_file = -1;
+static int log_file;
+static int error_file;
 
 static void init_pool(struct pool *p)
 {
@@ -525,6 +525,8 @@ void httpd_main(void)
 
 	first = 1;
 	error = 0;
+	log_file = -1;
+	error_file = -1;
 	while (gotsigterm == 0) {
 		if (gotsighup) {
 			gotsighup = 0;

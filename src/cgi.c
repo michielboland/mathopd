@@ -179,12 +179,14 @@ static int make_cgi_argv(struct request *r, char *b)
 
 static int cgi_error(struct request *r, int code, const char *error)
 {
-	struct pool *p = r->cn->output;
+	struct pool *p;
 
 	r->status = code;
 	r->error = error;
-	if (prepare_reply(r) != -1)
+	if (prepare_reply(r) != -1) {
+		p = r->cn->output;
 		write(STDOUT_FILENO, p->start, p->end - p->start);
+	}
 	return -1;
 }
 

@@ -395,8 +395,9 @@ static int get_path_info(struct request *r)
 
 static int check_path(struct request *r)
 {
-	char *p = r->path;
+	char *p;
 
+	p = r->path;
 	if (*p != '/')
 		return -1;
 	while (1)
@@ -1130,8 +1131,9 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 
 void construct_url(char *d, char *s, struct request *r)
 {
-	int port = r->cn->s->port;
+	int port;
 
+	port = r->cn->s->port;
 	if (port == DEFAULT_PORT)
 		sprintf(d, "http://%s%s", r->servername, s);
 	else

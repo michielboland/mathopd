@@ -126,9 +126,9 @@ static void sigwinch(int sig)
 
 static void sigchld(int sig)
 {
-	int pid;
-	int saved_errno = errno;
+	int saved_errno, pid;
 
+	saved_errno = errno;
 	while ((pid = waitpid(-1, 0, WNOHANG)) > 0)
 		++numchildren;
 	errno = saved_errno;

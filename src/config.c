@@ -61,8 +61,8 @@ struct pollfd *pollfds;
 static const char *err;
 static char *fqdn;
 static char tokbuf[STRLEN];
-static int line = 1;
-static int num_servers = 0;
+static int line;
+static int num_servers;
 static struct control *controls;
 
 static const char c_all[] =		"*";
@@ -145,9 +145,11 @@ static const char *gettoken(void)
 {
 	int c;
 	char w;
-	int i = 0;
-	char state = 1;
+	int i;
+	char state;
 
+	i = 0;
+	state = 1;
 	err = e_help;
 	do {
 		w = 0;
@@ -603,11 +605,12 @@ static const char *config_server(struct server **ss)
 
 static const char *fill_servernames(void)
 {
-	struct server *s = servers;
+	struct server *s;
 	struct virtual *v;
 	char buf[256];
 	char *name;
 
+	s = servers;
 	while (s) {
 		if (s->port == 0)
 			s->port = DEFAULT_PORT;
@@ -725,7 +728,7 @@ static const char *config2(void)
 	tuning.timeout = DEFAULT_TIMEOUT;
 	tuning.accept_multi = 1;
 	fcm = DEFAULT_UMASK;
-
+	line = 1;
 	s = config_main();
 	if (s) {
 		fprintf(stderr, "Error at token '%s' around line %d\n", tokbuf, line);
