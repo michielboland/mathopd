@@ -69,7 +69,7 @@ void escape_url(const char *from, char *to)
 
 int unescape_url(const char *from, char *to)
 {
-	char c, x1, x2;
+	int c, x1, x2;
 
 	while ((c = *from++) != 0) {
 		if (c == '%') {
