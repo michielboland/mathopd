@@ -215,7 +215,7 @@ Therefore I have decided not to implement internal redirects. If
 a CGI script sets a "Location:" header, then the server will
 fabricate a '302 Moved' response, and will pass the value of
 "Location:" unmodified to the client, regardless of whether it
-is an absolute URI, a virtual path, of something else. Experience
+is an absolute URI, a virtual path, or something else. Experience
 has shown that this is not a problem with most web browsers.
 
 References:
