@@ -2,6 +2,8 @@ How does Mathopd process a request?
 
 - Read Request-URI.
 - Remove '?' character and everything after it, if present.
+- If Request-URI is an absoluteURI (http://an.example/foo.html),
+  strip off the protocol and store the host name.
 - Decode ""%" HEX HEX"-encoded characters.
 - If Request-URI is not an absolute path, return error.
 - Sanitize Host: header sent by client by converting to lower case
