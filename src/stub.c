@@ -435,7 +435,57 @@ static int readfromclient(struct pipe_params *p)
 	return 0;
 }
 
-static int scanlflf(struct pipe_params *p);
+static int scanlflf(struct pipe_params *p)
+{
+	char c;
+
+	while (p->pstart < p->ipp && p->state != 2) {
+		c = p->pbuf[p->pstart++];
+		switch (p->state) {
+		case 0:
+			if (c == '\n')
+				p->state = 1;
+			break;
+		case 1:
+			switch (c) {
+			case '\r':
+				break;
+			case '\n':
+				p->state = 2;
+				break;
+			default:
+				p->state = 0;
+				break;
+			}
+			break;
+		}
+	}
+	if (p->state == 2) {
+		if (convert_cgi_headers(p, &p->cn->r->status) == -1) {
+			p->error_condition = STUB_ERROR_RESTART;
+			return -1;
+		}
+		if (p->nocontent)
+			p->pstate = 3;
+		else if (p->haslen) {
+			if (p->pstart < p->ipp) {
+				if (p->ipp > p->pstart + p->pmax) {
+					log_d("extra garbage from script ignored");
+					p->ipp = p->pstart + p->pmax;
+					p->pmax = 0;
+				} else
+					p->pmax -= p->ipp - p->pstart;
+			}
+			if (p->pmax == 0)
+				p->pstate = 2;
+		}
+	} else if (p->pstart == p->psize) {
+		log_d("scanlflf: buffer full");
+		p->error_condition = STUB_ERROR_RESTART;
+		return -1;
+	}
+	return 0;
+}
 
 static int readfromchild(struct pipe_params *p)
 {
@@ -558,58 +608,6 @@ static int writetochild(struct pipe_params *p)
 		if (p->opp == p->ibp)
 			p->opp = p->ibp = 0;
 		break;
-	}
-	return 0;
-}
-
-static int scanlflf(struct pipe_params *p)
-{
-	char c;
-
-	while (p->pstart < p->ipp && p->state != 2) {
-		c = p->pbuf[p->pstart++];
-		switch (p->state) {
-		case 0:
-			if (c == '\n')
-				p->state = 1;
-			break;
-		case 1:
-			switch (c) {
-			case '\r':
-				break;
-			case '\n':
-				p->state = 2;
-				break;
-			default:
-				p->state = 0;
-				break;
-			}
-			break;
-		}
-	}
-	if (p->state == 2) {
-		if (convert_cgi_headers(p, &p->cn->r->status) == -1) {
-			p->error_condition = STUB_ERROR_RESTART;
-			return -1;
-		}
-		if (p->nocontent)
-			p->pstate = 3;
-		else if (p->haslen) {
-			if (p->pstart < p->ipp) {
-				if (p->ipp > p->pstart + p->pmax) {
-					log_d("extra garbage from script ignored");
-					p->ipp = p->pstart + p->pmax;
-					p->pmax = 0;
-				} else
-					p->pmax -= p->ipp - p->pstart;
-			}
-			if (p->pmax == 0)
-				p->pstate = 2;
-		}
-	} else if (p->pstart == p->psize) {
-		log_d("scanlflf: buffer full");
-		p->error_condition = STUB_ERROR_RESTART;
-		return -1;
 	}
 	return 0;
 }
