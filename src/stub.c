@@ -102,12 +102,6 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 	headers[nheaders].name = dbuf;
 	headers[nheaders].namelen = 4;
 	headers[nheaders++].value = dbuf + 6;
-	if (pp->chunkit) {
-		headers[nheaders].len = sprintf(cbuf, "Transfer-Encoding: chunked");
-		headers[nheaders].name = cbuf;
-		headers[nheaders].namelen = 17;
-		headers[nheaders++].value = cbuf + 19;
-	}
 	tmpname = 0;
 	tmpnamelen = 0;
 	tmpvalue = 0;
@@ -256,6 +250,16 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 		len += tmpvaluelen;
 		pp->obuf[len++] = '\r';
 		pp->obuf[len++] = '\n';
+	}
+	if (pp->chunkit) {
+		if (nheaders == STUB_NHEADERS) {
+			log_d("convert_cgi_headers: too many header lines");
+			return -1;
+		}
+		headers[nheaders].len = sprintf(cbuf, "Transfer-Encoding: chunked");
+		headers[nheaders].name = cbuf;
+		headers[nheaders].namelen = 17;
+		headers[nheaders++].value = cbuf + 19;
 	}
 	for (i = 0; i < nheaders; i++) {
 		if (havestatus == 0 || i != status) {
