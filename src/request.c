@@ -36,7 +36,6 @@
 
 #include "mathopd.h"
 
-static const char br_empty[] =			"empty request";
 static const char br_bad_url[] =		"bad or missing url";
 static const char br_bad_protocol[] =		"bad protocol";
 static const char br_bad_date[] =		"bad date";
