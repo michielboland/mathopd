@@ -40,6 +40,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <signal.h>
 
@@ -110,7 +111,8 @@ enum {
 	ML_USER_AGENT,
 	ML_BYTES_READ,
 	ML_BYTES_WRITTEN,
-	ML_QUERY_STRING
+	ML_QUERY_STRING,
+	ML_TIME_TAKEN
 };
 
 enum {
@@ -282,6 +284,7 @@ struct connection {
 	unsigned long nwritten;
 	long left;
 	int logged;
+	struct timeval itv;
 };
 
 struct pipe_params {
