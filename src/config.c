@@ -121,6 +121,7 @@ static const char c_on[] =			"On";
 static const char c_options[] =			"Options";
 static const char c_path_args[] =		"PathArgs";
 static const char c_path_info[] =		"PathInfo";
+static const char c_pid[] =			"PID";
 static const char c_pid_file[] =		"PIDFile";
 static const char c_port[] =			"Port";
 static const char c_putenv[] =			"PutEnv";
@@ -411,6 +412,8 @@ static const char *config_log(struct configuration *p, int **colsp, int *numcols
 			ml = ML_TIME_TAKEN;
 		else if (!strcasecmp(p->tokbuf, c_micro_time))
 			ml = ML_MICRO_TIME;
+		else if (!strcasecmp(p->tokbuf, c_pid))
+			ml = ML_PID;
 		else
 			return e_keyword;
 		++numcols;

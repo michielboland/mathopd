@@ -190,6 +190,10 @@ void log_request(struct request *r)
 			sprintf(tmp, "%ld.%06ld", tv.tv_sec, tv.tv_usec);
 			s = tmp;
 			break;
+		case ML_PID:
+			sprintf(tmp, "%d", my_pid);
+			s = tmp;
+			break;
 		}
 		if (s == 0 || *s == 0) {
 			if (left) {
