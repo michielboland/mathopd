@@ -499,7 +499,7 @@ static void do_connections(struct connection *cn, fd_set *r, fd_set *w)
 					cn->action = HC_CLOSING;
 			}
 #else
-			else if (FD_ISSET(cn->fd, r))
+			if (FD_ISSET(cn->fd, r))
 				read_connection(cn);
 			else if (FD_ISSET(cn->fd, w))
 				write_connection(cn);
