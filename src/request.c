@@ -493,6 +493,12 @@ static int process_external(struct request *r)
 	return process_cgi(r);
 }
 
+static int process_dummy(struct request *r)
+{
+	r->error_file = r->c->error_404_file;
+	return 404;
+}
+
 static int process_special(struct request *r)
 {
 	const char *ct;

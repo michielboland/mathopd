@@ -360,10 +360,6 @@ extern void escape_url(const char *, char *);
 extern int unescape_url(const char *, char *);
 extern int unescape_url_n(const char *, char *, size_t);
 
-/* dummy */
-
-extern int process_dummy(struct request *);
-
 /* log */
 
 extern void log_request(struct request *);

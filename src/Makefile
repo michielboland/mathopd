@@ -7,7 +7,7 @@ LIBS=-lcrypt
 PREFIX=/usr/local
 SBINDIR=$(PREFIX)/sbin
 
-OBJS=	base64.o cgi.o config.o core.o dummy.o imap.o log.o main.o \
+OBJS=	base64.o cgi.o config.o core.o imap.o log.o main.o \
 	redirect.o request.o util.o
 DEPENDS=mathopd.h $(MAKEFILE)
 
