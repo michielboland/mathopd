@@ -98,7 +98,7 @@ static void accept_connection(struct server *s)
 	while ((fd = accept(s->fd, (struct sockaddr *) &sa, &lsa)) != -1) {
 		s->naccepts++;
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
-		fcntl(fd, F_SETFL, M_NONBLOCK);
+		fcntl(fd, F_SETFL, O_NONBLOCK);
 		cn = connections;
 		cw = 0;
 		while (cn) {
@@ -120,7 +120,7 @@ static void accept_connection(struct server *s)
 			close(fd);
 		}
 	}
-	if (errno != M_AGAIN)
+	if (errno != EAGAIN)
 		lerror("accept");
 }
 
@@ -182,7 +182,7 @@ static void write_connection(struct connection *cn)
 				lerror("send");
 			case EPIPE:
 				cn->action = HC_CLOSING;
-			case M_AGAIN:
+			case EAGAIN:
 				return;
 			}
 		}
@@ -217,7 +217,7 @@ static void read_connection(struct connection *cn)
 			lerror("recv");
 		case ECONNRESET:
 			cn->action = HC_CLOSING;
-		case M_AGAIN:
+		case EAGAIN:
 			return;
 		}
 	}
