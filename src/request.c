@@ -567,7 +567,7 @@ static int add_fd(struct request *r, const char *filename)
 		return -1;
 	if (r->class != CLASS_FILE)
 		return -1;
-	fd = open(filename, O_RDONLY);
+	fd = open(filename, O_RDONLY | O_NONBLOCK);
 	if (fd == -1)
 		return -1;
 	if (fstat(fd, &s) == -1) {
