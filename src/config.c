@@ -65,6 +65,7 @@ static int line = 1;
 static int num_servers = 0;
 static struct control *controls;
 
+static const char c_all[] =		"*";
 static const char c_accept_multi[] =	"AcceptMulti";
 static const char c_access[] =		"Access";
 static const char c_address[] =		"Address";
@@ -115,6 +116,7 @@ static const char c_userfile[] =	"UserFile";
 static const char e_addr_set[] =	"address already set";
 static const char e_bad_addr[] =	"bad address";
 static const char e_bad_alias[] =	"alias without matching location";
+static const char e_bad_mask[] =	"mask does not match address";
 static const char e_help[] =		"unknown error (help)";
 static const char e_inval[] =		"illegal quantity";
 static const char e_keyword[] =		"unknown keyword";
@@ -226,15 +228,6 @@ static const char *gettoken(void)
 	return err;
 }
 
-#ifdef NEED_STRDUP
-char *strdup(const char *s)
-{
-	char *t;
-
-	return (t = malloc(strlen(s) + 1)) ? strcpy(t,s) : 0;
-}
-#endif
-
 #define NEW(x) malloc(sizeof (x))
 #define MAKE(x, y) if (((x) = malloc(sizeof (y))) == 0) return e_memory
 #define COPY(x, y) if (((x) = strdup(y)) == 0) return e_memory
@@ -333,7 +326,7 @@ static const char *config_mime(struct mime **ms, int class)
 			MAKE(m, struct mime);
 			m->class = class;
 			m->name = name;
-			if (*tokbuf == '*')
+			if (!strcasecmp(tokbuf, c_all))
 				m->ext = 0;
 			else {
 				char buf[32];
@@ -359,6 +352,8 @@ static const char *config_access(struct access **ls)
 {
 	struct access *l;
 	struct in_addr ia;
+	char *sl, *e;
+	unsigned long sz;
 
 	GETOPEN();
 	while (NOTCLOSE()) {
@@ -375,20 +370,43 @@ static const char *config_access(struct access **ls)
 		else
 			return e_keyword;
 		GETWORD();
-		if (*tokbuf == '*')
+		sl = strchr(tokbuf, '/');
+		if (sl == 0) {
+			static int nwarn;
+			if (nwarn == 0) {
+				nwarn = 1;
+				fprintf(stderr, "warning: deprecated network "
+					"notation used in config file\n");
+			}
+		}
+		if (!strcasecmp(tokbuf, c_all))
 			l->mask = l->addr = 0;
 		else {
-			if (!strcasecmp(tokbuf, c_exact))
-				l->mask = (unsigned long) -1;
-			else {
-				if (inet_aton(tokbuf, &ia) == 0)
-					return e_bad_addr;
-				l->mask = ia.s_addr;
+			if (sl == 0) {
+				if (!strcasecmp(tokbuf, c_exact))
+					l->mask = 0xffffffff;
+				else {
+					if (inet_aton(tokbuf, &ia) == 0)
+						return e_bad_addr;
+					l->mask = ia.s_addr;
+				}
+				GETWORD();
+			} else {
+				*sl++ = 0;
+				sz = strtoul(sl, &e, 0);
+				if ((e && *e) || sz > 32)
+					return e_inval;
+				if (sz == 0)
+					l->mask = 0;
+				else
+					l->mask = htonl(0xffffffff ^
+						((1 << (32 - sz)) - 1));
 			}
-			GETWORD();
 			if (inet_aton(tokbuf, &ia) == 0)
 				return e_bad_addr;
 			l->addr = ia.s_addr;
+			if ((l->mask | l->addr) != l->mask)
+				return e_bad_mask;
 		}
 	}
 	return 0;
