@@ -561,12 +561,12 @@ void httpd_main(void)
 			if (accepting == 0)
 				accepting = 1;
 			last_time = current_time;
-		}
-		if (current_time / 3600 != hours) {
-			hours = current_time / 3600;
-			init_logs();
-			if (debug)
-				log_d("logs rotated");
+			if (current_time / 3600 != hours) {
+				hours = current_time / 3600;
+				init_logs();
+				if (debug)
+					log_d("logs rotated");
+			}
 		}
 		if (rv) {
 			s = servers;
