@@ -115,10 +115,13 @@ Keyword: Backlog
 Where:   Server
 Type:    Integer
 Default: 128
-Desc:    The value of Backlog determines the number of connections that can
-         be made while the server is busy handling the active connections
-         (that is, not accepting new connections.) This is an experimental
-         feature.
+Desc:    If all connections are in use, and there are no idle connections,
+         Mathopd will make no attempt to accept new connections. The
+         operating system may hold on to new connections though, in which
+         case they will be picked up by Mathopd as soon as one connection
+         becomes idle. The number of connections that can 'hang in the air'
+         in this fashion is determined by the Backlog parameter.
+         Normally one should never have to change this number.
 
 Keyword: BufSize
 Where:   Tuning
@@ -139,6 +142,9 @@ Keyword: BytesWritten
 Where:   LogFormat
 Desc:    The number of octets (bytes) sent to the client during a single
          request.
+         Note that this number may not be accurate in all cases.
+         If a network error occurs after a successful send operation,
+         the logged number of bytes sent will be too big.
 
 Keyword: ChildLog
 Where:   Control
@@ -551,12 +557,17 @@ Keyword: NumConnections
 Where:   Tuning
 Type:    Integer
 Default: 64
-Desc:    The NumConnections parameter is the #1 tunable for Mathopd. It
-         determines how many simultaneous requests can be handled.
+Desc:    The NumConnections parameter determines how many simultaneous
+         requests can be handled.
          The default is probably too low for high-traffic systems.
          Mathopd uses a fixed block of memory for each connection, so
          the higher you set this tunable, the more memory the server
          will use.
+         If all connections are in use, and there are idle connections
+         (clients that are just waiting to send new requests), and a new
+         connection arrives, the connection that has been idle the longest
+         is closed and replaced with the new connection. (This process is
+         called 'clobbering'.)
 
 Keyword: NumHeaders
 Where:   Tuning
