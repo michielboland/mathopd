@@ -1,21 +1,22 @@
-BIN=mathopd
-CC=gcc
-CFLAGS=-O -pipe -Wall
-CPPFLAGS=
-LDFLAGS=
-LDLIBS=-lcrypt
-PREFIX=/usr/local
-SBINDIR=$(PREFIX)/sbin
+srcdir=@srcdir@
+VPATH=@srcdir@
+SBINDIR=@prefix@/sbin
+CC=@CC@
+CFLAGS=@CFLAGS@
+CPPFLAGS=@CPPFLAGS@ -I.
+LDFLAGS=@LDFLAGS@
+LIBS=@LIBS@
 
+BIN=mathopd
 OBJS=	base64.o cgi.o config.o core.o dummy.o dump.o imap.o log.o main.o \
 	redirect.o request.o util.o
-DEPENDS=mathopd.h $(MAKEFILE)
+DEPENDS=mathopd.h config.h $(MAKEFILE)
 
 all: $(BIN)
 install: $(BIN)
 	install -c $(BIN) $(SBINDIR)
 $(BIN): $(OBJS)
-	$(CC) $(LDFLAGS) -o $(BIN) $(OBJS) $(LDLIBS)
+	$(CC) $(LDFLAGS) -o $(BIN) $(OBJS) $(LIBS)
 $(OBJS): $(DEPENDS)
 .c.o:
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@

@@ -1,0 +1,7 @@
+AC_INIT(base64.c)
+AC_CONFIG_HEADER(config.h)
+AC_PROG_CC
+AC_SEARCH_LIBS(crypt, crypt)
+AC_CHECK_HEADERS(crypt.h)
+AC_CHECK_FUNCS(inet_aton)
+AC_OUTPUT(Makefile,echo timestamp > stamp-h)

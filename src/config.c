@@ -50,6 +50,7 @@ static const char rcsid[] = "$Id$";
 #include <poll.h>
 #endif
 #include "mathopd.h"
+#include "config.h"
 
 struct tuning tuning;
 
@@ -183,7 +184,7 @@ static int default_log_column[] = {
 };
 
 
-#ifdef NEED_INET_ATON
+#ifndef HAVE_INET_ATON
 int inet_aton(const char *cp, struct in_addr *pin)
 {
 	unsigned long ia;
