@@ -38,8 +38,6 @@
 #ifndef _mathopd_h
 #define _mathopd_h
 
-/* some of mathopd's structures use uid_t, etc. so we have to include these beasties here */
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
