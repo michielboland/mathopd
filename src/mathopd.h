@@ -173,6 +173,7 @@ struct control {
 	char *error_404_file;
 	int do_crypt;
 	char *child_filename;
+	int dns;
 };
 
 struct virtual {
