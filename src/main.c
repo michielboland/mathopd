@@ -8,7 +8,7 @@
 
 #include "mathopd.h"
 
-STRING(server_version) = "Mathopd/1.1b16";
+STRING(server_version) = "Mathopd/1.1b17";
 
 volatile int gotsigterm;
 volatile int gotsighup;
@@ -162,6 +162,13 @@ int main(int argc, char *argv[])
 	while (s) {
 		startup_server(s);
 		s = s->next;
+	}
+
+	if (rootdir) {
+		if (chroot(rootdir) == -1)
+			die("chroot", 0);
+		if (chdir("/") == -1)
+			die("chdir", 0);
 	}
 
 	if (geteuid() == 0) {
