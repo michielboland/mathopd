@@ -35,7 +35,7 @@
 
 /* Once Around */
 
-static const char rcsid[] = "$Id: main.c,v 1.204 2004/02/23 15:13:15 boland Exp $";
+static const char rcsid[] = "$Id: main.c,v 1.204.2.1 2004/03/31 11:18:11 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -54,7 +54,7 @@ static const char rcsid[] = "$Id: main.c,v 1.204 2004/02/23 15:13:15 boland Exp 
 #include <time.h>
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.5p3";
+const char server_version[] = "Mathopd/1.5p4";
 
 volatile sig_atomic_t gotsigterm;
 volatile sig_atomic_t gotsighup;
