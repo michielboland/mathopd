@@ -91,6 +91,13 @@ core.c:
 	fide request appears. This can be used to log the time taken
 	to process a request.
 
+	The state machine that detects HTTP requests has been altered.
+	If the first nonblank line contains a space (or tab) followed by
+	the letter 'H', we are talking HTTP, and continue to scan the
+	remainder of the input for request headers. Previously, HTTP
+	is detected by a request line containing three or more words,
+	which does not really work.
+
 dump.c:
 
 	Adjust the formatting slightly.
@@ -174,6 +181,12 @@ request.c:
 	the Request-Line for the string 'HTTP'.
 
 	Request-URIs that are too long produce a 414 error.
+
+	Close the connection upon receipt of a 'HTTP/0.9' request, that is,
+	a request that does not contain a HTTP version. Thus, we now
+	support HTTP/0.9 requests, in the sense that such requests are
+	treated as an error. There are no HTTP/0.9 browsers left so this
+	should not be a problem.
 
 stub.c:
 
