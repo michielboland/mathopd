@@ -104,3 +104,5 @@ The server now emits an error message if it cannot open
 any log files.
 
 Support for select() has been removed in favour of poll().
+
+Support for logging query strings has been added.
