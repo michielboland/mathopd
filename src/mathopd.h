@@ -176,13 +176,13 @@ struct virtual {
 	unsigned long nwritten;
 	struct virtual *next;
 	struct vserver *vserver;
+	int anyhost;
 };
 
 struct vserver {
 	struct server *server;
 	struct control *controls;
 	struct vserver *next;
-	int anyhost;
 };
 
 struct server {
