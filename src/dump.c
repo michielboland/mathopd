@@ -64,9 +64,11 @@ static void dump_servers(FILE *f, struct server *s)
 	fprintf(f, "\n");
 }
 
-static void dump_connections(FILE *f, struct connection *cn, struct connection *currcon)
+static void dump_connections(FILE *f, struct connection *currcon)
 {
 	int i, n_free, n_reading, n_writing, n_waiting, n_closing, n_reinit, n_unknown, n_forked;
+	size_t n;
+	struct connection *cn;
 
 	n_free = 0;
 	n_reading = 0;
@@ -78,7 +80,8 @@ static void dump_connections(FILE *f, struct connection *cn, struct connection *
 	n_forked = 0;
 	i = -1;
 	fprintf(f, "Connections:\n");
-	while (cn) {
+	for (n = 0; n < tuning.num_connections; n++) {
+		cn = connection_array + n;
 		if (++i == 50) {
 			putc('\n', f);
 			i = 0;
@@ -86,46 +89,38 @@ static void dump_connections(FILE *f, struct connection *cn, struct connection *
 		if (cn == currcon)
 			putc('*', f);
 		else
-			switch (cn->state) {
+			switch (cn->connection_state) {
 			case HC_FREE:
 				putc('.', f);
 				++n_free;
 				break;
-			case HC_ACTIVE:
-				switch (cn->action) {
-				case HC_READING:
-					putc('r', f);
-					++n_reading;
-					break;
-				case HC_WRITING:
-					putc('W', f);
-					++n_writing;
-					break;
-				case HC_WAITING:
-					putc('-', f);
-					++n_waiting;
-					break;
-				case HC_CLOSING:
-					putc('c', f);
-					++n_closing;
-					break;
-				case HC_REINIT:
-					putc('i', f);
-					++n_reinit;
-					break;
-				default:
-					putc('?', f);
-					++n_unknown;
-					break;
-				}
+			case HC_READING:
+				putc('r', f);
+				++n_reading;
 				break;
-			case HC_FORKED:
-				putc('F', f);
-				++n_forked;
+			case HC_WRITING:
+				putc('W', f);
+				++n_writing;
+				break;
+			case HC_WAITING:
+				putc('-', f);
+				++n_waiting;
+				break;
+			case HC_CLOSING:
+				putc('c', f);
+				++n_closing;
+				break;
+			case HC_REINIT:
+				putc('i', f);
+				++n_reinit;
 				break;
 			default:
 				putc('?', f);
 				++n_unknown;
+				break;
+			case HC_FORKED:
+				putc('F', f);
+				++n_forked;
 				break;
 			}
 		cn = cn->next;
@@ -158,7 +153,7 @@ static void fdump(FILE *f, struct request *r)
 	fprintf(f, "                     children: %11.2f user %11.2f system\n\n", ru.ru_utime.tv_sec + 1e-6 * ru.ru_utime.tv_usec, ru.ru_stime.tv_sec + 1e-6 * ru.ru_stime.tv_usec);
 	maxconnections = nconnections;
 	dump_servers(f, servers);
-	dump_connections(f, connections, r->cn);
+	dump_connections(f, r->cn);
 	fprintf(f, "*** End of dump\n");
 }
 
