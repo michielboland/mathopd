@@ -90,6 +90,7 @@ static const char c_location[] =	"Location";
 static const char c_log[] =		"Log";
 static const char c_name[] =		"Name";
 static const char c_noapply[] =		"NoApply";
+static const char c_nohost[] =		"NoHost";
 static const char c_num_connections[] =	"NumConnections";
 static const char c_off[] =		"Off";
 static const char c_on[] =		"On";
@@ -585,7 +586,6 @@ static const char *config_vhost(struct virtual **vs, struct vserver *s, const ch
 	if (host == 0)
 		v->host = 0;
 	else {
-		s->nameless = 0;
 		COPY(v->host, host);
 	}
 	v->fullname = 0;
@@ -604,11 +604,12 @@ static const char *config_virtual(struct vserver **vs, struct server *parent)
 {
 	const char *t = 0;
 	struct vserver *v;
+	int nameless;
 
 	ALLOC(v);
 	v->server = parent;
 	v->controls = parent->controls;
-	v->nameless = 1;
+	nameless = 1;
 	v->next = *vs;
 	*vs = v;
 	GETOPEN();
@@ -616,7 +617,11 @@ static const char *config_virtual(struct vserver **vs, struct server *parent)
 		REQWORD();
 		if (!strcasecmp(tokbuf, c_host)) {
 			GETSTRING();
+			nameless = 0;
 			t = config_vhost(&parent->children, v, tokbuf);
+		} else if (!strcasecmp(tokbuf, c_nohost)) {
+			nameless = 0;
+			t = config_vhost(&parent->children, v, 0);
 		} else if (!strcasecmp(tokbuf, c_control))
 			t = config_control(&v->controls);
 		else
@@ -624,7 +629,7 @@ static const char *config_virtual(struct vserver **vs, struct server *parent)
 		if (t)
 			return t;
 	}
-	return v->nameless ? config_vhost(&parent->children, v, 0) : 0;
+	return nameless ? config_vhost(&parent->children, v, 0) : 0;
 }
 
 static const char *config_server(struct server **ss)
