@@ -318,6 +318,21 @@ Desc:    The PIDFile keyword specifies a file in which the server will
 Keyword: PathArgs
 Where:   Control
 Type:    Flag
+Desc:    If you want to redirect a user to a different web site, regardless
+         of the actual URL that is requested, you can do something like this
+
+           Control {
+             Alias /foo
+             Location http://www.an.example/foo.html
+             PathArgs On
+           }
+
+         In the above example, a request for, say, /foo/index.html will be
+         redirected to http://www.an.example/foo.html. In fact, *any* request
+         that starts with /foo/ will be redirected to the same URL. If the
+         PathArgs were omitted a request for /foo/index.html would be
+         redirected to http://www.an.example/foo.html/index.html (which does
+         not make much sense of course.)
 
 Keyword: Port
 Where:   Server
