@@ -1,5 +1,5 @@
 /*
- * request.c - parse and process an HTTP/1.0 request
+ * request.c - parse and process an HTTP request
  *
  * Copyright 1996, 1997, Michiel Boland
  */
@@ -18,8 +18,6 @@
 #define SPRINTF4 sprintf
 #endif
 
-STRING(magic_word) = "Keep-Alive";
-
 static STRING(br_empty) =		"empty request";
 static STRING(br_bad_method) =		"bad method";
 static STRING(br_bad_url) =		"bad or missing url";
@@ -30,11 +28,12 @@ static STRING(fb_not_plain) =		"file not plain";
 static STRING(fb_symlink) =		"symlink spotted";
 static STRING(fb_active) =		"actively forbidden";
 static STRING(fb_access) =		"no permission";
-static STRING(ni_post) =		"cannot apply POST method to URL";
+static STRING(fb_post_file) =		"POST to file";
 static STRING(nf_not_found) =		"not found";
 static STRING(nf_no_index) =		"no index";
 static STRING(nf_path_info) =		"path info";
 static STRING(nf_slash) =		"trailing slash";
+static STRING(ni_not_implemented) =	"method not implemented";
 static STRING(se_alias) =		"cannot resolve pathname";
 static STRING(se_get_path_info) =	"cannot determine path argument";
 static STRING(se_no_control) =		"out of control";
@@ -44,13 +43,11 @@ static STRING(se_no_virtual) =		"no virtual server";
 static STRING(se_open) =		"open failed";
 static STRING(su_open) =		"too many open files";
 static STRING(se_unknown) =		"unknown error (help!)";
+static STRING(ni_version_not_supp) =	"version not supported";
 
-static STRING(get_method) =		"GET";
-static STRING(head_method) =		"HEAD";
-static STRING(post_method) =		"POST";
-
-static STRING(old_protocol) =		"HTTP/0.9";
-static STRING(new_protocol) =		"HTTP/1.0";
+static STRING(m_get) =			"GET";
+static STRING(m_head) =			"HEAD";
+static STRING(m_post) =			"POST";
 
 static time_t timerfc(char *s)
 {
@@ -271,13 +268,18 @@ static int output_headers(struct pool *p, struct request *r)
 {
 	long l;
 	static STRING(crlf) = "\r\n";
+	char t[16];
 
 #define OUT(y, z) if (out3(p, (y), (z), crlf) == -1) return -1
 
 	if (r->cn->assbackwards)
 		return 0;
 
-	OUT("HTTP/1.0 ", r->status_line);
+	sprintf(t, "HTTP/%d.%d ",
+		r->protocol_major,
+		r->protocol_minor);
+
+	OUT(t, r->status_line);
 
 	OUT("Server: ", server_version);
 
@@ -302,8 +304,10 @@ static int output_headers(struct pool *p, struct request *r)
 	OUT("Location: ", r->location);
 
 	if (r->cn->keepalive) {
-		OUT("Connection: ", magic_word);
-	}
+		if (r->protocol_minor == 0)
+			OUT("Connection: ", "Keep-Alive");
+	} else if (r->protocol_minor)
+		OUT("Connection: ", "Close");
 
 	return putstrings(p, 1, crlf);
 }
@@ -542,10 +546,6 @@ static int process_special(struct request *r)
 
 static int process_fd(struct request *r)
 {
-/*
- * Do not return 501 error when there are
- * path arguments
- */
 	if (r->path_args[0]) {
 		if (r->path_args[1]) {
 			r->error = nf_path_info;
@@ -557,8 +557,8 @@ static int process_fd(struct request *r)
 		}
 	}
 	if (r->method == M_POST) {
-		r->error = ni_post;
-		return 501;
+		r->error = fb_post_file;
+		return 405;
 	}
 	r->content_length = r->finfo.st_size;
 	r->last_modified = r->finfo.st_mtime;
@@ -698,11 +698,90 @@ static int process_path(struct request *r)
 	return r->special ? process_special(r) : process_fd(r);
 }
 
-static const char *process_headers(struct request *r)
+static int get_method(char *p, struct request *r)
+{
+	if (p == 0)
+		return -1;
+
+	if (streq(p, m_get)) {
+		r->method = M_GET;
+		r->method_s = m_get;
+		return 0;
+	}
+
+	if (r->cn->assbackwards)
+		return -1;
+
+	if (streq(p, m_head)) {
+		r->method = M_HEAD;
+		r->method_s = m_head;
+		return 0;
+	}
+
+	if (streq(p, m_post)) {
+		r->method = M_POST;
+		r->method_s = m_post;
+		return 0;
+	}
+
+	return -1;
+}
+
+static int get_url(char *p, struct request *r)
+{
+	char *s;
+
+	if (p == 0)
+		return -1;
+	if (strlen(p) > STRLEN)
+		return -1;
+	r->url = p;
+
+	s = strchr(p, '?');
+	if (s) {
+		r->args = s+1;
+		*s = '\0';
+	}
+
+	s = strchr(p, ';');
+	if (s) {
+		r->params = s + 1;
+		*s = '\0';
+	}
+
+	if (unescape_url(r->url, r->path) == -1)
+		return -1;
+	if (r->path[0] != '/')
+		return -1; /* this is wrong */
+
+	return 0;
+}
+
+static int get_version(char *p, struct request *r)
+{
+	unsigned int x, y;
+	char *s;
+
+	s = strchr(p, '.');
+	if (s == 0)
+		return -1;
+
+	*s++ = '\0';
+	x = atoi(p);
+	y = atoi(s);
+	log(L_DEBUG, "major=%d, minor=%d", x, y);
+	if (x != 1 || y > 1)
+		return -1;
+
+	r->protocol_major = x;
+	r->protocol_minor = y;
+	return 0;
+}
+
+static int process_headers(struct request *r)
 {
 	static STRING(whitespace) = " \t";
 	char *l, *m, *p, *s;
-	int a = r->cn->assbackwards;
 
 	r->vs = 0;
 	r->user_agent = 0;
@@ -727,57 +806,46 @@ static const char *process_headers(struct request *r)
 	r->method_s = 0;
 	r->url = 0;
 	r->args = 0;
-	r->protocol = 0;
+	r->params = 0;
+	r->protocol_major = 0;
+	r->protocol_minor = 0;
 	r->method = 0;
 	r->status = 0;
 	r->isindex = 0;
 	r->c = 0;
 
-	if ((l = getline(r->cn->input)) == 0)
-		return br_empty;
+	if ((l = getline(r->cn->input)) == 0) {
+		r->error = br_empty;
+		return 400;
+	}
 
 	m = strtok(l, whitespace);
-	if (m == 0)
-		return br_empty;
+	if (get_method(m, r) == -1) {
+		r->error = ni_not_implemented;
+		return 501;
+	}
 
-	if (strceq(m, get_method)) {
-		r->method = M_GET;
-		r->method_s = get_method;
+	p = strtok(0, whitespace);
+	if (get_url(p, r) == -1) {
+		r->error = br_bad_url;
+		return 400;
 	}
-	else if (strceq(m, head_method)) {
-		if (a)
-			return br_bad_method;
-		r->method = M_HEAD;
-		r->method_s = head_method;
-	}
-	else if (strceq(m, post_method)) {
-		if (a)
-			return br_bad_method;
-		r->method = M_POST;
-		r->method_s = post_method;
-	}
-	else
-		return br_bad_method;
 
-	if ((r->url = strtok(0, whitespace)) == 0
-	    || strlen(r->url) > STRLEN)
-		return br_bad_url;
-	if ((s = strchr(r->url, '?')) != 0) {
-		r->args = s+1;
-		*s = '\0';
-	}
-	if (unescape_url(r->url, r->path) == -1
-	    || r->path[0] != '/')
-		return br_bad_url;
-
-	if (a)
-		r->protocol = old_protocol;
-	else {
+	if (!r->cn->assbackwards) {
 		p = strtok(0, whitespace);
-		if (p == 0 || strcasecmp(p, new_protocol))
-			return br_bad_protocol;
+		if (p == 0 || strncmp(p, "HTTP/", 5)) {
+			r->error = br_bad_protocol;
+			return 400;
+		}
+			
+		if (get_version(p + 5, r) == -1) {
+			r->error = ni_version_not_supp;
+			return 505;
+		}
 
-		r->protocol = new_protocol;
+		if (r->protocol_minor)
+			r->cn->keepalive = 1;
+
 		while ((l = getline(r->cn->input)) != 0) {
 			if ((s = strchr(l, ':')) == 0)
 				continue;
@@ -798,15 +866,20 @@ static const char *process_headers(struct request *r)
 				r->cookie = s;
 			else if (strceq(l, "Host"))
 				r->host = s;
-			else if (keepalive
-				 && strceq (l, "Connection")
-				 && strceq(s, magic_word))
-				r->cn->keepalive = 1;
+			else if (strceq(l, "Connection")) {
+				if (r->protocol_minor) {
+					if (strceq(s, "Close"))
+						r->cn->keepalive = 0;
+				} else if (strceq(s, "Keep-Alive"))
+					r->cn->keepalive = 1;
+			}
 			else if (r->method == M_GET) {
 				if (strceq(l, "If-modified-since")) {
 					r->ims = timerfc(s);
-					if (r->ims == (time_t) -1)
-						return br_bad_date;
+					if (r->ims == (time_t) -1) {
+						r->error = br_bad_date;
+						return 400;
+					}
 				}
 			}
 			else if (r->method == M_POST) {
@@ -851,11 +924,17 @@ int prepare_reply(struct request *r)
 	case 404:
 		r->status_line = "404 Not Found";
 		break;
+	case 405:
+		r->status_line = "405 Method Not Allowed";
+		break;
 	case 501:
 		r->status_line = "501 Not Implemented";
 		break;
 	case 503:
 		r->status_line = "503 Service Unavailable";
+		break;
+	case 505:
+		r->status_line = "505 HTTP Version Not Supported";
 		break;
 	default:
 		r->status_line = "500 Internal Server Error";
@@ -895,12 +974,20 @@ int prepare_reply(struct request *r)
 		case 404:
 			b += SPRINTF3(b, "URL %s not found.\n", r->url);
 			break;
-		case 501:
+		case 405:
 			b += SPRINTF4(b, "Cannot apply %s method to URL %s\n",
-				      r->method_s, r->url);
+				      r->method_s,
+				      r->url);
+			break;
+		case 501:
+			b += SPRINTF2(b, "How do I do that?\n");
 			break;
 		case 503:
 			b += SPRINTF2(b, "Server overloaded. Sorry.\n");
+			break;
+		case 505:
+			b += SPRINTF2(b, "This server only understands "
+				      "HTTP versions up to 1.1\n");
 			break;
 		default:
 			b += SPRINTF3(b, "<B>%s</B>\n",
@@ -944,11 +1031,8 @@ static void log_request(struct request *r)
 
 int process_request(struct request *r)
 {
-	if ((r->error = process_headers(r)) == 0)
+	if ((r->status = process_headers(r)) == 0)
 		r->status = process_path(r);
-	else
-		r->status = 400;
-
 	if (r->status > 0 && prepare_reply(r) == -1) {
 		log(L_ERROR, "cannot prepare reply for client");
 		return -1;
