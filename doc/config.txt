@@ -134,7 +134,7 @@ Desc:    The server uses two buffers to store incoming and outgoing data.
          amount of memory used by the server process.
 
          Note: if you run a version of Mathopd that uses sendfile(), the
-         default bufsize is way too much, and you should lower it.
+         default bufsize is way too large, and you should decrease it.
 
 Keyword: BytesRead
 Where:   LogFormat
