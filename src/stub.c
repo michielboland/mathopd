@@ -125,14 +125,11 @@ int init_children(size_t n)
 		return -1;
 	for (i = 0; i < n; i++){
 		p = pipe_params_array + i;
-		p->isize = tuning.script_buf_size;
-		p->osize = tuning.script_buf_size + 16;
-		p->psize = tuning.script_buf_size;
-		if ((p->ibuf = malloc(p->isize)) == 0)
+		if (new_pool(&p->client_input, tuning.script_buf_size) == -1)
 			return -1;
-		if ((p->obuf = malloc(p->osize)) == 0)
+		if (new_pool(&p->client_output, tuning.script_buf_size + 16) == -1)
 			return -1;
-		if ((p->pbuf = malloc(p->psize)) == 0)
+		if (new_pool(&p->script_input, tuning.script_buf_size) == -1)
 			return -1;
 		p->cn = 0;
 		p_link(p, &free_pipes);
@@ -153,7 +150,7 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 	const char *p, *tmpname, *tmpvalue;
 	int havestatus, havelocation, firstline, havelength;
 	size_t len, tmpnamelen, tmpvaluelen;
-	char buf[50], gbuf[40], *cp;
+	char buf[50], gbuf[40], *cp, *dest;
 	unsigned long ul;
 
 	nheaders = 0;
@@ -170,7 +167,7 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 	len = 0;
 	addheader = 0;
 	firstline = 1;
-	for (i = 0, p = pp->pbuf; i < pp->pstart; i++, p++) {
+	for (p = pp->script_input.floor; p < pp->script_input.start; p++) {
 		c = *p;
 		switch (s) {
 		case 0:
@@ -284,19 +281,19 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 		log_d("convert_cgi_headers: s=%d!?", s);
 		return -1;
 	}
-	len = 0;
+	dest = pp->client_output.floor;
 	if (havelocation && havestatus == 0) {
-		if (len + 20 > pp->osize)
+		if (dest + 20 > pp->client_output.ceiling)
 			return no_room();
 		s = 302;
-		memcpy(pp->obuf + len, "HTTP/1.1 302 Moved\r\n", 20);
-		len += 20;
+		memcpy(dest, "HTTP/1.1 302 Moved\r\n", 20);
+		dest += 20;
 	} else if (havestatus == 0) {
-		if (len + 17 > pp->osize)
+		if (dest + 17 > pp->client_output.ceiling)
 			return no_room();
 		s = 200;
-		memcpy(pp->obuf + len, "HTTP/1.1 200 OK\r\n", 17);
-		len += 17;
+		memcpy(dest, "HTTP/1.1 200 OK\r\n", 17);
+		dest += 17;
 	} else {
 		s = atoi(cgi_headers[status].value);
 		if (s < 200 || s > 599) {
@@ -312,14 +309,14 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 			pp->chunkit = 0;
 		}
 		tmpvaluelen = cgi_headers[status].len - (cgi_headers[status].value - cgi_headers[status].name);
-		if (len + tmpvaluelen + 11 > pp->osize)
+		if (dest + tmpvaluelen + 11 > pp->client_output.ceiling)
 			return no_room();
-		memcpy(pp->obuf + len, "HTTP/1.1 ", 9);
-		len += 9;
-		memcpy(pp->obuf + len, cgi_headers[status].value, tmpvaluelen);
-		len += tmpvaluelen;
-		pp->obuf[len++] = '\r';
-		pp->obuf[len++] = '\n';
+		memcpy(dest, "HTTP/1.1 ", 9);
+		dest += 9;
+		memcpy(dest, cgi_headers[status].value, tmpvaluelen);
+		dest += tmpvaluelen;
+		*dest++ = '\r';
+		*dest++ = '\n';
 	}
 	if (havelength) {
 		tmpvalue = cgi_headers[length].value;
@@ -344,51 +341,51 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 	} else if (pp->cn->r->protocol_minor == 0 && pp->nocontent == 0)
 		pp->cn->keepalive = 0;
 	l = sprintf(buf, "Server: %.30s\r\n", server_version);
-	if (len + l > pp->osize)
+	if (dest + l > pp->client_output.ceiling)
 		return no_room();
-	memcpy(pp->obuf + len, buf, l);
-	len += l;
+	memcpy(dest, buf, l);
+	dest += l;
 	l = sprintf(buf, "Date: %s\r\n", rfctime(current_time, gbuf));
-	if (len + l > pp->osize)
+	if (dest + l > pp->client_output.ceiling)
 		return no_room();
-	memcpy(pp->obuf + len, buf, l);
-	len += l;
+	memcpy(dest, buf, l);
+	dest += l;
 	if (pp->chunkit) {
 		l = sprintf(buf, "Transfer-Encoding: chunked\r\n");
-		if (len + l > pp->osize)
+		if (dest + l > pp->client_output.ceiling)
 			return no_room();
-		memcpy(pp->obuf + len, buf, l);
-		len += l;
+		memcpy(dest, buf, l);
+		dest += l;
 	}
 	if (pp->cn->r->protocol_minor == 0 && pp->cn->keepalive) {
 		l = sprintf(buf, "Connection: keep-alive\r\n");
-		if (len + l > pp->osize)
+		if (dest + l > pp->client_output.ceiling)
 			return no_room();
-		memcpy(pp->obuf + len, buf, l);
-		len += l;
+		memcpy(dest, buf, l);
+		dest += l;
 	}
 	if (pp->cn->r->protocol_minor && pp->cn->keepalive == 0) {
 		l = sprintf(buf, "Connection: close\r\n");
-		if (len + l > pp->osize)
+		if (dest + l > pp->client_output.ceiling)
 			return no_room();
-		memcpy(pp->obuf + len, buf, l);
-		len += l;
+		memcpy(dest, buf, l);
+		dest += l;
 	}
 	for (i = 0; i < nheaders; i++) {
 		if (havestatus == 0 || i != status) {
-			if (len + cgi_headers[i].len + 2 > pp->osize)
+			if (dest + cgi_headers[i].len + 2 > pp->client_output.ceiling)
 				return no_room();
-			memcpy(pp->obuf + len, cgi_headers[i].name, cgi_headers[i].len);
-			len += cgi_headers[i].len;
-			pp->obuf[len++] = '\r';
-			pp->obuf[len++] = '\n';
+			memcpy(dest, cgi_headers[i].name, cgi_headers[i].len);
+			dest += cgi_headers[i].len;
+			*dest++ = '\r';
+			*dest++ = '\n';
 		}
 	}
-	if (len + 2 > pp->osize)
+	if (dest + 2 > pp->client_output.ceiling)
 		return no_room();
-	pp->obuf[len++] = '\r';
-	pp->obuf[len++] = '\n';
-	pp->otop = len;
+	*dest++ = '\r';
+	*dest++ = '\n';
+	pp->client_output.end = dest;
 	*sp = s;
 	return 0;
 }
@@ -398,16 +395,16 @@ static int readfromclient(struct pipe_params *p)
 	size_t bytestoread;
 	ssize_t r;
 
-	bytestoread = p->isize - p->ibp;
+	bytestoread = p->client_input.ceiling - p->client_input.end;
 	if (bytestoread > p->imax)
 		bytestoread = p->imax;
 	if (bytestoread == 0) {
 		log_d("readfromclient: bytestoread is zero!");
 		return 0;
 	}
-	r = recv(p->cfd, p->ibuf + p->ibp, bytestoread, 0);
+	r = recv(p->cfd, p->client_input.end, bytestoread, 0);
 	if (debug)
-		log_d("readfromclient: %d %d %d %d", p->cfd, p->ibp, bytestoread, r);
+		log_d("readfromclient: %d %d %d %d", p->cfd, p->client_input.end - p->client_input.floor, bytestoread, r);
 	switch (r) {
 	case -1:
 		switch (errno) {
@@ -428,7 +425,7 @@ static int readfromclient(struct pipe_params *p)
 	default:
 		p->t = current_time;
 		p->cn->nread += r;
-		p->ibp += r;
+		p->client_input.end += r;
 		p->imax -= r;
 		break;
 	}
@@ -440,16 +437,16 @@ static int readfromchild(struct pipe_params *p)
 	size_t bytestoread;
 	ssize_t r;
 
-	bytestoread = p->psize - p->ipp;
+	bytestoread = p->script_input.ceiling - p->script_input.end;
 	if (p->haslen && bytestoread > p->pmax)
 		bytestoread = p->pmax;
 	if (bytestoread == 0) {
 		log_d("readfromchild: bytestoread is zero!");
 		return 0;
 	}
-	r = recv(p->pfd, p->pbuf + p->ipp, bytestoread, 0);
+	r = recv(p->pfd, p->script_input.end, bytestoread, 0);
 	if (debug)
-		log_d("readfromchild: %d %d %d %d", p->pfd, p->ipp, bytestoread, r);
+		log_d("readfromchild: %d %d %d %d", p->pfd, p->script_input.end - p->script_input.floor, bytestoread, r);
 	switch (r) {
 	case -1:
 		if (errno == EAGAIN)
@@ -459,7 +456,7 @@ static int readfromchild(struct pipe_params *p)
 		return -1;
 	case 0:
 		if (p->state != 2) {
-			log_d("readfromchild: premature end of script headers (ipp=%d)", p->ipp);
+			log_d("readfromchild: premature end of script headers (ipp=%d)", p->script_input.end - p->script_input.floor);
 			p->error_condition = STUB_ERROR_RESTART;
 			return -1;
 		}
@@ -469,15 +466,15 @@ static int readfromchild(struct pipe_params *p)
 			return -1;
 		}
 		p->t = current_time;
-		p->pstate = 2;
+		p->script_input.state = 2;
 		break;
 	default:
 		p->t = current_time;
-		p->ipp += r;
+		p->script_input.end += r;
 		if (p->haslen) {
 			p->pmax -= r;
 			if (p->pmax == 0)
-				p->pstate = 2;
+				p->script_input.state = 2;
 		}
 		break;
 	}
@@ -489,14 +486,14 @@ static int writetoclient(struct pipe_params *p)
 	size_t bytestowrite;
 	ssize_t r;
 
-	bytestowrite = p->otop - p->obp;
+	bytestowrite = p->client_output.end - p->client_output.start;
 	if (bytestowrite == 0) {
 		log_d("writetoclient: bytestowrite is zero!");
 		return 0;
 	}
-	r = send(p->cfd, p->obuf + p->obp, bytestowrite, 0);
+	r = send(p->cfd, p->client_output.start, bytestowrite, 0);
 	if (debug)
-		log_d("writetoclient: %d %d %d %d", p->cfd, p->obp, bytestowrite, r);
+		log_d("writetoclient: %d %d %d %d", p->cfd, p->client_output.start - p->client_output.floor, bytestowrite, r);
 	switch (r) {
 	case -1:
 		switch (errno) {
@@ -513,9 +510,9 @@ static int writetoclient(struct pipe_params *p)
 	default:
 		p->t = current_time;
 		p->cn->nwritten += r;
-		p->obp += r;
-		if (p->obp == p->otop)
-			p->obp = p->otop = 0;
+		p->client_output.start += r;
+		if (p->client_output.start == p->client_output.end)
+			p->client_output.start = p->client_output.end = p->client_output.floor;
 		break;
 	}
 	return 0;
@@ -526,14 +523,14 @@ static int writetochild(struct pipe_params *p)
 	size_t bytestowrite;
 	ssize_t r;
 
-	bytestowrite = p->ibp - p->opp;
+	bytestowrite = p->client_input.end - p->client_input.start;
 	if (bytestowrite == 0) {
 		log_d("writetochild: bytestowrite is zero!");
 		return 0;
 	}
-	r = send(p->pfd, p->ibuf + p->opp, bytestowrite, 0);
+	r = send(p->pfd, p->client_input.start, bytestowrite, 0);
 	if (debug)
-		log_d("writetochild: %d %d %d %d", p->pfd, p->opp, bytestowrite, r);
+		log_d("writetochild: %d %d %d %d", p->pfd, p->client_input.start - p->client_input.floor, bytestowrite, r);
 	switch (r) {
 	case -1:
 		if (errno == EAGAIN)
@@ -544,9 +541,9 @@ static int writetochild(struct pipe_params *p)
 		break;
 	default:
 		p->t = current_time;
-		p->opp += r;
-		if (p->opp == p->ibp)
-			p->opp = p->ibp = 0;
+		p->client_input.start += r;
+		if (p->client_input.start == p->client_input.end)
+			p->client_input.start = p->client_input.end = p->client_input.floor;
 		break;
 	}
 	return 0;
@@ -556,8 +553,8 @@ static int scanlflf(struct pipe_params *p)
 {
 	char c;
 
-	while (p->pstart < p->ipp && p->state != 2) {
-		c = p->pbuf[p->pstart++];
+	while (p->script_input.start < p->script_input.end && p->state != 2) {
+		c = *p->script_input.start++;
 		switch (p->state) {
 		case 0:
 			if (c == '\n')
@@ -583,20 +580,20 @@ static int scanlflf(struct pipe_params *p)
 			return -1;
 		}
 		if (p->nocontent)
-			p->pstate = 3;
+			p->script_input.state = 3;
 		else if (p->haslen) {
-			if (p->pstart < p->ipp) {
-				if (p->ipp > p->pstart + p->pmax) {
+			if (p->script_input.start < p->script_input.end) {
+				if (p->script_input.end > p->script_input.start + p->pmax) {
 					log_d("extra garbage from script ignored");
-					p->ipp = p->pstart + p->pmax;
+					p->script_input.end = p->script_input.start + p->pmax;
 					p->pmax = 0;
 				} else
-					p->pmax -= p->ipp - p->pstart;
+					p->pmax -= p->script_input.end - p->script_input.start;
 			}
 			if (p->pmax == 0)
-				p->pstate = 2;
+				p->script_input.state = 2;
 		}
-	} else if (p->pstart == p->psize) {
+	} else if (p->script_input.start == p->script_input.ceiling) {
 		log_d("scanlflf: buffer full");
 		p->error_condition = STUB_ERROR_RESTART;
 		return -1;
@@ -612,11 +609,11 @@ static void copychunk(struct pipe_params *p)
 	size_t chunkheaderlen;
 
 	if (p->nocontent) {
-		p->pstart = p->ipp = 0;
+		p->script_input.start = p->script_input.end = p->script_input.floor;
 		return;
 	}
-	room = p->osize - p->otop;
-	bytestocopy = p->ipp - p->pstart;
+	room = p->client_output.ceiling - p->client_output.end;
+	bytestocopy = p->script_input.end - p->script_input.start;
 	if (bytestocopy > room)
 		bytestocopy = room;
 	if (bytestocopy && p->chunkit) {
@@ -628,19 +625,19 @@ static void copychunk(struct pipe_params *p)
 				bytestocopy -= chunkheaderlen + 2;
 				chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
 			}
-			memcpy(p->obuf + p->otop, chunkbuf, chunkheaderlen);
-			p->otop += chunkheaderlen;
+			memcpy(p->client_output.end, chunkbuf, chunkheaderlen);
+			p->client_output.end += chunkheaderlen;
 		}
 	}
 	if (bytestocopy) {
-		memcpy(p->obuf + p->otop, p->pbuf + p->pstart, bytestocopy);
-		p->otop += bytestocopy;
-		p->pstart += bytestocopy;
-		if (p->pstart == p->ipp)
-			p->pstart = p->ipp = 0;
+		memcpy(p->client_output.end, p->script_input.start, bytestocopy);
+		p->client_output.end += bytestocopy;
+		p->script_input.start += bytestocopy;
+		if (p->script_input.start == p->script_input.end)
+			p->script_input.start = p->script_input.end = p->script_input.floor;
 		if (p->chunkit) {
-			memcpy(p->obuf + p->otop, "\r\n", 2);
-			p->otop += 2;
+			memcpy(p->client_output.end, "\r\n", 2);
+			p->client_output.end += 2;
 		}
 	}
 }
@@ -648,19 +645,19 @@ static void copychunk(struct pipe_params *p)
 static void copylastchunk(struct pipe_params *p)
 {
 	if (p->chunkit) {
-		if (p->osize - p->otop >= 5) {
-			memcpy(p->obuf + p->otop, "0\r\n\r\n", 5);
-			p->otop += 5;
-			p->pstate = 3;
+		if (p->client_output.ceiling - p->client_output.end >= 5) {
+			memcpy(p->client_output.end, "0\r\n\r\n", 5);
+			p->client_output.end += 5;
+			p->script_input.state = 3;
 		}
 	} else
-		p->pstate = 3;
+		p->script_input.state = 3;
 }
 
 static void pipe_run(struct pipe_params *p)
 {
 	short cevents, pevents;
-	size_t prev_otop, prev_ibp;
+	int canwritetoclient, canwritetochild;
 
 	cevents = p->cpollno != -1 ? pollfds[p->cpollno].revents : 0;
 	pevents = p->ppollno != -1 ? pollfds[p->ppollno].revents : 0;
@@ -676,8 +673,8 @@ static void pipe_run(struct pipe_params *p)
 	}
 	cevents &= POLLIN | POLLOUT;
 	pevents &= POLLIN | POLLOUT;
-	prev_otop = p->otop;
-	prev_ibp = p->ibp;
+	canwritetoclient = cevents & POLLOUT || p->client_output.end == p->client_output.floor;
+	canwritetochild = pevents & POLLOUT || p->client_input.end == p->client_input.floor;
 	if (cevents & POLLIN) {
 		if (readfromclient(p) == -1)
 			return;
@@ -686,19 +683,19 @@ static void pipe_run(struct pipe_params *p)
 		if (readfromchild(p) == -1)
 			return;
 	}
-	if (p->ipp && p->state != 2) {
+	if (p->script_input.end && p->state != 2) {
 		if (scanlflf(p) == -1)
 			return;
 	}
-	if (p->state == 2 && p->pstart < p->ipp)
+	if (p->state == 2 && p->script_input.start < p->script_input.end)
 		copychunk(p);
-	if (p->pstate == 2)
+	if (p->script_input.state == 2)
 		copylastchunk(p);
-	if ((prev_otop == 0 || cevents & POLLOUT) && p->otop > p->obp) {
+	if (p->client_output.end > p->client_output.start && canwritetoclient) {
 		if (writetoclient(p) == -1)
 			return;
 	}
-	if ((prev_ibp == 0 || pevents & POLLOUT) && p->ibp > p->opp) {
+	if (p->client_input.end > p->client_input.start && canwritetochild) {
 		if (writetochild(p) == -1)
 			return;
 	}
@@ -706,14 +703,14 @@ static void pipe_run(struct pipe_params *p)
 
 void init_child(struct pipe_params *p, struct request *r, int fd)
 {
-	p->ibp = 0;
-	p->obp = 0;
-	p->ipp = 0;
-	p->opp = 0;
-	p->otop = 0;
-	p->istate = 1;
-	p->pstate = 1;
-	p->pstart = 0;
+	p->client_input.start = p->client_input.floor;
+	p->client_input.end = p->client_input.floor;
+	p->client_input.state = 1;
+	p->client_output.start = p->client_output.floor;
+	p->client_output.end = p->client_output.floor;
+	p->script_input.start = p->script_input.floor;
+	p->script_input.end = p->script_input.floor;
+	p->script_input.state = 1;
 	p->state = 0;
 	p->cfd = r->cn->fd;
 	p->pfd = fd;
@@ -722,10 +719,10 @@ void init_child(struct pipe_params *p, struct request *r, int fd)
 	p->haslen = 0;
 	p->pmax = 0;
 	if (r->method == M_POST) {
-		p->istate = 1;
+		p->client_input.state = 1;
 		p->imax = r->in_mblen;
 	} else {
-		p->istate = 0;
+		p->client_input.state = 0;
 		p->imax = 0;
 	}
 	p->cn = r->cn;
@@ -745,9 +742,9 @@ int setup_child_pollfds(int n)
 	while (p) {
 		if (p->cn && p->error_condition == 0) {
 			e = 0;
-			if (p->istate == 1 && p->ibp < p->isize && p->imax)
+			if (p->client_input.state == 1 && p->client_input.end < p->client_input.ceiling && p->imax)
 				e |= POLLIN;
-			if (p->otop > p->obp || (p->state == 2 && p->pstart < p->ipp && p->otop == 0))
+			if (p->client_output.end > p->client_output.start || (p->state == 2 && p->script_input.start < p->script_input.end && p->client_output.end == p->client_output.floor))
 				e |= POLLOUT;
 			if (e) {
 				pollfds[n].fd = p->cfd;
@@ -756,9 +753,9 @@ int setup_child_pollfds(int n)
 			} else
 				p->cpollno = -1;
 			e = 0;
-			if (p->pstate == 1 && p->ipp < p->psize && (p->chunkit || p->haslen == 0 || p->pmax))
+			if (p->script_input.state == 1 && p->script_input.end < p->script_input.ceiling && (p->chunkit || p->haslen == 0 || p->pmax))
 				e |= POLLIN;
-			if (p->ibp > p->opp)
+			if (p->client_input.end > p->client_input.start)
 				e |= POLLOUT;
 			if (e) {
 				pollfds[n].fd = p->pfd;
@@ -821,13 +818,13 @@ int run_children(void)
 
 static int childisfinished(struct pipe_params *p)
 {
-	if (p->pstate != 3)
+	if (p->script_input.state != 3)
 		return 0;
-	if (p->otop > p->obp)
+	if (p->client_output.end > p->client_output.start)
 		return 0;
-	if (p->ipp > p->pstart)
+	if (p->script_input.end > p->script_input.start)
 		return 0;
-	if (p->istate == 1 && p->imax)
+	if (p->client_input.state == 1 && p->imax)
 		return 0;
 	return 1;
 }

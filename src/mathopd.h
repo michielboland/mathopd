@@ -305,20 +305,9 @@ struct pipe_params_list {
 struct pipe_params {
 	struct pipe_params *next;
 	struct pipe_params *prev;
-	char *ibuf;
-	char *obuf;
-	char *pbuf;
-	size_t isize;
-	size_t osize;
-	size_t psize;
-	size_t ibp;
-	size_t obp;
-	size_t ipp;
-	size_t opp;
-	size_t otop;
-	int istate;
-	int pstate;
-	size_t pstart;
+	struct pool client_input;
+	struct pool client_output;
+	struct pool script_input;
 	int state;
 	int cfd;
 	int pfd;
