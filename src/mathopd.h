@@ -63,6 +63,8 @@
 #define STRLEN 400
 #define PATHLEN (2 * STRLEN)
 
+#define CONF_SMALLINT_MAX 64
+
 enum {
 	ALLOW,
 	DENY,
@@ -333,6 +335,7 @@ struct tuning {
 	unsigned long script_buf_size;
 	int clobber;
 	unsigned long wait_timeout;
+	int num_processes;
 };
 
 struct statistics {
