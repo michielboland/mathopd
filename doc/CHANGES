@@ -9,6 +9,12 @@ cgi.c:
 	HTTP_AUTHORIZATION is not set if the user is
 	authenticated by Mathopd.)
 
+	Headers with the same name that occur multiple times
+	in a request are now concatenated. Previous versions
+	did not do this, which meant, for instance, that if
+	two Cookie headers where received, one of those would
+	be lost.
+
 	The value of GATEWAY_INTERFACE is now set.
 	If the user is authenticated by Mathopd, the value of
 	AUTH_TYPE is set.
@@ -54,6 +60,7 @@ config.c:
 		LocalAddress
 		LocalPort
 		MicroTime
+		Clobber
 
 	The following keywords have been removed:-
 
@@ -114,6 +121,14 @@ core.c:
 	received. The dump will be written to /tmp/mathopd-PID-dump
 	(where PID is the process ID of server). This is an experimental
 	feature.
+
+	On certain systems, Mathopd can use sendfile() to send the
+	contents of a file to the client (at this moment this is known
+	to work on FreeBSD-4 and Linux 2.4 systems.)
+
+	Previous Mathopd versions would 'clobber' connections that are
+	idle when it starts to run out of other connections. This
+	behaviour can now be turned off using the Clobber keyword.
 
 imap.c:
 
@@ -207,6 +222,11 @@ request.c:
 
 	The files specified by Error401File etc. can now be CGI scripts.
 
+	Anything that is requested is now opened immediately. Previous
+	versions would call stat() first, which is a time-consuming process.
+	As a side-effect, all files that are served by Mathopd must now
+	be readable, including compiled CGI programs.
+
 stub.c:
 
 	This is a new file that contains code to pass data from and to
@@ -216,3 +236,14 @@ stub.c:
 sendfile.c:
 
 	This is a new file. It contains hooks into the sendfile() function.
+
+	The set_nopush function has been added. This function instructs
+	the kernel to not send partial TCP segments until the response
+	is finished. On FreeBSD this is done using the TCP_NOPUSH
+	option; for Linux we use TCP_CORK.
+
+	Note that set_nopush is currently enabled only if sendfile is
+	used. This is done in order to send HTTP header and body in
+	one TCP segment. Mathopd without sendfile does not need the
+	function.
+
