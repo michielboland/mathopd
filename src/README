@@ -5,7 +5,10 @@ Mathopd in a production environment, and you are not the same
 person as the author, you should stay away from this code, and
 use that stable version instead.
 
-Differences between 1.2pl6 and 1.3b1: (not much, really)
+Mathopd 1.3b1 was a private release for testing purposes; so I've
+jumped straight to 1.3b2.
+
+Differences between 1.2pl6 and 1.3b2: (not much, really)
  
   - support for poll() has been removed. This is not because I
     do not like poll(), on the contrary, but I do not like the
@@ -14,13 +17,7 @@ Differences between 1.2pl6 and 1.3b1: (not much, really)
     so common I'm afraid we're now stuck with select() for a
     while.
  
-  - support for encrypted userfiles is back again. This should
-    not be a problem unless people start distributing binary
-    releases with crypto hooks to or from places where this is
-    not allowed. Since I do not make any binary distributions
-    myself, I do not really consider this a problem for *me*.
-    If you feel this is not correct, contact me immediately and
-    we'll see what needs to be fixed. Until then, crypto is back
-    in.
+  - support for encrypted userfiles is back again for the time
+    being.
  
 Michiel Boland <boland@diva.nl>
