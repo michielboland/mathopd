@@ -270,7 +270,7 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 			return -1;
 	} else if (add("SCRIPT_NAME", r->path, 0, cp) == -1)
 		return -1;
-	if (add("SERVER_NAME", r->servername, 0, cp) == -1)
+	if (add("SERVER_NAME", r->host, 0, cp) == -1)
 		return -1;
 	sprintf(t, "%s", inet_ntoa(r->cn->sock.sin_addr));
 	if (add("SERVER_ADDR", t, 0, cp) == -1)
