@@ -322,18 +322,18 @@ static int exec_cgi(struct request *r)
 	if (setuid(0) != -1) {
 		if (r->c->script_user) {
 			if (become_user(r->c->script_user) == -1)
-				return cgi_error(r, 403);
+				return cgi_error(r, 404);
 		} else if (r->c->run_scripts_as_owner) {
 			if (set_uids(r->finfo.st_uid, r->finfo.st_gid) == -1)
-				return cgi_error(r, 403);
+				return cgi_error(r, 404);
 		} else {
 			log_d("cannot run scripts withouth changing identity");
-			return cgi_error(r, 403);
+			return cgi_error(r, 404);
 		}
 	}
 	if (getuid() == 0 || geteuid() == 0) {
 		log_d("cannot run scripts as the super-user");
-		return cgi_error(r, 403);
+		return cgi_error(r, 500);
 	}
 	if (init_cgi_env(r) == -1)
 		return cgi_error(r, 500);
@@ -343,7 +343,7 @@ static int exec_cgi(struct request *r)
 		log_d("executing %s", cgi_argv[0]);
 	if (execve(cgi_argv[0], (char **) cgi_argv, cgi_envp) == -1) {
 		lerror("execve");
-		return cgi_error(r, errno == EACCES ? 403 : 500);
+		return cgi_error(r, 404);
 	}
 	return 0;
 }
