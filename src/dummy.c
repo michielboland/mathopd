@@ -34,6 +34,8 @@
 
 /* Your Gold Teeth (II) */
 
+static const char rcsid[] = "$Id$";
+
 #include "mathopd.h"
 
 int process_dummy(struct request *r)

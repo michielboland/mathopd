@@ -34,6 +34,8 @@
 
 /* Piece Of My Luck */
 
+static const char rcsid[] = "$Id$";
+
 #include "mathopd.h"
 
 void log_request(struct request *r)

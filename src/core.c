@@ -34,6 +34,8 @@
 
 /* Les trois soers aveugles */
 
+static const char rcsid[] = "$Id$";
+
 #include "mathopd.h"
 
 int nconnections;

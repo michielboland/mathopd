@@ -1,3 +1,5 @@
+# $Id$
+
 BIN=mathopd
 CC=gcc
 CFLAGS=-O -Wall

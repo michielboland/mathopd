@@ -34,6 +34,8 @@
 
 /* Once Around */
 
+static const char rcsid[] = "$Id$";
+
 #include "mathopd.h"
 
 const char server_version[] = "Mathopd/1.4b5";

@@ -34,6 +34,8 @@
 
 /* Mysterons */
 
+static const char rcsid[] = "$Id$";
+
 #include "mathopd.h"
 
 static const char m_get[] =			"GET";

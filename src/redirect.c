@@ -34,6 +34,8 @@
 
 /* De verpletterende werkelijkheid */
 
+static const char rcsid[] = "$Id$";
+
 #include "mathopd.h"
 
 int process_redirect(struct request *r)

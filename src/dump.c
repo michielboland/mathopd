@@ -34,6 +34,8 @@
 
 /* As */
 
+static const char rcsid[] = "$Id$";
+
 #include "mathopd.h"
 
 static int dump_children(int fd, struct virtual *v)

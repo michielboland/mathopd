@@ -34,6 +34,8 @@
 
 /* Hanc marginis exiguitas non caperet */
 
+static const char rcsid[] = "$Id$";
+
 #include "mathopd.h"
 
 #define MAXVERTS 100

@@ -34,6 +34,8 @@
 
 /* House of Games */
 
+static const char rcsid[] = "$Id$";
+
 #include "mathopd.h"
 
 struct tuning tuning;

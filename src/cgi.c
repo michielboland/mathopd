@@ -34,6 +34,8 @@
 
 /* Peg */
 
+static const char rcsid[] = "$Id$";
+
 #include "mathopd.h"
 
 static char **cgi_envp;
