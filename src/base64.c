@@ -131,7 +131,8 @@ static int pwok(const char *good, const char *guess, int do_crypt)
 static int f_webuserok(const char *authorization, FILE *fp, char *username, int len, int do_crypt)
 {
 	char buf[128], tmp[128], *p, *q;
-	int c, bp, skipline, gotcr;
+	int c, skipline, gotcr;
+	size_t bp;
 
 	if (strlen(authorization) >= sizeof tmp) {
 		log_d("authorization string too long");
