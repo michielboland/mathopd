@@ -809,7 +809,7 @@ static const char *fill_servernames(void)
 {
 	struct server *s;
 	struct virtual *v;
-	char buf[256];
+	char buf[8];
 	char *name;
 
 	s = servers;
@@ -822,9 +822,11 @@ static const char *fill_servernames(void)
 				if (s->port == 80)
 					v->fullname = name;
 				else {
-					sprintf(buf, "%.200s:%lu", name, s->port);
-					if ((v->fullname = strdup(buf)) == 0)
+					v->fullname = malloc(strlen(name) + sprintf(buf, ":%lu", s->port) + 1);
+					if (v->fullname == 0)
 						return e_memory;
+					strcpy(v->fullname, name);
+					strcat(v->fullname, buf);
 				}
 			}
 			v = v->next;
