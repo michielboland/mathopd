@@ -789,12 +789,12 @@ static void reap_children(void)
 		if (pid <= 0)
 			break;
 		if (WIFEXITED(status)) {
-			++stats.numchildren;
+			++stats.exited_children;
 			exitstatus = WEXITSTATUS(status);
 			if (exitstatus || debug)
 				log_d("child process %d exited with status %d", pid, exitstatus);
 		} else if (WIFSIGNALED(status)) {
-			++stats.numchildren;
+			++stats.exited_children;
 			termsig = WTERMSIG(status);
 			log_d("child process %d killed by signal %d", pid, termsig);
 		} else

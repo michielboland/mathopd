@@ -325,7 +325,7 @@ struct statistics {
 	int nconnections;
 	int maxconnections;
 	unsigned long nrequests;
-	int numchildren;
+	unsigned long exited_children;
 };
 
 /* main */
