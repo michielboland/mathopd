@@ -201,7 +201,7 @@ static char *rfctime(time_t t, char *buf)
 
 	tp = gmtime(&t);
 	if (tp == 0) {
-		log(L_ERROR, "gmtime failed!?!?!?");
+		log_d("gmtime failed!?!?!?");
 		return 0;
 	}
 	strftime(buf, 31, "%a, %d %b %Y %H:%M:%S GMT", tp);
@@ -250,7 +250,7 @@ static int putstring(struct pool *p, char *s)
 
 	l = strlen(s);
 	if (l > p->ceiling - p->end) {
-		log(L_ERROR, "no more room to put string!?!?");
+		log_d("no more room to put string!?!?");
 		return -1;
 	}
 	memcpy(p->end, s, l);
@@ -264,7 +264,7 @@ static int output_headers(struct pool *p, struct request *r)
 	char tmp_outbuf[2048], gbuf[40], *b;
 
 	if (r->cn->assbackwards) {
-		log(L_WARNING, "old-style connection from %s", r->cn->ip);
+		log_d("old-style connection from %s", r->cn->ip);
 		return 0;
 	}
 	b = tmp_outbuf;
@@ -371,9 +371,9 @@ static int get_path_info(struct request *r)
 		rv = stat(p, s);
 		if (debug) {
 			if (rv == -1)
-				log(L_DEBUG, "get_path_info: stat(\"%s\") = %d", p, rv, s->st_mode);
+				log_d("get_path_info: stat(\"%s\") = %d", p, rv, s->st_mode);
 			else
-				log(L_DEBUG, "get_path_info: stat(\"%s\") = %d; st_mode = %#o", p, rv, s->st_mode);
+				log_d("get_path_info: stat(\"%s\") = %d; st_mode = %#o", p, rv, s->st_mode);
 		}
 		if (cp != end)
 			*cp = '/';
@@ -434,16 +434,16 @@ static int check_symlinks(struct request *r)
 			rv = lstat(b, &buf);
 			if (debug) {
 				if (rv == -1)
-					log(L_DEBUG, "check_symlinks: lstat(\"%s\") = %d", b, rv, buf.st_mode);
+					log_d("check_symlinks: lstat(\"%s\") = %d", b, rv, buf.st_mode);
 				else
-					log(L_DEBUG, "check_symlinks: lstat(\"%s\") = %d; st_mode = %#o", b, rv, buf.st_mode);
+					log_d("check_symlinks: lstat(\"%s\") = %d; st_mode = %#o", b, rv, buf.st_mode);
 			}
 			if (rv == -1) {
 				lerror("lstat");
 				return -1;
 			}
 			if (S_ISLNK(buf.st_mode)) {
-				log(L_WARNING, "%s is a symbolic link", b);
+				log_d("%s is a symbolic link", b);
 					return -1;
 			}
 		}
@@ -478,7 +478,7 @@ static int append_indexes(struct request *r)
 		strcpy(q, i->name);
 		rv = stat(p, &r->finfo);
 		if (debug)
-			log(L_DEBUG, "append_indexes: stat(\"%s\") = %d", p, rv);
+			log_d("append_indexes: stat(\"%s\") = %d", p, rv);
 		if (rv != -1)
 			break;
 		i = i->next;
@@ -534,7 +534,7 @@ static int process_fd(struct request *r)
 	if (r->method == M_GET) {
 		fd = open(r->path_translated, O_RDONLY);
 		if (debug)
-			log(L_DEBUG, "process_fd: open(\"%s\") = %d", r->path_translated, fd);
+			log_d("process_fd: open(\"%s\") = %d", r->path_translated, fd);
 		if (fd == -1) {
 			switch (errno) {
 			case EACCES:
@@ -552,7 +552,7 @@ static int process_fd(struct request *r)
 		}
 		rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
 		if (debug)
-			log(L_DEBUG, "process_fd: fcntl(%d, F_SETFD, FD_CLOEXEC) = %d", fd, rv);
+			log_d("process_fd: fcntl(%d, F_SETFD, FD_CLOEXEC) = %d", fd, rv);
 		r->cn->rfd = fd;
 	}
 	return 200;
@@ -569,26 +569,26 @@ static int add_fd(struct request *r, const char *filename)
 		return -1;
 	fd = open(filename, O_RDONLY);
 	if (debug)
-		log(L_DEBUG, "add_fd: open(\"%s\") = %d", filename, fd);
+		log_d("add_fd: open(\"%s\") = %d", filename, fd);
 	if (fd == -1)
 		return -1;
 	rv = fstat(fd, &s);
 	if (debug) {
 		if (rv == -1)
-			log(L_DEBUG, "add_fd: fstat(%d) = %d", fd, rv, s.st_mode);
+			log_d("add_fd: fstat(%d) = %d", fd, rv, s.st_mode);
 		else
-			log(L_DEBUG, "add_fd: fstat(%d) = %d; st_mode = %#o", fd, rv, s.st_mode);
+			log_d("add_fd: fstat(%d) = %d; st_mode = %#o", fd, rv, s.st_mode);
 	}
 	if (!S_ISREG(s.st_mode)) {
-		log(L_WARNING, "non-plain file %s", filename);
+		log_d("non-plain file %s", filename);
 		rv = close(fd);
 		if (debug)
-			log(L_DEBUG, "add_fd: close(%d) = rv", fd);
+			log_d("add_fd: close(%d) = rv", fd);
 		return -1;
 	}
 	rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
 	if (debug)
-		log(L_DEBUG, "add_fd: fcntl(%d, F_SETFD, FD_CLOEXEC) = %d", fd, rv);
+		log_d("add_fd: fcntl(%d, F_SETFD, FD_CLOEXEC) = %d", fd, rv);
 	r->cn->rfd = fd;
 	r->content_length = s.st_size;
 	return 0;
@@ -641,7 +641,7 @@ static int find_vs(struct request *r)
 	else if (v->parent->s_name)
 		r->servername = v->parent->s_name;
 	if (r->host && v->host == 0) {
-		log(L_ERROR, "No such virtual server: %.50s", r->host);
+		log_d("No such virtual server: %.50s", r->host);
 		return 1;
 	}
 	return 0;
@@ -709,7 +709,7 @@ static int process_path(struct request *r)
 		return 500;
 	}
 	if (r->c->locations == 0) {
-		log(L_ERROR, "raah... no locations found");
+		log_d("raah... no locations found");
 		r->error_file = r->c->error_404_file;
 		return 404;
 	}
@@ -767,7 +767,7 @@ static int get_method(char *p, struct request *r)
 			return 0;
 		}
 	}
-	log(L_ERROR, "unknown method \"%.32s\" from %s", p, r->cn->ip);
+	log_d("unknown method \"%.32s\" from %s", p, r->cn->ip);
 	return -1;
 }
 
@@ -778,7 +778,7 @@ static int get_url(char *p, struct request *r)
 	if (p == 0)
 		return -1;
 	if (strlen(p) > STRLEN) {
-		log(L_ERROR, "url too long from %s", r->cn->ip);
+		log_d("url too long from %s", r->cn->ip);
 		return -1;
 	}
 	r->url = p;
@@ -793,7 +793,7 @@ static int get_url(char *p, struct request *r)
 		*s = '\0';
 	}
 	if (unescape_url(r->url, r->path) == -1) {
-		log(L_ERROR, "badly encoded url from %s", r->cn->ip);
+		log_d("badly encoded url from %s", r->cn->ip);
 		return -1;
 	}
 	if (r->path[0] != '/')
@@ -808,14 +808,14 @@ static int get_version(char *p, struct request *r)
 
 	s = strchr(p, '.');
 	if (s == 0) {
-		log(L_ERROR, "illegal HTTP version (%.32s) from %s", p, r->cn->ip);
+		log_d("illegal HTTP version (%.32s) from %s", p, r->cn->ip);
 		return -1;
 	}
 	*s++ = '\0';
 	x = atoi(p);
 	y = atoi(s);
 	if (x != 1 || y > 1) {
-		log(L_ERROR, "unsupported HTTP version (%.32s.%.32s) from %s", p, s, r->cn->ip);
+		log_d("unsupported HTTP version (%.32s.%.32s) from %s", p, s, r->cn->ip);
 		return -1;
 	}
 	r->protocol_major = x;
@@ -880,7 +880,7 @@ static int process_headers(struct request *r)
 	else {
 		p = strtok(0, whitespace);
 		if (p == 0 || strncmp(p, "HTTP/", 5)) {
-			log(L_ERROR, "bad protocol string \"%.32s\" from %s", p, r->cn->ip);
+			log_d("bad protocol string \"%.32s\" from %s", p, r->cn->ip);
 			r->error = br_bad_protocol;
 			return 400;
 		}
@@ -989,16 +989,16 @@ int prepare_reply(struct request *r)
 		break;
 	}
 	if (r->error) {
-		log(L_WARNING, "* %s (%s)", r->status_line, r->error);
+		log_d("* %s (%s)", r->status_line, r->error);
 		if (r->url)
-			log(L_WARNING, "  url:   %s", r->url);
+			log_d("  url:   %s", r->url);
 		if (r->vs && r->vs->fullname)
-			log(L_WARNING, "  host:  %s", r->vs->fullname);
+			log_d("  host:  %s", r->vs->fullname);
 		if (r->user_agent)
-			log(L_WARNING, "  agent: %s", r->user_agent);
+			log_d("  agent: %s", r->user_agent);
 		if (r->referer)
-			log(L_WARNING, "  ref:   %s", r->referer);
-		log(L_WARNING, "  peer:  %s", r->cn->ip);
+			log_d("  ref:   %s", r->referer);
+		log_d("  peer:  %s", r->cn->ip);
 	}
 	if (r->error_file) {
 		if (add_fd(r, r->error_file) != -1)
@@ -1060,7 +1060,7 @@ static void log_request(struct request *r)
 	if (cl < 0)
 		cl = 0;
 	cn = r->cn;
-	log(L_TRANS, "%.15s\t%s\t%hu\t%s\t%s\t%s\t%.3s\t%ld\t%.128s\t%.128s",
+	log_trans("%.15s\t%s\t%hu\t%s\t%s\t%s\t%.3s\t%ld\t%.128s\t%.128s",
 		r->user[0] ? r->user : "-",
 		cn->ip,
 		htons(cn->peer.sin_port),
@@ -1078,7 +1078,7 @@ int process_request(struct request *r)
 	if ((r->status = process_headers(r)) == 0)
 		r->status = process_path(r);
 	if (r->status > 0 && prepare_reply(r) == -1) {
-		log(L_ERROR, "cannot prepare reply for client");
+		log_d("cannot prepare reply for client");
 		return -1;
 	}
 	if (r->status_line && r->c)
@@ -1093,7 +1093,7 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 	char *s;
 
 	if (r->vs == 0) {
-		log(L_ERROR, "virtualhost not initialized!");
+		log_d("virtualhost not initialized!");
 		return 0;
 	}
 	ip = r->cn->peer.sin_addr.s_addr;

@@ -56,7 +56,7 @@ static void reinit_connection(struct connection *cn, int action)
 	if (cn->rfd != -1) {
 		rv = close(cn->rfd);
 		if (debug)
-			log(L_DEBUG, "reinit_connection: close(%d) = %d", cn->rfd, rv);
+			log_d("reinit_connection: close(%d) = %d", cn->rfd, rv);
 		cn->rfd = -1;
 	}
 	init_pool(cn->input);
@@ -73,11 +73,11 @@ static void close_connection(struct connection *cn)
 	--nconnections;
 	rv = close(cn->fd);
 	if (debug)
-		log(L_DEBUG, "close_connection: close(%d) = %d", cn->fd, rv);
+		log_d("close_connection: close(%d) = %d", cn->fd, rv);
 	if (cn->rfd != -1) {
 		rv = close(cn->rfd);
 		if (debug)
-			log(L_DEBUG, "close_connection: close(%d) = %d (rfd)", cn->rfd, rv);
+			log_d("close_connection: close(%d) = %d (rfd)", cn->rfd, rv);
 		cn->rfd = -1;
 	}
 	cn->state = HC_FREE;
@@ -92,7 +92,7 @@ static void nuke_servers(void)
 	while (s) {
 		rv = close(s->fd);
 		if (debug)
-			log(L_DEBUG, "nuke_servers: close(%d) = %d", s->fd, rv);
+			log_d("nuke_servers: close(%d) = %d", s->fd, rv);
 		s->fd = -1;
 		s = s->next;
 	}
@@ -121,9 +121,9 @@ static void accept_connection(struct server *s)
 		fd = accept(s->fd, (struct sockaddr *) &sa, &lsa);
 		if (debug) {
 			if (fd == -1)
-				log(L_DEBUG, "accept_connection: accept(%d) = %d", s->fd, fd);
+				log_d("accept_connection: accept(%d) = %d", s->fd, fd);
 			else
-				log(L_DEBUG, "accept_connection: accept(%d) = %d; addr=[%s], port=%d",
+				log_d("accept_connection: accept(%d) = %d; addr=[%s], port=%d",
 					s->fd, fd, inet_ntoa(sa.sin_addr), htons(sa.sin_port));
 		}
 		if (fd == -1) {
@@ -134,10 +134,10 @@ static void accept_connection(struct server *s)
 		s->naccepts++;
 		rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
 		if (debug)
-			log(L_DEBUG, "accept_connection: fcntl(%d, F_SETFD, FD_CLOEXEC) = %d", fd, rv);
+			log_d("accept_connection: fcntl(%d, F_SETFD, FD_CLOEXEC) = %d", fd, rv);
 		rv = fcntl(fd, F_SETFL, O_NONBLOCK);
 		if (debug)
-			log(L_DEBUG, "accept_connection: fcntl(%d, F_SETFL, O_NONBLOCK) = %d", fd, rv);
+			log_d("accept_connection: fcntl(%d, F_SETFL, O_NONBLOCK) = %d", fd, rv);
 		cn = connections;
 		cw = 0;
 		while (cn) {
@@ -152,10 +152,10 @@ static void accept_connection(struct server *s)
 			cn = cw;
 		}
 		if (cn == 0) {
-			log(L_ERROR, "connection to %s dropped", inet_ntoa(sa.sin_addr));
+			log_d("connection to %s dropped", inet_ntoa(sa.sin_addr));
 			rv = close(fd);
 			if (debug)
-				log(L_DEBUG, "accept_connection: close(%d) = %d", fd, rv);
+				log_d("accept_connection: close(%d) = %d", fd, rv);
 		} else {
 			s->nhandled++;
 			cn->state = HC_ACTIVE;
@@ -190,12 +190,12 @@ static int fill_connection(struct connection *cn)
 	cn->r->content_length -= n;
 	m = read(cn->rfd, p->end, n);
 	if (debug)
-		log(L_DEBUG, "fill_connection: read(%d, %p, %d) = %d", cn->rfd, p->end, n, m);
+		log_d("fill_connection: read(%d, %p, %d) = %d", cn->rfd, p->end, n, m);
 	if (m != n) {
 		if (m == -1)
 			lerror("read");
 		else
-			log(L_ERROR, "premature end of file %s", cn->r->path_translated);
+			log_d("premature end of file %s", cn->r->path_translated);
 		return -1;
 	}
 	p->end += n;
@@ -224,11 +224,11 @@ static void write_connection(struct connection *cn)
 		cn->t = current_time;
 		m = send(cn->fd, p->start, n, 0);
 		if (debug)
-			log(L_DEBUG, "write_connection: send(%d, %p, %d, 0) = %d", cn->fd, p->start, n, m);
+			log_d("write_connection: send(%d, %p, %d, 0) = %d", cn->fd, p->start, n, m);
 		if (m == -1) {
 			switch (errno) {
 			default:
-				log(L_ERROR, "error sending to %s", cn->ip);
+				log_d("error sending to %s", cn->ip);
 				lerror("send");
 			case EPIPE:
 				cn->action = HC_CLOSING;
@@ -255,17 +255,17 @@ static void read_connection(struct connection *cn)
 	fd = cn->fd;
 	i = p->ceiling - p->end;
 	if (i == 0) {
-		log(L_ERROR, "input buffer full");
+		log_d("input buffer full");
 		cn->action = HC_CLOSING;
 		return;
 	}
 	nr = recv(fd, p->end, i, MSG_PEEK);
 	if (debug)
-		log(L_DEBUG, "read_connection: recv(%d, %p, %d, MSG_PEEK) = %d", fd, p->end, i, nr);
+		log_d("read_connection: recv(%d, %p, %d, MSG_PEEK) = %d", fd, p->end, i, nr);
 	if (nr == -1) {
 		switch (errno) {
 		default:
-			log(L_ERROR, "error peeking from %s", cn->ip);
+			log_d("error peeking from %s", cn->ip);
 			lerror("recv");
 		case ECONNRESET:
 			cn->action = HC_CLOSING;
@@ -381,16 +381,16 @@ static void read_connection(struct connection *cn)
 	}
 	nr = recv(fd, p->end, i, 0);
 	if (debug)
-		log(L_DEBUG, "read_connection: recv(%d, %p, %d, 0) = %d", fd, p->end, i, nr);
+		log_d("read_connection: recv(%d, %p, %d, 0) = %d", fd, p->end, i, nr);
 	if (nr != i) {
 		if (nr == -1)
-			log(L_ERROR, "error reading from %s", cn->ip);
+			log_d("error reading from %s", cn->ip);
 			lerror("recv");
 		cn->action = HC_CLOSING;
 		return;
 	}
 	if (state == 9) {
-		log(L_ERROR, "bad message from %s", cn->ip);
+		log_d("bad message from %s", cn->ip);
 		cn->action = HC_CLOSING;
 		return;
 	}
@@ -415,7 +415,7 @@ static void cleanup_connections(void)
 	while (cn) {
 		if (cn->state == HC_ACTIVE) {
 			if (current_time - cn->t >= tuning.timeout) {
-				log(L_ERROR, "timeout to %s", cn->ip);
+				log_d("timeout to %s", cn->ip);
 				cn->action = HC_CLOSING;
 			}
 			if (cn->action == HC_CLOSING)
@@ -436,15 +436,15 @@ static void reap_children(void)
 			break;
 		++numchildren;
 		if (WIFEXITED(status))
-			log(L_LOG, "child process %d exited with status %d", pid, WEXITSTATUS(status));
+			log_d("child process %d exited with status %d", pid, WEXITSTATUS(status));
 		else if (WIFSIGNALED(status))
-			log(L_LOG, "child process %d killed by signal %d", pid, WTERMSIG(status));
+			log_d("child process %d killed by signal %d", pid, WTERMSIG(status));
 	}
 	if (pid < 0 && errno != ECHILD)
 		lerror("waitpid");
 }
 
-static void init_log(char *name, int *fdp)
+static void init_log_d(char *name, int *fdp)
 {
 	int fd;
 	char converted_name[PATHLEN], *n;
@@ -471,40 +471,47 @@ static void init_log(char *name, int *fdp)
 
 static void init_logs(void)
 {
-	init_log(log_filename, &log_file);
-	init_log(error_filename, &error_file);
+	init_log_d(log_filename, &log_file);
+	init_log_d(error_filename, &error_file);
 }
 
-void log(int type, const char *fmt, ...)
+static void fd_log_d(int fd, const char *fmt, va_list ap)
 {
-	va_list args;
 	char log_line[2*PATHLEN];
-	int l, fd, saved_errno;
+	int l, saved_errno;
 	char *ti;
 
-	switch (type) {
-	case L_TRANS:
-		fd = log_file;
-		break;
-	case L_DEBUG:
-		if (debug == 0)
-			return;
-	default:
-		fd = error_file;
-	}
-	if (fd == -1)
-		return;
 	saved_errno = errno;
 	ti = ctime(&current_time);
 	l = sprintf(log_line, "%.24s\t", ti ? ti : "???");
-	if (type != L_TRANS)
+	if (fd != log_file)
 		l += sprintf(log_line + l, "[%d]\t", my_pid);
-	va_start(args, fmt);
-	l += vsprintf(log_line + l, fmt, args);
-	va_end(args);
+	l += vsprintf(log_line + l, fmt, ap);
 	log_line[l] = '\n';
 	write(fd, log_line, l + 1);
 	errno = saved_errno;
+}
+
+void log_d(const char *fmt, ...)
+{
+	va_list ap;
+
+	if (error_file == -1)
+		return;
+	va_start(ap, fmt);
+	fd_log_d(error_file, fmt, ap);
+	va_end(ap);
+}
+
+void log_trans(const char *fmt, ...)
+{
+	va_list ap;
+
+	if (log_file == -1)
+		return;
+	va_start(ap, fmt);
+	fd_log_d(log_file, fmt, ap);
+	va_end(ap);
 }
 
 void lerror(const char *s)
@@ -513,12 +520,12 @@ void lerror(const char *s)
 
 	saved_errno = errno;
 	if (s && *s)
-		log(L_ERROR, "%s: %s", s, strerror(saved_errno));
+		log_d("%s: %s", s, strerror(saved_errno));
 	else
-		log(L_ERROR, "%s", strerror(saved_errno));
+		log_d("%s", strerror(saved_errno));
 	switch (saved_errno) {
 	case ENFILE:
-		log(L_PANIC, "oh no!!!");
+		log_d("oh no!!!");
 		gotsigterm = 1;
 	}
 	errno = saved_errno;
@@ -549,20 +556,20 @@ void httpd_main(void)
 			init_logs();
 			if (first) {
 				first = 0;
-				log(L_LOG, "*** %s starting", server_version);
+				log_d("*** %s starting", server_version);
 			}
 			else
-				log(L_LOG, "logs reopened");
+				log_d("logs reopened");
 		}
 		if (gotsigusr1) {
 			gotsigusr1 = 0;
 			nuke_connections();
-			log(L_LOG, "connections closed");
+			log_d("connections closed");
 		}
 		if (gotsigusr2) {
 			gotsigusr2 = 0;
 			nuke_servers();
-			log(L_LOG, "servers closed");
+			log_d("servers closed");
 		}
 		if (gotsigwinch) {
 			gotsigwinch = 0;
@@ -628,31 +635,31 @@ void httpd_main(void)
 		}
 #ifdef POLL
 		if (n == 0) {
-			log(L_ERROR, "no more sockets to poll from");
+			log_d("no more sockets to poll from");
 			break;
 		}
 #else
 		if (m == -1) {
-			log(L_ERROR, "no more sockets to select from");
+			log_d("no more sockets to select from");
 			break;
 		}
 #endif
 #ifdef POLL
 		if (debug)
-			log(L_DEBUG, "httpd_main: poll(%d) ...", n);
+			log_d("httpd_main: poll(%d) ...", n);
 		rv = poll(pollfds, n, INFTIM);
 #else
 		if (debug)
-			log(L_DEBUG, "httpd_main: select(%d) ...", m + 1);
+			log_d("httpd_main: select(%d) ...", m + 1);
 		rv = select(m + 1, &rfds, &wfds, 0, 0);
 #endif
 		current_time = time(0);
 #ifdef POLL
 		if (debug)
-			log(L_DEBUG, "httpd_main: poll() = %d", rv);
+			log_d("httpd_main: poll() = %d", rv);
 #else
 		if (debug)
-			log(L_DEBUG, "httpd_main: select() = %d", rv);
+			log_d("httpd_main: select() = %d", rv);
 #endif
 		if (rv == -1) {
 			if (errno != EINTR) {
@@ -662,7 +669,7 @@ void httpd_main(void)
 				lerror("select");
 #endif
 				if (error++) {
-					log(L_PANIC, "whoops");
+					log_d("whoops");
 					break;
 				}
 			}
@@ -692,7 +699,7 @@ void httpd_main(void)
 							else if (r & POLLOUT)
 								write_connection(cn);
 							else if (r) {
-								log(L_ERROR, "dropping %s: unexpected event %hd", cn->ip, r);
+								log_d("dropping %s: unexpected event %hd", cn->ip, r);
 								cn->action = HC_CLOSING;
 						}
 #else
@@ -709,5 +716,5 @@ void httpd_main(void)
 		}
 	}
 	dump();
-	log(L_LOG, "*** shutting down", my_pid);
+	log_d("*** shutting down", my_pid);
 }

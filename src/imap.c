@@ -234,7 +234,7 @@ int process_imap(struct request *r)
 	fclose(fp);
 	if (status) {
 		r->error = status;
-		log(L_ERROR, "imagemap: %s on line %d of %s", status, line, s);
+		log_d("imagemap: %s on line %d of %s", status, line, s);
 		return 500;
 	}
 	if (url) {

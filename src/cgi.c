@@ -213,7 +213,7 @@ static int exec_cgi(struct request *r)
 	if (init_cgi_env(r) == -1)
 		return cgi_error(r, 500, "could not initialize CGI environment");
 	if (execve(cgi_argv[0], (char **) cgi_argv, cgi_envp) == -1) {
-		log(L_ERROR, "could not execute %s", cgi_argv[0]);
+		log_d("could not execute %s", cgi_argv[0]);
 		lerror("execve");
 		return cgi_error(r, 500, "could not execute CGI program");
 	}

@@ -279,7 +279,7 @@ int fork_request(struct request *r, int (*f)(struct request *))
 	case 0:
 		my_pid = getpid();
 		if (debug)
-			log(L_DEBUG, "fork_request: child process created");
+			log_d("fork_request: child process created");
 		forked = 1;
 		mysignal(SIGPIPE, SIG_DFL, 0);
 		fd = r->cn->fd;
@@ -292,35 +292,35 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		}
 		rv = dup2(fd, 0);
 		if (debug)
-			log(L_DEBUG, "fork_request: dup2(%d, 0) = %d", fd, rv);
+			log_d("fork_request: dup2(%d, 0) = %d", fd, rv);
 		rv = dup2(fd, 1);
 		if (debug)
-			log(L_DEBUG, "fork_request: dup2(%d, 1) = %d", fd, rv);
+			log_d("fork_request: dup2(%d, 1) = %d", fd, rv);
 		rv = dup2(efd, 2);
 		if (debug)
-			log(L_DEBUG, "fork_request: dup2(%d, 2) = %d", efd, rv);
+			log_d("fork_request: dup2(%d, 2) = %d", efd, rv);
 		rv = fcntl(0, F_SETFL, 0);
 		if (debug)
-			log(L_DEBUG, "fork_request: fcntl(0, F_SETFL, 0) = %d", rv);
+			log_d("fork_request: fcntl(0, F_SETFL, 0) = %d", rv);
 		rv = fcntl(1, F_SETFL, 0);
 		if (debug)
-			log(L_DEBUG, "fork_request: fcntl(1, F_SETFL, 0) = %d", rv);
+			log_d("fork_request: fcntl(1, F_SETFL, 0) = %d", rv);
 		if (efd == fd) {
 			rv = fcntl(2, F_SETFL, 0);
 			if (debug)
-				log(L_DEBUG, "fork_request: fcntl(2, F_SETFL, 0) = %d", rv);
+				log_d("fork_request: fcntl(2, F_SETFL, 0) = %d", rv);
 		}
 		rv = close(fd);
 		if (debug)
-			log(L_DEBUG, "fork_request: close(%d) = %d", fd, rv);
+			log_d("fork_request: close(%d) = %d", fd, rv);
 		if (efd != fd) {
 			rv = close(efd);
 			if (debug)
-				log(L_DEBUG, "fork_request: close(%d) = %d", efd, rv);
+				log_d("fork_request: close(%d) = %d", efd, rv);
 		}
 		rv = f(r);
 		if (debug)
-			log(L_DEBUG, "fork_request: _exit(%d)", rv);
+			log_d("fork_request: _exit(%d)", rv);
 		_exit(rv);
 		break;
 	case -1:
@@ -328,7 +328,7 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		r->error = su_fork;
 		return 503;
 	default:
-		log(L_LOG, "child process %d created", pid);
+		log_d("child process %d created", pid);
 		r->status_line = "---";
 	}
 	return -1;

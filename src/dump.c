@@ -39,7 +39,7 @@
 static void dump_children(struct virtual *v)
 {
 	while (v) {
-		log(L_LOG, "VHB %s %lu %lu", v->fullname, v->nrequests, v->nwritten);
+		log_d("VHB %s %lu %lu", v->fullname, v->nrequests, v->nwritten);
 		v = v->next;
 	}
 }
@@ -47,7 +47,7 @@ static void dump_children(struct virtual *v)
 static void dump_servers(struct server *s)
 {
 	while (s) {
-		log(L_LOG, "SAH %s:%d %lu %lu", inet_ntoa(s->addr), s->port, s->naccepts, s->nhandled);
+		log_d("SAH %s:%d %lu %lu", inet_ntoa(s->addr), s->port, s->naccepts, s->nhandled);
 		dump_children(s->children);
 		s = s->next;
 	}
@@ -55,9 +55,9 @@ static void dump_servers(struct server *s)
 
 void dump(void)
 {
-	log(L_LOG, "*** Start of dump");
-	log(L_LOG, "SCM %lu %lu %d", startuptime, current_time, maxconnections);
+	log_d("*** Start of dump");
+	log_d("SCM %lu %lu %d", startuptime, current_time, maxconnections);
 	maxconnections = nconnections;
 	dump_servers(servers);
-	log(L_LOG, "*** End of dump");
+	log_d("*** End of dump");
 }
