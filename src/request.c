@@ -635,36 +635,42 @@ static int hostmatch(const char *s, const char *t)
 
 static int find_vs(struct request *r)
 {
-	struct virtual *v;
-	char *tmp;
+	struct virtual *v, *d;
 
 	if (debug)
 		log_d("D find_vs");
+	d = 0;
 	v = r->cn->s->children;
-	if (r->host) {
+	if (r->host)
 		while (v) {
-			if (v->host && hostmatch(r->host, v->host))
-				break;
+			if (v->host) {
+				if (hostmatch(r->host, v->host))
+					break;
+			} else if (v->anyhost)
+				d = v;
 			v = v->next;
 		}
-		if (v == 0) {
-			log_d("No such virtual server: %s", r->host);
-			return 1;
-		}
-		tmp = v->host;
-	} else {
+	else
 		while (v) {
-			if (v->host == 0)
-				break;
+			if (v->host == 0) {
+				if (v->anyhost)
+					d = v;
+				else
+					break;
+			}
 			v = v->next;
 		}
-		if (v == 0)
+	if (v == 0) {
+		if (d == 0)
 			return 1;
-		tmp = r->cn->s->s_name;
+		v = d;
 	}
 	v->nrequests++;
 	r->vs = v;
-	r->servername = tmp;
+	if (v->host)
+		r->servername = v->host;
+	else
+		r->servername = r->cn->s->s_name;
 	return 0;
 }
 
