@@ -44,6 +44,7 @@ static int cgi_argc;
 static int add(const char *name, const char *value)
 {
 	char *tmp;
+	size_t namelen, valuelen;
 
 	if (name && value == 0)
 		return 0;
@@ -56,10 +57,15 @@ static int add(const char *name, const char *value)
 	if (name == 0)
 		cgi_envp[cgi_envc] = 0;
 	else {
-		tmp = malloc(strlen(name) + 2 + strlen(value));
+		namelen = strlen(name);
+		valuelen = strlen(value);
+		tmp = malloc(namelen + valuelen + 2);
 		if (tmp == 0)
 			return -1;
-		sprintf(tmp, "%s=%s", name, value);
+		memcpy(tmp, name, namelen);
+		tmp[namelen] = '=';
+		memcpy(tmp + namelen + 1, value, valuelen);
+		tmp[namelen + valuelen + 1] = 0;
 		cgi_envp[cgi_envc] = tmp;
 	}
 	++cgi_envc;
