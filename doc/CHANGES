@@ -7,7 +7,7 @@ cgi.c:
 	HTTP_CONTENT_LENGTH and HTTP_CONTENT_TYPE are not set,
 	because these are already in other variables, and
 	HTTP_AUTHORIZATION is not set if the user is
-	authenticated by Mathopd.
+	authenticated by Mathopd.)
 
 	The value of GATEWAY_INTERFACE is now set.
 	If the user is authenticated by Mathopd, the value of
@@ -27,8 +27,8 @@ cgi.c:
 	The setting of PATH_INFO and PATH_TRANSLATED is now
 	independent on whether we run as a pure CGI program or
 	an 'External' script. The SCRIPT_FILENAME variable now
-	what would be in PATH_TRANSLATED for external scripts.
-	This keeps php happy.
+	contains what would be in PATH_TRANSLATED for external
+	scripts. This keeps php happy.
 
 	External scripts can now be called with added command-line
 	arguments.
@@ -53,6 +53,7 @@ config.c:
 		TimeTaken
 		LocalAddress
 		LocalPort
+		ScriptLoWat
 
 	The following keywords have been removed:-
 
@@ -78,7 +79,7 @@ core.c:
 	Besides connections we now have `children'. (The struct
 	pipe_params thingies.) We loop over these in httpd_main.
 	The code that deals with reading from and writing to
-	children is still in stub.c
+	children is in stub.c
 
 	Do not poll server sockets or try to accept() if there is no
 	room for any new connection. Previously mathopd would accept
@@ -122,13 +123,17 @@ imap.c:
 	Replace the strtok() function with something that is a
 	little bit quicker.
 
+	Limit imagemap files to 1000 lines or less, since processing
+	these can be quite expensive in terms of CPU time.
+
 log.c:
 
 	New global function: open_log().
 
 	We no longer log to standard error if the -n command-line
 	option is set, because that interferes with the ChildLog
-	for forked requests.
+	for forked requests. To get the old behaviour, run Mathopd
+	with the -t ('tee') option.
 
 main.c:
 
@@ -141,7 +146,7 @@ main.c:
 	minimum amount of initialization routines, like change
 	user-id, current directory, and so on, and then immediately
 	calls exec. On some platforms we can even use vfork() rather
-	then fork() to achieve a rather dramatic speedup.
+	than fork() to achieve a rather dramatic speedup.
 
 	The second argument to the listen() call is now dynamic via
 	the Backlog keyword.
@@ -201,5 +206,6 @@ request.c:
 
 stub.c:
 
-	New file. This file has been imported from the phpstub program,
-	and then mutilated beyond all recognition.
+	This is a new file that contains code to pass data from and to
+	clients and CGI scripts. Originally this code was in the 'phpstub'
+	program, but it has since been mutilated beyond all recognition.
