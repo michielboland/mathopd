@@ -58,4 +58,7 @@ We are currently at 1.3b7. Changes to the last beta:
 	DNSLevel defaults to 1, for backward compatibility.
 	The author recommends always setting DNSLevel to 3.
 
+	"Export" is now defined inside Control blocks, not
+	globally.
+
 Michiel Boland <boland@diva.nl>
