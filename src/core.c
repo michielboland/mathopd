@@ -249,7 +249,7 @@ static struct connection *find_connection(void)
 	return 0;
 }
 
-static void pool_adjust(struct pool *p, int s)
+static void pool_adjust(struct pool *p, size_t s)
 {
 	size_t n;
 
@@ -872,9 +872,6 @@ void httpd_main(void)
 	last_time = current_time = startuptime = time(0);
 	hours = current_time / 3600;
 	log_d("*** %s starting", server_version);
-	log_d("NumConnections=%lu nfiles=%d", tuning.num_connections, nfiles);
-	if (2 * tuning.num_connections + 4 > nfiles)
-		log_d("warning: NumConnections is too high");
 	while (gotsigterm == 0) {
 		if (gotsighup) {
 			gotsighup = 0;
