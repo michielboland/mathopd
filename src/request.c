@@ -37,7 +37,6 @@
 #include "mathopd.h"
 
 static const char br_empty[] =			"empty request";
-static const char br_bad_method[] =		"bad method";
 static const char br_bad_url[] =		"bad or missing url";
 static const char br_bad_protocol[] =		"bad protocol";
 static const char br_bad_date[] =		"bad date";
@@ -51,13 +50,11 @@ static const char ni_not_implemented[] =	"method not implemented";
 static const char se_alias[] =			"cannot resolve pathname";
 static const char se_get_path_info[] =		"cannot determine path args";
 static const char se_no_class[] =		"unknown class!?";
-static const char se_no_control[] =		"out of control";
 static const char se_no_mime[] =		"no MIME type";
 static const char se_no_specialty[] =		"unconfigured specialty";
 static const char se_no_virtual[] =		"virtual server does not exist";
 static const char se_open[] =			"open failed";
 static const char su_open[] =			"too many open files";
-static const char se_unknown[] =		"unknown error (help!)";
 static const char ni_version_not_supp[] =	"version not supported";
 
 static const char m_get[] =			"GET";
@@ -215,7 +212,11 @@ static char *getline(struct pool *p)
 	register int f;
 
 	end = p->end;
-	s = olds = sp = p->start;
+	s = p->start;
+	if (s >= end)
+		return 0;
+	olds = s;
+	sp = s;
 	f = 0;
 	while (s < end) {
 		switch (*s++) {
@@ -241,6 +242,7 @@ static char *getline(struct pool *p)
 			break;
 		}
 	}
+	log_d("getline: fallen off the end");
 	return 0;
 }
 
@@ -264,10 +266,8 @@ static int output_headers(struct pool *p, struct request *r)
 	char tmp_outbuf[2048], gbuf[40], *b;
 	int port;
 
-	if (r->cn->assbackwards) {
-		log_d("old-style connection from %s", r->cn->ip);
+	if (r->cn->assbackwards)
 		return 0;
-	}
 	b = tmp_outbuf;
 	b += sprintf(b, "HTTP/%d.%d %s\r\n"
 		"Server: %s\r\n"
@@ -665,7 +665,7 @@ static int check_realm(struct request *r)
 	if (strncasecmp(a, "basic", 5))
 		return -1;
 	a += 5;
-	while (isspace(*a))
+	while (*a == ' ')
 		++a;
 	if (webuserok(a, r->c->userfile, r->user, sizeof r->user, r->c->do_crypt))
 		return 0;
@@ -752,190 +752,197 @@ static int process_path(struct request *r)
 	return 500;
 }
 
-static int get_method(char *p, struct request *r)
+static int process_headers(struct request *r)
 {
-	if (p == 0)
-		return -1;
-	if (!strcmp(p, m_get)) {
-		r->method = M_GET;
-		r->method_s = m_get;
-		return 0;
-	}
-	if (!r->cn->assbackwards) {
-		if (!strcmp(p, m_head)) {
-			r->method = M_HEAD;
-			r->method_s = m_head;
-			return 0;
-		}
-		if (!strcmp(p, m_post)) {
-			r->method = M_POST;
-			r->method_s = m_post;
-			return 0;
-		}
-	}
-	log_d("unknown method \"%.32s\" from %s", p, r->cn->ip);
-	return -1;
-}
+	char *l, *u, *s, *t;
+	unsigned long x, y;
+	time_t i;
 
-static int get_url(char *p, struct request *r)
-{
-	char *s;
-
-	if (p == 0)
-		return -1;
-	if (strlen(p) > STRLEN) {
-		log_d("url too long from %s", r->cn->ip);
-		return -1;
+	while (1) {
+		l = getline(r->cn->input);
+		if (l == 0) {
+			return -1;
+		}
+		while (*l == ' ')
+			++l;
+		r->method_s = l;
+		u = strchr(l, ' ');
+		if (u)
+			break;
+		log_d("ignoring garbage \"%.80s\" from %s", l, r->cn->ip);
 	}
-	r->url = p;
-	s = strchr(p, '?');
+	*u++ = 0;
+	while (*u == ' ')
+		++u;
+	s = strrchr(u, ' ');
 	if (s) {
-		r->args = s+1;
+		r->version = s + 1;
+		do {
+			*s-- = 0;
+		} while (*s == ' ');
+	}
+	r->url = u;
+	s = strchr(u, '?');
+	if (s) {
+		r->args = s + 1;
 		*s = 0;
 	}
-	s = strchr(p, ';');
+	s = strchr(u, ';');
 	if (s) {
 		r->params = s + 1;
 		*s = 0;
 	}
-	if (unescape_url(r->url, r->path) == -1) {
-		log_d("badly encoded url from %s", r->cn->ip);
-		return -1;
+	while ((l = getline(r->cn->input)) != 0) {
+		s = strchr(l, ':');
+		if (s == 0)
+			continue;
+		*s++ = 0;
+		while (*s == ' ')
+			++s;
+		if (*s == 0)
+			continue;
+		if (!strcasecmp(l, "User-agent"))
+			r->user_agent = s;
+		else if (!strcasecmp(l, "Referer"))
+			r->referer = s;
+		else if (!strcasecmp(l, "From"))
+			r->from = s;
+		else if (!strcasecmp(l, "Authorization"))
+			r->authorization = s;
+		else if (!strcasecmp(l, "Cookie"))
+			r->cookie = s;
+		else if (!strcasecmp(l, "Host"))
+			r->host = s;
+		else if (!strcasecmp(l, "Connection"))
+			r->connection = s;
+		else if (!strcasecmp(l, "If-modified-since"))
+			r->ims_s = s;
+		else if (!strcasecmp(l, "Content-type"))
+			r->in_content_type = s;
+		else if (!strcasecmp(l, "Content-length"))
+			r->in_content_length = s;
 	}
-	if (r->path[0] != '/')
-		return -1; /* this is wrong */
-	return 0;
-}
-
-static int get_version(char *p, struct request *r)
-{
-	unsigned int x, y;
-	char *s;
-
-	s = strchr(p, '.');
+	if (debug) {
+		if (r->method_s)
+			log_d("method_s = \"%.80s\"", r->method_s);
+		if (r->version)
+			log_d("version = \"%.80s\"", r->version);
+		if (r->url)
+			log_d("url = \"%.80s\"", r->url);
+		if (r->args)
+			log_d("args = \"%.80s\"", r->args);
+		if (r->params)
+			log_d("params = \"%.80s\"", r->params);
+		if (r->user_agent)
+			log_d("user_agent = \"%.80s\"", r->user_agent);
+		if (r->referer)
+			log_d("referer = \"%.80s\"", r->referer);
+		if (r->from)
+			log_d("from = \"%.80s\"", r->from);
+		if (r->authorization)
+			log_d("authorization = \"%.80s\"", r->authorization);
+		if (r->cookie)
+			log_d("cookie = \"%.80s\"", r->cookie);
+		if (r->host)
+			log_d("host = \"%.80s\"", r->host);
+		if (r->connection)
+			log_d("connection = \"%.80s\"", r->connection);
+		if (r->ims_s)
+			log_d("ims_s = \"%.80s\"", r->ims_s);
+		if (r->in_content_type)
+			log_d("in_content_type = \"%.80s\"", r->in_content_type);
+		if (r->in_content_length)
+			log_d("in_content_length = \"%.80s\"", r->in_content_length);
+	}
+	s = r->method_s;
 	if (s == 0) {
-		log_d("illegal HTTP version (%.32s) from %s", p, r->cn->ip);
+		log_d("method_s == 0 !?");
 		return -1;
 	}
-	*s++ = 0;
-	x = atoi(p);
-	y = atoi(s);
-	if (x != 1 || y > 1) {
-		log_d("unsupported HTTP version (%.32s.%.32s) from %s", p, s, r->cn->ip);
+	if (strcmp(s, m_get) == 0) {
+		r->method = M_GET;
+	} else {
+		if (r->cn->assbackwards) {
+			log_d("method \"%.80s\" not implemented for old-style connections", s);
+			r->error = ni_not_implemented;
+			return 501;
+		}
+		if (strcmp(s, m_head) == 0)
+			r->method = M_HEAD;
+		else if (strcmp(s, m_post) == 0)
+			r->method = M_POST;
+		else {
+			log_d("method \"%.80s\" not implemented", s);
+			r->error = ni_not_implemented;
+			return 501;
+		}
+	}
+	s = r->url;
+	if (s == 0) {
+		log_d("url == 0 !?");
 		return -1;
 	}
-	r->protocol_major = x;
-	r->protocol_minor = y;
-	return 0;
-}
-
-static int process_headers(struct request *r)
-{
-	static const char whitespace[] = " \t";
-	char *l, *m, *p, *s;
-
-	r->vs = 0;
-	r->user_agent = 0;
-	r->referer = 0;
-	r->from = 0;
-	r->authorization = 0;
-	r->cookie = 0;
-	r->host = 0;
-	r->in_content_type = 0;
-	r->in_content_length = 0;
-	r->path[0] = 0;
-	r->path_translated[0] = 0;
-	r->path_args[0] = 0;
-	r->num_content = -1;
-	r->class = 0;
-	r->content_length = -1;
-	r->last_modified = 0;
-	r->ims = 0;
-	r->location = 0;
-	r->status_line = 0;
-	r->error = 0;
-	r->method_s = 0;
-	r->url = 0;
-	r->args = 0;
-	r->params = 0;
-	r->protocol_major = 0;
-	r->protocol_minor = 0;
-	r->method = 0;
-	r->status = 0;
-	r->isindex = 0;
-	r->c = 0;
-	r->error_file = 0;
-	r->user[0] = 0;
-	r->servername = 0;
-	if ((l = getline(r->cn->input)) == 0) {
-		r->error = br_empty; /* can this happen? */
-		return 400;
-	}
-	m = strtok(l, whitespace);
-	if (get_method(m, r) == -1) {
-		r->error = ni_not_implemented;
-		return 501;
-	}
-	p = strtok(0, whitespace);
-	if (get_url(p, r) == -1) {
+	if (strlen(s) > STRLEN) {
+		log_d("url too long from %s", r->cn->ip);
 		r->error = br_bad_url;
 		return 400;
 	}
-	if (r->cn->assbackwards)
+	if (unescape_url(s, r->path) == -1) {
+		r->error = br_bad_url;
+		return 400;
+	}
+	if (r->path[0] != '/') {
+		r->error = br_bad_url;
+		return 400;
+	}
+	if (r->cn->assbackwards) {
+		r->protocol_major = 0;
 		r->protocol_minor = 9;
-	else {
-		p = strtok(0, whitespace);
-		if (p == 0 || strncmp(p, "HTTP/", 5)) {
-			log_d("bad protocol string \"%.32s\" from %s", p, r->cn->ip);
+	} else {
+		s = r->version;
+		if (s == 0) {
+			log_d("version == 0 !?");
+			return -1;
+		}
+		if (strncmp(s, "HTTP/", 5)) {
+			log_d("unsupported version \"%.32s\" from %s", s, r->cn->ip);
 			r->error = br_bad_protocol;
 			return 400;
 		}
-		if (get_version(p + 5, r) == -1) {
+		t = strchr(s + 5, '.');
+		if (t == 0) {
+			log_d("unsupported version \"%.32s\" from %s", s, r->cn->ip);
+			r->error = br_bad_protocol;
+			return 400;
+		}
+		*t = 0;
+		x = atoi(s + 5);
+		y = atoi(t + 1);
+		*t = '.';
+		if (x != 1 || y > 1) {
+			log_d("unsupported version \"%.32s\" from %s", s, r->cn->ip);
 			r->error = ni_version_not_supp;
 			return 505;
 		}
-		if (r->protocol_minor)
-			r->cn->keepalive = 1;
-		while ((l = getline(r->cn->input)) != 0) {
-			if ((s = strchr(l, ':')) == 0)
-				continue;
-			*s++ = 0;
-			while (isspace(*s))
-				++s;
-			if (*s == 0)
-				continue;
-			if (!strcasecmp(l, "User-agent"))
-				r->user_agent = s;
-			else if (!strcasecmp(l, "Referer"))
-				r->referer = s;
-			else if (!strcasecmp(l, "From"))
-				r->from = s;
-			else if (!strcasecmp(l, "Authorization"))
-				r->authorization = s;
-			else if (!strcasecmp(l, "Cookie"))
-				r->cookie = s;
-			else if (!strcasecmp(l, "Host"))
-				r->host = s;
-			else if (!strcasecmp(l, "Connection")) {
-				if (r->protocol_minor) {
-					if (!strcasecmp(s, "Close"))
-						r->cn->keepalive = 0;
-				} else if (!strcasecmp(s, "Keep-Alive"))
-					r->cn->keepalive = 1;
-			} else if (r->method == M_GET) {
-				if (!strcasecmp(l, "If-modified-since")) {
-					r->ims = timerfc(s);
-					if (r->ims == (time_t) -1) {
-						r->error = br_bad_date;
-						return 400;
-					}
-				}
-			} else if (r->method == M_POST) {
-				if (!strcasecmp(l, "Content-type"))
-					r->in_content_type = s;
-				else if (!strcasecmp(l, "Content-length"))
-					r->in_content_length = s;
+		r->protocol_major = x;
+		r->protocol_minor = y;
+		s = r->connection;
+		if (y) {
+			r->cn->keepalive = !(s && strcasecmp(s, "Close") == 0);
+		} else {
+			r->cn->keepalive = s && strcasecmp(s, "Keep-Alive") == 0;
+		}
+	}
+	if (r->method == M_GET) {
+		s = r->ims_s;
+		if (s) {
+			i = timerfc(s);
+			if (i == (time_t) -1) {
+				log_d("illegal date \"%.80s\" in If-Modified-Since", s);
+				r->error = br_bad_date;
+				return 400;
 			}
+			r->ims = i;
 		}
 	}
 	return 0;
@@ -1079,8 +1086,49 @@ static void log_request(struct request *r)
 		r->user_agent ? r->user_agent : "-");
 }
 
+static void init_request(struct request *r)
+{
+	r->vs = 0;
+	r->user_agent = 0;
+	r->referer = 0;
+	r->from = 0;
+	r->authorization = 0;
+	r->cookie = 0;
+	r->host = 0;
+	r->in_content_type = 0;
+	r->in_content_length = 0;
+	r->connection = 0;
+	r->ims_s = 0;
+	r->path[0] = 0;
+	r->path_translated[0] = 0;
+	r->path_args[0] = 0;
+	r->num_content = -1;
+	r->class = 0;
+	r->content_length = -1;
+	r->last_modified = 0;
+	r->ims = 0;
+	r->location = 0;
+	r->status_line = 0;
+	r->error = 0;
+	r->method_s = 0;
+	r->url = 0;
+	r->args = 0;
+	r->params = 0;
+	r->version = 0;
+	r->protocol_major = 0;
+	r->protocol_minor = 0;
+	r->method = 0;
+	r->status = 0;
+	r->isindex = 0;
+	r->c = 0;
+	r->error_file = 0;
+	r->user[0] = 0;
+	r->servername = 0;
+}
+
 int process_request(struct request *r)
 {
+	init_request(r);
 	if ((r->status = process_headers(r)) == 0)
 		r->status = process_path(r);
 	if (r->status > 0 && prepare_reply(r) == -1) {
