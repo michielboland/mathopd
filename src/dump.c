@@ -63,11 +63,16 @@ static void dump_servers(FILE *f, struct server *s)
 
 static void dump_connections(FILE *f, struct connection *cn)
 {
-	int ncrd, ncwr, ncwt, i;
+	int i, n_free, n_reading, n_writing, n_waiting, n_closing, n_reinit, n_unknown, n_forked;
 
-	ncrd = 0;
-	ncwr = 0;
-	ncwt = 0;
+	n_free = 0;
+	n_reading = 0;
+	n_writing = 0;
+	n_waiting = 0;
+	n_closing = 0;
+	n_reinit = 0;
+	n_unknown = 0;
+	n_forked = 0;
 	i = -1;
 	fprintf(f, "Connections:\n");
 	while (cn) {
@@ -78,36 +83,49 @@ static void dump_connections(FILE *f, struct connection *cn)
 		switch (cn->state) {
 		case HC_FREE:
 			putc('.', f);
+			++n_free;
 			break;
 		case HC_ACTIVE:
 			switch (cn->action) {
 			case HC_READING:
 				putc('r', f);
-				ncrd++;
+				++n_reading;
 				break;
 			case HC_WRITING:
 				putc('W', f);
-				ncwr++;
+				++n_writing;
 				break;
 			case HC_WAITING:
 				putc('-', f);
-				ncwt++;
+				++n_waiting;
+				break;
+			case HC_CLOSING:
+				putc('c', f);
+				++n_closing;
+				break;
+			case HC_REINIT:
+				putc('i', f);
+				++n_reinit;
 				break;
 			default:
 				putc('?', f);
+				++n_unknown;
 				break;
 			}
 			break;
 		case HC_FORKED:
 			putc('F', f);
+			++n_forked;
 			break;
 		default:
-			putc('#', f);
+			putc('?', f);
+			++n_unknown;
 			break;
 		}
 		cn = cn->next;
 	}
-	fprintf(f, "\nReading: %d, Writing: %d, Waiting: %d\n", ncrd, ncwr, ncwt);
+	fprintf(f, "\nReading: %d, Writing: %d, Waiting: %d, Closing: %d\n", n_reading, n_writing, n_waiting, n_closing);
+	fprintf(f, "Initializing: %d, Forked: %d, Unknown: %d\n", n_reinit, n_forked, n_unknown);
 }
 
 static void fdump(FILE *f)
