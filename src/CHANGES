@@ -96,3 +96,11 @@ The DefaultName: keyword has been removed.
 
 REMOTE_PORT and SERVER_ADDR environment variables are
 available to CGI scripts.
+
+For CGI programs invoked via 'External' specialties
+PATH_INFO and PATH_TRANSLATED point to the request-uri
+and the physical pathname of the script respectively.
+This appears to make more sense.
+
+SCRIPT_NAME is now just the pure script name, without
+extra info past a trailing slash.
