@@ -90,7 +90,6 @@ static const char c_admin[] =		"Admin";
 static const char c_alias[] =		"Alias";
 static const char c_allow[] =		"Allow";
 static const char c_allow_dotfiles[] =	"AllowDotfiles";
-static const char c_allowed_owners[] =	"AllowedOwners";
 static const char c_apply[] =		"Apply";
 static const char c_buf_size[] =	"BufSize";
 static const char c_bytes_read[] =	"BytesRead";
@@ -111,7 +110,6 @@ static const char c_error_404_file[] =	"Error404File";
 static const char c_exact_match[] =	"ExactMatch";
 static const char c_export[] =		"Export";
 static const char c_external[] =	"External";
-static const char c_group[] =		"Group";
 static const char c_host[] =		"Host";
 static const char c_index_names[] =	"IndexNames";
 static const char c_input_buf_size[] =	"InputBufSize";
@@ -147,7 +145,6 @@ static const char c_user[] =		"User";
 static const char c_useragent[] =	"UserAgent";
 static const char c_userfile[] =	"UserFile";
 static const char c_version[] =		"Version";
-static const char c_world[] =		"World";
 
 static const char e_bad_addr[] =	"bad address";
 static const char e_bad_alias[] =	"alias without matching location";
@@ -566,46 +563,6 @@ static const char *config_clients(struct configuration *p, struct access **ls)
 	return config_acccl(p, ls, APPLYNOAPPLY);
 }
 
-static const char *config_owners(struct configuration *p, struct file_owner **op)
-{
-	struct file_owner *o;
-	struct passwd *pw;
-	struct group *gr;
-	const char *t;
-
-	if ((t = gettoken(p)) != t_open)
-		return t;
-	while ((t = gettoken(p)) != t_close) {
-		if (t != t_string)
-			return t;
-		if ((o = malloc(sizeof *o)) == 0)
-			return e_memory;
-		o->next = *op;
-		*op = o;
-		if (!strcasecmp(p->tokbuf, c_user)) {
-			o->type = FO_USER;
-			if ((t = gettoken(p)) != t_string)
-				return t;
-			pw = getpwnam(p->tokbuf);
-			if (pw == 0)
-				return e_unknown_user;
-			o->user = pw->pw_uid;
-		} else if (!strcasecmp(p->tokbuf, c_group)) {
-			o->type = FO_GROUP;
-			if ((t = gettoken(p)) != t_string)
-				return t;
-			gr = getgrnam(p->tokbuf);
-			if (gr == 0)
-				return e_unknown_group;
-			o->group = gr->gr_gid;
-		} else if (!strcasecmp(p->tokbuf, c_world))
-			o->type = FO_WORLD;
-		else
-			return e_keyword;
-	}
-	return 0;
-}
-
 static void chopslash(char *s)
 {
 	char *t;
@@ -647,7 +604,6 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->exports = b->exports;
 		a->script_user = b->script_user;
 		a->run_scripts_as_owner = b->run_scripts_as_owner;
-		a->allowed_owners = b->allowed_owners;
 		a->allow_dotfiles = b->allow_dotfiles;
 	} else {
 		a->index_names = 0;
@@ -666,7 +622,6 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->exports = 0;
 		a->script_user = 0;
 		a->run_scripts_as_owner = 0;
-		a->allowed_owners = 0;
 		a->allow_dotfiles = 0;
 	}
 	a->next = *as;
@@ -739,8 +694,6 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_string(p, &a->script_user);
 		else if (!strcasecmp(p->tokbuf, c_run_scripts_as_owner))
 			t = config_flag(p, &a->run_scripts_as_owner);
-		else if (!strcasecmp(p->tokbuf, c_allowed_owners))
-			t = config_owners(p, &a->allowed_owners);
 		else if (!strcasecmp(p->tokbuf, c_allow_dotfiles))
 			t = config_flag(p, &a->allow_dotfiles);
 		else

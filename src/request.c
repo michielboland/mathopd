@@ -515,7 +515,6 @@ static int process_special(struct request *r)
 static int process_fd(struct request *r)
 {
 	int fd;
-	struct file_owner *o;
 
 	if (r->path_args[0] && r->c->path_args_ok == 0 && (r->path_args[1] || r->isindex == 0)) {
 		r->error_file = r->c->error_404_file;
@@ -537,28 +536,6 @@ static int process_fd(struct request *r)
 	}
 	if (!S_ISREG(r->finfo.st_mode)) {
 		log_d("process_fd: non-regular file %s", r->path_translated);
-		close(fd);
-		r->error_file = r->c->error_404_file;
-		return 404;
-	}
-	o = r->c->allowed_owners;
-	while (o) {
-		if (o->type == FO_USER) {
-			if (debug)
-				log_d("st_uid=%d user=%d", r->finfo.st_uid, o->user);
-			if (r->finfo.st_uid == o->user)
-				break;
-		} else if (o->type == FO_GROUP) {
-			if (debug)
-				log_d("st_gid=%d group=%d", r->finfo.st_gid, o->group);
-			if (r->finfo.st_gid == o->group)
-				break;
-		} else if (o->type == FO_WORLD)
-			break;
-		o = o->next;
-	}
-	if (o == 0) {
-		log_d("process_fd: invalid owner: uid=%d gid=%d file=%s", r->finfo.st_uid, r->finfo.st_gid, r->path_translated);
 		close(fd);
 		r->error_file = r->c->error_404_file;
 		return 404;

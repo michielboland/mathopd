@@ -142,13 +142,6 @@ enum {
 	FO_WORLD
 };
 
-struct file_owner {
-	int type;
-	uid_t user;
-	gid_t group;
-	struct file_owner *next;
-};
-
 struct control {
 	char *alias;
 	int path_args_ok;
@@ -171,7 +164,6 @@ struct control {
 	struct simple_list *exports;
 	char *script_user;
 	int run_scripts_as_owner;
-	struct file_owner *allowed_owners;
 	int allow_dotfiles;
 };
 
