@@ -163,6 +163,8 @@ static struct connection *find_connection(void)
 		cn = cn->next;
 	}
 	if (cn == 0 && cw) {
+		if (debug)
+			log_d("clobbering connection to %s[%hu]", inet_ntoa(cw->peer.sin_addr), ntohs(cw->peer.sin_port));
 		close_connection(cw);
 		cn = cw;
 	}
