@@ -131,6 +131,7 @@ static const char c_user[] =		"User";
 static const char c_useragent[] =	"UserAgent";
 static const char c_userfile[] =	"UserFile";
 static const char c_version[] =		"Version";
+static const char c_world[] =		"World";
 
 static const char e_bad_addr[] =	"bad address";
 static const char e_bad_alias[] =	"alias without matching location";
@@ -566,7 +567,7 @@ static const char *config_owners(FILE *f, struct file_owner **op)
 			if (gr == 0)
 				return e_unknown_group;
 			o->group = gr->gr_gid;
-		} else if (!strcasecmp(tokbuf, c_all))
+		} else if (!strcasecmp(tokbuf, c_world))
 			o->type = FO_WORLD;
 		else
 			return e_keyword;
