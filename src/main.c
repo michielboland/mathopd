@@ -224,7 +224,7 @@ int main(int argc, char *argv[])
 			die(0, "No user specified.");
 		pwd = getpwnam(user_name);
 		if (pwd == 0 || pwd->pw_uid == 0)
-			die(0, "Invalid user name.");
+			die(0, "%s: Invalid user name.", user_name);
 		if (initgroups(user_name, pwd->pw_gid) == -1)
 			die("initgroups", 0);
 		if (setgid(pwd->pw_gid) == -1)
