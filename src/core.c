@@ -576,6 +576,14 @@ void httpd_main(void)
 		}
 		if (gotsigchld)
 			reap_children();
+		if (gotsigquit) {
+			gotsigquit = 0;
+			debug = debug == 0;
+			if (debug)
+				log_d("debugging turned on");
+			else
+				log_d("debugging turned off");
+		}
 		m = -1;
 		FD_ZERO(&rfds);
 		FD_ZERO(&wfds);

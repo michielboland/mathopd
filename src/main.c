@@ -44,6 +44,7 @@ volatile int gotsigusr1;
 volatile int gotsigusr2;
 volatile int gotsigwinch;
 volatile int gotsigchld;
+volatile int gotsigquit;
 int numchildren;
 time_t startuptime;
 int debug;
@@ -121,6 +122,11 @@ static void sigwinch(int sig)
 static void sigchld(int sig)
 {
 	gotsigchld = 1;
+}
+
+static void sigquit(int sig)
+{
+	gotsigquit = 1;
 }
 
 int main(int argc, char *argv[])
@@ -233,7 +239,7 @@ int main(int argc, char *argv[])
 	mysignal(SIGHUP,  sighup, 0);
 	mysignal(SIGTERM, sigterm, 0);
 	mysignal(SIGINT,  sigterm, 0);
-	mysignal(SIGQUIT, sigterm, 0);
+	mysignal(SIGQUIT, sigquit, 0);
 	mysignal(SIGUSR1, sigusr1, 0);
 	mysignal(SIGUSR2, sigusr2, 0);
 	mysignal(SIGWINCH, sigwinch, 0);
@@ -251,6 +257,7 @@ int main(int argc, char *argv[])
 	gotsigusr2 = 0;
 	gotsigwinch = 1;
 	gotsigchld = 0;
+	gotsigquit = 0;
 	time(&startuptime);
 	time(&current_time);
 	base64initialize();

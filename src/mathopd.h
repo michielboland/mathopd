@@ -256,6 +256,7 @@ extern volatile int gotsigusr1;
 extern volatile int gotsigusr2;
 extern volatile int gotsigwinch;
 extern volatile int gotsigchld;
+extern volatile int gotsigquit;
 extern int numchildren;
 extern time_t startuptime;
 extern int debug;
