@@ -47,6 +47,7 @@ static const char rcsid[] = "$Id$";
 #include <poll.h>
 #include <unistd.h>
 #include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "mathopd.h"
