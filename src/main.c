@@ -318,6 +318,8 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		lerror("socketpair");
 		return 503;
 	}
+	fcntl(p[0], F_SETFD, FD_CLOEXEC);
+	fcntl(p[1], F_SETFD, FD_CLOEXEC);
 	pid = fork();
 	switch (pid) {
 	case 0:
