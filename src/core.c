@@ -473,7 +473,7 @@ void httpd_main(void)
 	struct server *s;
 	struct connection *cn;
 	int rv;
-	int n;
+	int n, t;
 	short r;
 	time_t hours;
 	int accepting;
@@ -541,14 +541,14 @@ void httpd_main(void)
 				cn->pollno = -1;
 			cn = cn->next;
 		}
-		if (accepting) {
-			if (n == 0) {
-				log_d("no more sockets to poll from");
-				break;
-			}
-			rv = poll(pollfds, n, INFTIM);
-		} else
-			rv = poll(pollfds, n, 1000);
+		if (n == 0) {
+			log_d("no more sockets to poll from");
+			break;
+		}
+		t = accepting ? (nconnections ? 60000 : INFTIM) : 1000;
+		if (debug)
+			log_d("httpd_main: starting poll, n=%d, t=%d", n, t);
+		rv = poll(pollfds, n, t);
 		current_time = time(0);
 		if (rv == -1) {
 			if (errno != EINTR) {
