@@ -1,0 +1,14 @@
+  $Id$
+
+Work has been started on a new, experimental, release of Mathopd.
+Please see the README that comes with the stable release
+to find out exactly what Mathopd is. If you are planning to run
+Mathopd in a production environment, and you are not the same
+person as the author, you should stay away from this code, and
+use that stable version instead.
+
+No changes have been made yet, apart from the fact that the RCS
+release for all source files has been incremented.
+
+Cheers
+Michiel
