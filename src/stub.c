@@ -329,7 +329,7 @@ static int readfromclient(struct connection *p)
 			lerror("readfromclient");
 		case ECONNRESET:
 		case EPIPE:
-			p->pipe_params.error_condition = STUB_ERROR_CLIENT;
+			close_connection(p);
 			return -1;
 		case EAGAIN:
 			return 0;
@@ -337,7 +337,7 @@ static int readfromclient(struct connection *p)
 		break;
 	case 0:
 		log_d("readfromclient: client went away while posting data");
-		p->pipe_params.error_condition = STUB_ERROR_CLIENT;
+		close_connection(p);
 		return -1;
 	default:
 		p->t = current_time;
@@ -369,17 +369,20 @@ static int readfromchild(struct connection *p)
 		if (errno == EAGAIN)
 			return 0;
 		lerror("readfromchild");
-		p->pipe_params.error_condition = STUB_ERROR_PIPE;
+		close_connection(p);
 		return -1;
 	case 0:
 		if (p->pipe_params.state != 2) {
 			log_d("readfromchild: premature end of script headers (ipp=%d)", p->script_input.end - p->script_input.floor);
-			p->pipe_params.error_condition = STUB_ERROR_RESTART;
+			if (cgi_error(p->r) == -1)
+				close_connection(p);
+			else
+				set_connection_state(p, HC_WRITING);
 			return -1;
 		}
 		if (p->pipe_params.haslen) {
 			log_d("readfromchild: script went away (pmax=%d)", p->pipe_params.pmax);
-			p->pipe_params.error_condition = STUB_ERROR_PIPE;
+			close_connection(p);
 			return -1;
 		}
 		p->t = current_time;
@@ -420,7 +423,7 @@ static int writetoclient(struct connection *p)
 			lerror("writetoclient");
 		case EPIPE:
 		case ECONNRESET:
-			p->pipe_params.error_condition = STUB_ERROR_CLIENT;
+			close_connection(p);
 			return -1;
 		}
 		break;
@@ -453,7 +456,7 @@ static int writetochild(struct connection *p)
 		if (errno == EAGAIN)
 			return 0;
 		lerror("writetochild");
-		p->pipe_params.error_condition = STUB_ERROR_PIPE;
+		close_connection(p);
 		return -1;
 		break;
 	default:
@@ -493,7 +496,10 @@ static int scanlflf(struct connection *p)
 	}
 	if (p->pipe_params.state == 2) {
 		if (convert_cgi_headers(p, &p->r->status) == -1) {
-			p->pipe_params.error_condition = STUB_ERROR_RESTART;
+			if (cgi_error(p->r) == -1)
+				close_connection(p);
+			else
+				set_connection_state(p, HC_WRITING);
 			return -1;
 		}
 		if (p->pipe_params.nocontent)
@@ -512,7 +518,10 @@ static int scanlflf(struct connection *p)
 		}
 	} else if (p->script_input.start == p->script_input.ceiling) {
 		log_d("scanlflf: buffer full");
-		p->pipe_params.error_condition = STUB_ERROR_RESTART;
+		if (cgi_error(p->r) == -1)
+			close_connection(p);
+		else
+			set_connection_state(p, HC_WRITING);
 		return -1;
 	}
 	return 0;
@@ -571,6 +580,19 @@ static void copylastchunk(struct connection *p)
 		p->script_input.state = 3;
 }
 
+static int childisfinished(struct connection *p)
+{
+	if (p->script_input.state != 3)
+		return 0;
+	if (p->output.end > p->output.start)
+		return 0;
+	if (p->script_input.end > p->script_input.start)
+		return 0;
+	if (p->client_input.state == 1 && p->pipe_params.imax)
+		return 0;
+	return 1;
+}
+
 void pipe_run(struct connection *p)
 {
 	short cevents, pevents;
@@ -580,41 +602,42 @@ void pipe_run(struct connection *p)
 	pevents = p->rpollno != -1 ? pollfds[p->rpollno].revents : 0;
 	if (cevents & POLLERR) {
 		log_socket_error(p->fd, "pipe_run: error on client socket");
-		p->pipe_params.error_condition = STUB_ERROR_CLIENT;
+		close_connection(p);
 		return;
 	}
 	if (pevents & POLLERR) {
 		log_socket_error(p->rfd, "pipe_run: error on child socket");
-		p->pipe_params.error_condition = STUB_ERROR_PIPE;
+		close_connection(p);
 		return;
 	}
 	cevents &= POLLIN | POLLOUT;
 	pevents &= POLLIN | POLLOUT;
 	canwritetoclient = cevents & POLLOUT || p->output.end == p->output.floor;
 	canwritetochild = pevents & POLLOUT || p->client_input.end == p->client_input.floor;
-	if (cevents & POLLIN) {
+	if (cevents & POLLIN)
 		if (readfromclient(p) == -1)
 			return;
-	}
-	if (pevents & POLLIN) {
+	if (pevents & POLLIN)
 		if (readfromchild(p) == -1)
 			return;
-	}
-	if (p->script_input.end && p->pipe_params.state != 2) {
+	if (p->script_input.end && p->pipe_params.state != 2)
 		if (scanlflf(p) == -1)
 			return;
-	}
 	if (p->pipe_params.state == 2 && p->script_input.start < p->script_input.end)
 		copychunk(p);
 	if (p->script_input.state == 2)
 		copylastchunk(p);
-	if (p->output.end > p->output.start && canwritetoclient) {
+	if (p->output.end > p->output.start && canwritetoclient)
 		if (writetoclient(p) == -1)
 			return;
-	}
-	if (p->client_input.end > p->client_input.start && canwritetochild) {
+	if (p->client_input.end > p->client_input.start && canwritetochild)
 		if (writetochild(p) == -1)
 			return;
+	if (childisfinished(p)) {
+		if (p->keepalive)
+			reinit_connection(p);
+		else
+			close_connection(p);
 	}
 }
 
@@ -643,7 +666,6 @@ void init_child(struct connection *p, int fd)
 		p->pipe_params.imax = 0;
 	}
 	set_connection_state(p, HC_FORKED);
-	p->pipe_params.error_condition = 0;
 	p->pollno = -1;
 	p->rpollno = -1;
 }
@@ -655,68 +677,29 @@ int setup_child_pollfds(int n, struct connection *p)
 
 	while (p) {
 		q = p->next;
-		if (p->pipe_params.error_condition == 0) {
-			e = 0;
-			if (p->client_input.state == 1 && p->client_input.end < p->client_input.ceiling && p->pipe_params.imax)
-				e |= POLLIN;
-			if (p->output.end > p->output.start || (p->pipe_params.state == 2 && p->script_input.start < p->script_input.end && p->output.end == p->output.floor))
-				e |= POLLOUT;
-			if (e) {
-				pollfds[n].fd = p->fd;
-				pollfds[n].events = e;
-				p->pollno = n++;
-			} else
-				p->pollno = -1;
-			e = 0;
-			if (p->script_input.state == 1 && p->script_input.end < p->script_input.ceiling && (p->pipe_params.chunkit || p->pipe_params.haslen == 0 || p->pipe_params.pmax))
-				e |= POLLIN;
-			if (p->client_input.end > p->client_input.start)
-				e |= POLLOUT;
-			if (e) {
-				pollfds[n].fd = p->rfd;
-				pollfds[n].events = e;
-				p->rpollno = n++;
-			} else
-				p->rpollno = -1;
-		}
+		e = 0;
+		if (p->client_input.state == 1 && p->client_input.end < p->client_input.ceiling && p->pipe_params.imax)
+			e |= POLLIN;
+		if (p->output.end > p->output.start || (p->pipe_params.state == 2 && p->script_input.start < p->script_input.end && p->output.end == p->output.floor))
+			e |= POLLOUT;
+		if (e) {
+			pollfds[n].fd = p->fd;
+			pollfds[n].events = e;
+			p->pollno = n++;
+		} else
+			p->pollno = -1;
+		e = 0;
+		if (p->script_input.state == 1 && p->script_input.end < p->script_input.ceiling && (p->pipe_params.chunkit || p->pipe_params.haslen == 0 || p->pipe_params.pmax))
+			e |= POLLIN;
+		if (p->client_input.end > p->client_input.start)
+			e |= POLLOUT;
+		if (e) {
+			pollfds[n].fd = p->rfd;
+			pollfds[n].events = e;
+			p->rpollno = n++;
+		} else
+			p->rpollno = -1;
 		p = q;
 	}
 	return n;
-}
-
-static int childisfinished(struct connection *p)
-{
-	if (p->script_input.state != 3)
-		return 0;
-	if (p->output.end > p->output.start)
-		return 0;
-	if (p->script_input.end > p->script_input.start)
-		return 0;
-	if (p->client_input.state == 1 && p->pipe_params.imax)
-		return 0;
-	return 1;
-}
-
-void cleanup_children(struct connection *p)
-{
-	struct connection *n;
-
-	while (p) {
-		n = p->next;
-		if (p->pipe_params.error_condition) {
-			if (p->pipe_params.error_condition == STUB_ERROR_RESTART && cgi_error(p->r) != -1)
-				set_connection_state(p, HC_WRITING);
-			else
-				close_connection(p);
-		} else if (current_time >= p->t + (time_t) tuning.script_timeout) {
-			log_d("script timeout to %s[%hu]", inet_ntoa(p->peer.sin_addr), ntohs(p->peer.sin_port));
-			close_connection(p);
-		} else if (childisfinished(p)) {
-			if (p->keepalive)
-				reinit_connection(p);
-			else
-				close_connection(p);
-		}
-		p = n;
-	}
 }
