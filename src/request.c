@@ -796,18 +796,18 @@ static int process_range_header(struct request *r, const char *s)
 	if (strncasecmp(s, "bytes", 5))
 		return -1;
 	s += 5;
-	while (isspace(*s))
+	while (*s == ' ')
 		++s;
 	if (*s != '=')
 		return -1;
 	do
 		++s;
-	while (isspace(*s));
+	while (*s == ' ');
 	suffix = *s == '-';
 	if (suffix) {
 		do
 			++s;
-		while (isspace(*s));
+		while (*s == ' ');
 		if (*s == '-')
 			return -1;
 	}
@@ -815,7 +815,7 @@ static int process_range_header(struct request *r, const char *s)
 	if (t == s)
 		return -1;
 	s = t;
-	while (isspace(*s))
+	while (*s == ' ')
 		++s;
 	if (suffix) {
 		if (*s)
@@ -828,7 +828,7 @@ static int process_range_header(struct request *r, const char *s)
 		return -1;
 	do
 		++s;
-	while (isspace(*s));
+	while (*s == ' ');
 	if (*s == 0) {
 		r->range = 1;
 		r->range_floor = u;
@@ -840,7 +840,7 @@ static int process_range_header(struct request *r, const char *s)
 	if (t == s)
 		return -1;
 	s = t;
-	while (isspace(*s))
+	while (*s == ' ')
 		++s;
 	if (*s)
 		return -1;
