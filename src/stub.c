@@ -430,8 +430,6 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		if (bytestoread > p->imax)
 			bytestoread = p->imax;
 		r = read(p->cfd, p->ibuf + p->ibp, bytestoread);
-		if (debug)
-			log_d("read(%d [client], %p + %d, %d) = %d", p->cfd, p->ibuf, p->ibp, bytestoread, r);
 		switch (r) {
 		case -1:
 			if (errno == EAGAIN)
@@ -450,8 +448,6 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 	}
 	if (pollfds[0].revents & POLLOUT) {
 		r = write(p->cfd, p->obuf + p->obp, p->otop - p->obp);
-		if (debug)
-			log_d("write(%d [client], %p + %d, %d) = %d", p->cfd, p->obuf, p->obp, p->otop - p->obp, r);
 		switch (r) {
 		case -1:
 			if (errno == EAGAIN)
@@ -469,8 +465,6 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		if (p->haslen && bytestoread > p->pmax)
 			bytestoread = p->pmax;
 		r = read(p->pfd, p->pbuf + p->ipp, bytestoread);
-		if (debug)
-			log_d("read(%d [script], %p + %d, %d) = %d", p->pfd, p->pbuf, p->ipp, bytestoread, r);
 		switch (r) {
 		case -1:
 			if (errno == EAGAIN)
@@ -498,8 +492,6 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 	}
 	if (pollfds[1].revents & POLLOUT) {
 		r = write(p->pfd, p->ibuf + p->opp, p->ibp - p->opp);
-		if (debug)
-			log_d("write(%d [script], %p + %d, %d) = %d", p->pfd, p->ibuf, p->opp, p->ibp - p->opp, r);
 		switch (r) {
 		case -1:
 			if (errno == EAGAIN)
@@ -544,15 +536,11 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 				return 1;
 			}
 			if (p->haslen && p->pstart < p->ipp) {
-				if (debug)
-					log_d("pipe_run: p->pstart = %d, p->ipp = %d, p->pmax = %d", p->pstart, p->ipp, p->pmax);
 				if (p->ipp > p->pstart + p->pmax) {
 					log_d("extra garbage from script ignored");
 					p->pmax = 0;
 				} else
 					p->pmax -= p->ipp - p->pstart;
-				if (debug)
-					log_d("pipe_run: p->pmax is now %d", p->pmax);
 			}
 		} else if (p->pstart == p->psize) {
 			log_d("pipe_run: too many headers");
