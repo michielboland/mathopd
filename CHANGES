@@ -124,3 +124,22 @@ itself, can be set to GMT, rather than the local time.
 Mathopd will now rotate log files automatically every hour.
 
 The Redirect specialty has been removed.
+
+Mathopd expands the '*' character to the value of the 'Host' header
+in Location keywords. This makes it possible to add virtual servers
+to mathopd without restarting.
+
+Mathopd will now log the Host name sent by the client rather than
+the name of the host file as it appears in the configuration file.
+
+A new keyword 'PutEnv' has been added to export environment variables
+with predefined values. Use it as follows:
+
+  Control {
+    # other bits
+    PutEnv { FOO=BAR }
+  }
+
+the above will always set an environment variable FOO with value BAR
+in all child processes.
+
