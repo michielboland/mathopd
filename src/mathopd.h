@@ -39,6 +39,7 @@
 #define _mathopd_h
 
 #include <sys/types.h>
+#include <sys/socket.h> /* socklen_t is here sometimes */
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <netinet/in.h>
