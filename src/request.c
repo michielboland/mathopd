@@ -204,12 +204,9 @@ static char *rfctime(time_t t, char *buf)
 
 static char *getline(struct pool *p)
 {
-	char *s;
-	char *olds, *sp, *end;
+	char *s, *olds, *sp, *end;
 	int f;
 
-	if (debug)
-		log_d("D getline");
 	end = p->end;
 	s = p->start;
 	if (s >= end)
