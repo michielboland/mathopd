@@ -184,8 +184,9 @@ static time_t timerfc(char *s)
 	--day;
 	if (sec >= 60 || min >= 60 || hour >= 60 || day >= 31 || year < 1970)
 		return -1;
-	return sec + 60L * (min + 60L * (hour + 24L * (
-		day + daytab[year % 4 == 0][mon] + 365L * (year - 1970L) + ((year - 1969L) >> 2))));
+	return sec + 60L * (min + 60L * (hour + 24L * ( day +
+	    daytab[year % 4 == 0 && (year % 100 || year % 400 == 0)][mon] +
+	    365L * (year - 1970L) + ((year - 1969L) >> 2))));
 }
 
 static char *rfctime(time_t t, char *buf)
