@@ -16,15 +16,16 @@ seen -f. A complete summary follows.
 
   -n  If this option is supplied, Mathopd continues to run
       in the foreground after initialization. This is useful
-      for debugging purposes. Also, if this option is used,
-      diagnostics will be written to the standard error
-      channel as well as the error log.
+      for debugging purposes.
 
   -d  If this option is supplied, Mathopd starts up in debugging
       mode. Actually debugging mode does not do very much at
       present, it mainly produces a bit of noise in the error log.
       Debugging can be turned on and off while the server is
       running; see the section on signals below.
+
+  -t  If this option is supplied, Mathopd will write diagnostics to
+      the standard error channel as well as the error log.
 
   -v  If this option is supplied, Mathopd prints its version number
       and exits.
