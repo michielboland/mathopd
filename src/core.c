@@ -833,10 +833,6 @@ static void reap_children(void)
 	errno = errno_save;
 }
 
-#ifndef INFTIM
-#define INFTIM -1
-#endif
-
 static void dump_pollfds(int n, int r)
 {
 	char *buf, *b;
@@ -915,7 +911,7 @@ void httpd_main(void)
 			log_d("no more sockets to poll from");
 			break;
 		}
-		t = accepting ? (stats.nconnections ? 60000 : INFTIM) : 1000;
+		t = accepting ? 60000 : 1000;
 		if (debug)
 			dump_pollfds(n, 0);
 		rv = poll(pollfds, n, t);
