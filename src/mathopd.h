@@ -329,6 +329,7 @@ extern time_t current_time;
 extern void log_d(const char *, ...);
 extern void lerror(const char *);
 extern void httpd_main(void);
+extern void reap_children(void);
 extern int init_pollfds(size_t);
 
 /* request */
@@ -370,5 +371,9 @@ extern int init_log_buffer(size_t);
 extern void log_request(struct request *);
 extern int init_logs(void);
 extern int open_log(const char *);
+
+/* stub */
+
+extern int cgi_stub(struct request *, int (*)(struct request *));
 
 #endif
