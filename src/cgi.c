@@ -360,7 +360,7 @@ int process_cgi(struct request *r)
 	}
 	if (amroot) {
 		if (u == server_uid) {
-			log_d("cannot run scripts withouth changing identity");
+			log_d("cannot run scripts without changing identity");
 			r->status = 500;
 			return 0;
 		}
