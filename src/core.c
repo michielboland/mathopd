@@ -1,11 +1,3 @@
-/*
- * core.c - socket level code for Mathopd
- *
- * Copyright 1996, 1997, 1998, Michiel Boland
- */
-
-/* Les trois soers aveugles */
-
 #include "mathopd.h"
 
 int nconnections;

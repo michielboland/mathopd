@@ -1,11 +1,3 @@
-/*
- * dump.c - Mathopd statistics dump
- *
- * Copyright 1998, Michiel Boland
- */
-
-/* As */
-
 #include "mathopd.h"
 
 static void dump_children(struct virtual *v)
