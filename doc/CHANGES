@@ -20,24 +20,21 @@ cgi.c:
 
 config.c:
 
-	The `NumHeaders' keyword has been added to the Tuning
-	block. It determines the maximum amount of headers that
-	are passed to child programs using HTTP_ variables.
+	The following keywords have been added:-
 
-	The `ExtraHeaders' keyword has been added to the Control
-	block. It allows one to pass user-defined headers (like
-	"Cache-Control" etc.) to the client.
+		NumHeaders
+		ExtraHeaders
+		ScriptTimeout
+		ScriptBufSize
+		PathInfo
+		AutoIndexCommand
 
 	The "Name" keyword has been removed since it no longer
 	has any function.
 
 	The "Virtual" keyword may now be used in a global context
-	as well.
-
-	The "ScriptTimeout" and "ScriptBufSize" keywords have been
-        added to the Tuning block.
-
-	The "PathInfo" keyword has been added.
+	as well. If used that way, the virtual server(s) that it
+	defines will be inherited by all subsequent Server blocks.
 
 core.c:
 
@@ -109,6 +106,16 @@ request.c:
 
 	In get_path_info(), if the first call to stat() fails and
 	path_info_ok is not set, return an error immediately.
+
+	If the AutoIndexCommand is set for a control block, execute that
+	command as a CGI script if the request is for a directory and there
+	is no index, as specified by IndexNames.
+
+	The parsing of the Request-Line has changed. Rather than assuming
+	that the last word of that line contains the HTTP version, scan
+	the Request-Line for the string 'HTTP'.
+
+	Request-URIs that are too long produce a 414 error.
 
 stub.c:
 
