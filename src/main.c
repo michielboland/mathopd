@@ -36,13 +36,12 @@
 
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.3";
+const char server_version[] = "Mathopd/1.4b1";
 
 volatile int gotsigterm;
 volatile int gotsighup;
 volatile int gotsigusr1;
 volatile int gotsigusr2;
-volatile int gotsigwinch;
 volatile int gotsigchld;
 volatile int gotsigquit;
 int numchildren;
@@ -128,11 +127,6 @@ static void sigusr1(int sig)
 static void sigusr2(int sig)
 {
 	gotsigusr2 = 1;
-}
-
-static void sigwinch(int sig)
-{
-	gotsigwinch = 1;
 }
 
 static void sigchld(int sig)
@@ -259,7 +253,6 @@ int main(int argc, char *argv[])
 	mysignal(SIGQUIT, sigquit);
 	mysignal(SIGUSR1, sigusr1);
 	mysignal(SIGUSR2, sigusr2);
-	mysignal(SIGWINCH, sigwinch);
 	mysignal(SIGPIPE, SIG_IGN);
 	my_pid = getpid();
 	if (pid_fd != -1) {
@@ -272,7 +265,6 @@ int main(int argc, char *argv[])
 	gotsigterm = 0;
 	gotsigusr1 = 0;
 	gotsigusr2 = 0;
-	gotsigwinch = 1;
 	gotsigchld = 0;
 	gotsigquit = 0;
 	time(&startuptime);
