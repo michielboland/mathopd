@@ -207,6 +207,8 @@ struct request {
 	int isindex;
 	const char *error_file;
 	char user[16];
+	char iphost[16];
+	char *servername;
 };
 
 struct connection {
@@ -216,6 +218,7 @@ struct connection {
 	int fd;
 	int rfd;
 	struct sockaddr_in peer;
+	struct sockaddr_in sock;
 	char ip[16];
 	time_t t;
 	time_t it;
@@ -292,7 +295,7 @@ extern void httpd_main(void);
 extern int prepare_reply(struct request *);
 extern int process_request(struct request *);
 extern struct control *faketoreal(char *, char *, struct request *, int);
-extern void construct_url(char *, char *, struct virtual *);
+extern void construct_url(char *, char *, struct request *);
 extern void escape_url(char *);
 extern int unescape_url(char *, char *);
 
