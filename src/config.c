@@ -124,6 +124,7 @@ static const char c_num_connections[] =		"NumConnections";
 static const char c_num_headers[] =		"NumHeaders";
 static const char c_off[] =			"Off";
 static const char c_on[] =			"On";
+static const char c_options[] =			"Options";
 static const char c_path_args[] =		"PathArgs";
 static const char c_path_info[] =		"PathInfo";
 static const char c_pid_file[] =		"PIDFile";
@@ -723,6 +724,39 @@ static const char *config_family(struct configuration *p, int *fp)
 	return 0;
 }
 
+static const char *config_sockopts(struct configuration *p, struct server_sockopts **ss)
+{
+	struct server_sockopts *s;
+	const char *t;
+	int l, n, o, *op;
+
+	if ((t = gettoken(p)) != t_open)
+		return t;
+	while ((t = gettoken(p)) != t_close) {
+		if (!strcasecmp(p->tokbuf, "v6only")) {
+			l = IPPROTO_IPV6;
+			n = IPV6_V6ONLY;
+		} else
+			return "unknown socket option";
+		t = config_flag(p, &o);
+		if (t)
+			return t;
+		s = malloc(sizeof *s);
+		if (s == 0)
+			return e_memory;
+		op = malloc(sizeof *op);
+		if (op == 0)
+			return e_memory;
+		s->ss_level = l;
+		s->ss_optname = n;
+		s->ss_optval = op;
+		s->ss_optlen = sizeof *op;
+		s->next = *ss;
+		*ss = s;
+	}
+	return 0;
+}
+
 static const char *config_server(struct configuration *p, struct server **ss)
 {
 	struct server *s;
@@ -738,6 +772,7 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	s->backlog = DEFAULT_BACKLOG;
 	s->addr = 0;
 	s->port = "80";
+	s->options = 0;
 	fam = AF_UNSPEC;
 	if ((t = gettoken(p)) != t_open)
 		return t;
@@ -756,6 +791,8 @@ static const char *config_server(struct configuration *p, struct server **ss)
 			t = config_int(p, &s->backlog);
 		else if (!strcasecmp(p->tokbuf, c_family))
 			t = config_family(p, &fam);
+		else if (!strcasecmp(p->tokbuf, c_options))
+			t = config_sockopts(p, &s->options);
 		else
 			t = e_keyword;
 		if (t)

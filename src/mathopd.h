@@ -181,6 +181,14 @@ struct vserver {
 	struct vserver *next;
 };
 
+struct server_sockopts {
+	int ss_level;
+	int ss_optname;
+	void *ss_optval;
+	socklen_t ss_optlen;
+	struct server_sockopts *next;
+};
+
 struct server {
 	int fd;
 	size_t s_addrlen;
@@ -196,6 +204,7 @@ struct server {
 	int family;
 	int socktype;
 	int protocol;
+	struct server_sockopts *options;
 };
 
 struct request_header {

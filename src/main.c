@@ -103,6 +103,7 @@ static void die(const char *t, const char *fmt, ...)
 static void startup_server(struct server *s)
 {
 	int onoff;
+	struct server_sockopts *o;
 
 	s->fd = socket(s->family, s->socktype, s->protocol);
 	if (s->fd == -1)
@@ -110,6 +111,12 @@ static void startup_server(struct server *s)
 	onoff = 1;
 	if (setsockopt(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &onoff, sizeof onoff) == -1)
 		die("setsockopt", "cannot set re-use flag");
+	o = s->options;
+	while (o) {
+		if (setsockopt(s->fd, o->ss_level, o->ss_optname, o->ss_optval, o->ss_optlen) == -1)
+			die("setsockopt", 0);
+		o = o->next;
+	}
 	fcntl(s->fd, F_SETFD, FD_CLOEXEC);
 	fcntl(s->fd, F_SETFL, O_NONBLOCK);
 	if (bind(s->fd, s->s_addr, s->s_addrlen) == -1)
