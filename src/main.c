@@ -8,18 +8,19 @@
 
 #include "mathopd.h"
 
-char *server_version = MATHOPD_VERSION;
+STRING(server_version) = "Mathopd/1.1b1";
+
 volatile int gotsigterm;
 volatile int gotsighup;
 volatile int gotsigusr1;
-volatile int gotsigusr2;
 volatile int numchildren;
 time_t startuptime;
+int debug;
 
 static char *progname;
 static int forked;
 
-static char *su_fork = "could not fork";
+static STRING(su_fork) = "could not fork";
 
 static int mysignal(int sig, void(*f)(int), int flags)
 {
@@ -59,7 +60,8 @@ static void startup_server(struct server *s)
 	sa.sin_port = htons(s->port);
 
 	if (bind(s->fd, (struct sockaddr *) &sa, sizeof sa) == -1)
-		die("bind", "cannot start up server %s", s->fullname);
+		die("bind", "cannot start up server %s at port %d",
+		    s->name, s->port);
 
 	if (listen(s->fd, 128) == -1)
 		die("listen", 0);
@@ -78,11 +80,6 @@ static void sighup(int sig)
 static void sigusr1(int sig)
 {
 	gotsigusr1 = 1;
-}
-
-static void sigusr2(int sig)
-{
-	gotsigusr2 = 1;
 }
 
 static void sigchld(int sig)
@@ -108,10 +105,16 @@ int main(int argc, char *argv[])
 
 	progname = argv[0];
 
-	while ((c = getopt(argc, argv, "n")) != EOF) {
+	while ((c = getopt(argc, argv, "nd")) != EOF) {
 		switch(c) {
 		case 'n':
 			daemon = 0;
+			break;
+		case 'd':
+			debug = 1;
+			break;
+		default:
+			die(0, "usage: %s [ -nd ]", progname);
 			break;
 		}
 	}
@@ -134,6 +137,14 @@ int main(int argc, char *argv[])
 		switch(i) {
 		default:
 			close(i);
+			/*
+			 * We still need stdin for our config file
+			 * and stderr for error reporting. See
+			 * below for what is done with these files
+			 * when we have no more need for them.
+			 * NOTE: we assume that these files are
+			 * always open(!).
+			 */
 		case STDIN_FILENO:
 		case STDERR_FILENO:
 			break;
@@ -174,11 +185,6 @@ int main(int argc, char *argv[])
 			die("chdir", 0);
 	}
 
-	fclose(stdin);
-	fclose(stderr);
-
-	mysignal(SIGCHLD, sigchld, SA_RESTART | SA_NOCLDSTOP);
-
 	if (daemon) {
 		switch (fork()) {
 		case -1:
@@ -187,23 +193,20 @@ int main(int argc, char *argv[])
 			_exit(0);
 		case 0:
 			setsid();
-			switch (fork()) {
-			case -1:
-				die("fork", 0);
-			default:
+			/*
+			 * avoid acquiring a controlling tty
+			 */
+			if (fork())
 				_exit(0);
-			case 0:
-				break;
-			}
 		}
 	}
 
+	mysignal(SIGCHLD, sigchld, SA_RESTART | SA_NOCLDSTOP);
 	mysignal(SIGHUP,  sighup,  SA_INTERRUPT);
 	mysignal(SIGTERM, sigterm, SA_INTERRUPT);
 	mysignal(SIGINT,  sigterm, SA_INTERRUPT);
 	mysignal(SIGQUIT, sigterm, SA_INTERRUPT);
 	mysignal(SIGUSR1, sigusr1, SA_INTERRUPT);
-	mysignal(SIGUSR2, sigusr2, SA_INTERRUPT);
 	mysignal(SIGPIPE, SIG_IGN, 0);
 
 	if (pid_fd != -1) {
@@ -213,10 +216,12 @@ int main(int argc, char *argv[])
 		close(pid_fd);
 	}
 
+	dup2(servers->fd, STDIN_FILENO);
+	dup2(servers->fd, STDERR_FILENO);
+
 	gotsighup = 1;
 	gotsigterm = 0;
 	gotsigusr1 = 0;
-	gotsigusr2 = 0;
 
 	time(&startuptime);
 
@@ -225,7 +230,7 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-void die(char *t, char *fmt, ...)
+void die(const char *t, const char *fmt, ...)
 {
 	if (fmt) {
 		va_list ap;
@@ -239,11 +244,6 @@ void die(char *t, char *fmt, ...)
 	if (t)
 		perror(t);
 	exit(1);
-}
-
-static int my_dup2(int from, int to)
-{
-	return from == to ? fcntl(to, F_SETFD, 0) : dup2(from, to);
 }
 
 int fork_request(struct request *r, int (*f)(struct request *))
@@ -260,21 +260,16 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		mysignal(SIGPIPE, SIG_DFL, 0);
 
 		fd = r->cn->fd;
-		efd = error_file == -1 ? fd : error_file;
-
-		if (fd != STDERR_FILENO) {
-			my_dup2(efd, STDERR_FILENO);
-			my_dup2(fd, STDIN_FILENO);
-		}
-		else {
-			my_dup2(fd, STDIN_FILENO);
-			my_dup2(efd, STDERR_FILENO);
-		}
+		efd = open(child_filename,
+			   O_WRONLY | O_CREAT | O_APPEND, 0666);
+		if (efd == -1)
+			efd = fd;
+		dup2(efd, STDERR_FILENO);
+		dup2(fd, STDIN_FILENO);
 		dup2(STDIN_FILENO, STDOUT_FILENO);
-
-		fcntl(STDIN_FILENO, F_SETFL, 0);
-		fcntl(STDOUT_FILENO, F_SETFL, 0);
-
+		close(fd);
+		if (efd != fd)
+			close(efd);
 		_exit((*f)(r));
 		break;
 	case -1:
