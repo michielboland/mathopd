@@ -1267,6 +1267,8 @@ static int process_headers(struct request *r)
 static const char *http_code_phrase(int status)
 {
 	switch (status) {
+	case 100:
+		return "100 Continue";
 	case 200:
 		return "200 OK";
 	case 204:
