@@ -51,6 +51,7 @@ static const char rcsid[] = "$Id$";
 #include <pwd.h>
 #include <time.h>
 #include <unistd.h>
+#include <errno.h>
 #include "mathopd.h"
 
 static const char m_get[] =			"GET";
@@ -359,7 +360,17 @@ static int get_path_info(struct request *r)
 		fd = open(p, O_RDONLY | O_NONBLOCK);
  		if (debug)
  			log_d("get_path_info: open(\"%s\") = %d", p, fd);
-		if (fd != -1) {
+		if (fd == -1)
+			switch (errno) {
+			case ENOENT:
+			case ENOTDIR:
+				break;
+			default:
+				log_d("cannot open %s", p);
+				lerror("open");
+				return -1;
+			}
+		else {
 			if (assign_rfd(r, fd) == -1) {
 				close(fd);
 				return -1;
