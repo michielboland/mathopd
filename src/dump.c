@@ -138,11 +138,15 @@ static void fdump(FILE *f, struct request *r)
 		"Active connections: %d out of %lu\n"
 		"Max simultaneous connections since last dump: %d\n"
 		"Number of exited children: %d\n"
+		"Available connections: %d\n"
+		"Number of requests executed: %lu\n"
 		"\n",
 		(int) (current_time - startuptime),
 		nconnections, tuning.num_connections,
 		maxconnections,
-		numchildren);
+		numchildren,
+		available_connections,
+		nrequests);
 	maxconnections = nconnections;
 	dump_servers(f, servers);
 	dump_connections(f, connections, r->cn);
