@@ -1,242 +1,30 @@
-Changes between Mathopd 1.3 and Mathopd 1.4
-
-Makefile:
-
-	This file now has build in instructions.
-
-mathopd.h:
-
-	This file no longer #includes every header file.
-	Source files now #include their own header files
-	in addition to mathopd.h.
-
-base64.c:
-
-	A #define that could be used to link mathopd without
-	the crypt() function has been removed.
-
-	The base64initialize function has been removed;
-	base64 decoding is now done with the aid of a macro.
-
-	The server now processes password files that have
-	CR LF line endings correctly.
+Changes between Mathopd 1.4 and Mathopd 1.5b1
 
 cgi.c:
 
-	Code was rewritten to get rid of macros that make
-	the flow of control difficult to understand.
-
-	Reverse DNS lookups are now always followed by a
-	forward lookup to avoid bogus names. A new keyword
-	DNSLookups has been added to turn DNS lookups on
-	or off.
-
-	The REMOTE_USER variable is set if applicable.
-
-	PATH_INFO and PATH_TRANSLATED are set differently for
-        'external' programs. For externals, PATH_INFO is set
-        to the entire request-uri, minus the query string,
-        and PATH_TRANSLATED is set the the physical location
-        of the script. Some script languages are happier when
-        PATH_INFO and PATH_TRANSLATED are set this way.
-        For 'regular' CGI scripts, these variables are still
-        set according to the CGI specification.
-
-	The REQUEST_URI and REMOTE_PORT variables are now set,
-	as well as SERVER_ADDR and SERVER_PORT.
-
-	The SCRIPT_NAME variable no longer contains path
-	information, as required by the specification.
-
-	It is now possible to pass a prededined set of
-	environment variables to CGI programs using the
-	PutEnv keyword.
-
-	It is now possible to run CGI scripts as a particular
-	user, irrespective of the owner of the CGI program.
-	This is done with the ScriptUser keyword. The 'old'
-	behaviour can be achieved with the RunScriptsAsOwner
-	keyword.
+	All headers are now converted into HTTP_ environment
+	variables, not just some.
 
 config.c:
 
-	There is no longer a fixed maximum string length in
-	a configuration file.
-
-	The following keywords have been added:-
-
-		AllowDotfiles
-		AnyHost
-		DNSLookups
-		LogFormat
-		LogGMT
-		NoHost
-		PutEnv
-		RunScriptsAsOwner
-		ScriptUser
-		UserDirectory
-
-	In addition to these, many keywords have been added
-	that have to do with logging - see below.
-
-	The folling keywords have been removed:-
-
-		DefaultName
-		DNSLevel
-		Refresh
-		Symlinks
-
-	The format of the log files is now configurable using
-	the LogFormat keyword. The following items can be
-	logged:-
-
-		Ctime
-		RemoteUser
-		RemoteAddress
-		RemotePort
-		ServerName
-		Method
-		URI
-		Version
-		Status
-		ContentLength
-		Referer
-		UserAgent
-		BytesRead
-		BytesWritten
-		QueryString
-
-	Mathopd can read a specified configuration file
-	instead of reading from standard input.
-
-	Elaborate macros that made the code difficult to
-	read have been removed.
-
-	It is no longer possible to bind a server to an IP
-	address with the Name keyword - use Address instead.
+	The `NumHeaders' keyword has been added to the Tuning
+	block. It determines the maximum amount of headers that
+	are passed to child programs using HTTP_ variables.
 
 core.c:
 
-	The server now always uses poll(). This gets rid of
-	a bunch of ugly #ifdefs. For platforms that do not
-	have the poll() function an emulation is provided.
-	
-	The accept_connection() function uses getsockname()
-	to store the address of the local end of the socket.
+	If connections are active, call poll() with a timeout
+	of one minute, rather than infinity. This should take
+	care of connections that remain stuck after shutdown.
 
-	Most debugging code has been removed.
+mathopd.h:
 
-	All logging functions have moved to log.c.
+	Added: request_header structure, nheaders and headers
+	members to request structure; num_headers to tuning.
 
-	The server now stops accepting connections for a
-	brief period if accept() fails for any reason. This
-	avoids tight loops in low-resource conditions.
-
-	The server auto-rotates the log files every hour.
-
-dump.c:
-
-	The format of the dump has been restored to what it
-	originally was in Mathopd 1.0.
-
-imap.c:
-
-	The f_process_imap() function returns a 400 error if
-	illegal coordinates are specified in the request-uri.
-
-	The 'default' keyword in imagemap files should now
-	work the way it was intended.
-
-log.c:
-
-	The internal buffer for logging is based on the size
-	of the input buffer, rather than set to a fixed size.
-
-	Mathopd now logs the value of the "Host:" header,
-	rather than the name of the virtual server that is
-	used.
-
-	Mathopd can now log the client HTTP version and the
-	query string.
-
-main.c:
-
-	The variables in signal handlers are now sig_atomic_t
-	rather than int.
-
-	A new command-line option (-f) has been added.
-	This can be used to read a configuration file from
-	somewhere other than standard input.
-
-	The server now emits a message if it cannot open any
-	log files. In earlier versions it would exit silently.
+	Removed: cookie from request structure.
 
 request.c:
 
-	The server always responds with a HTTP/1.1 response,
-	instead of using the client version.
-
-	Locations in 302 responses are no longer made
-	absolute. This is against the RFC but most browsers
-	do not seem to mind. Also, the server cannot know
-	what protocol it should speak, for example if
-	mathopd sits behind a program like stunnel it would
-	be wrong to send a 'http:' URL in the response.
-
-	In the get_path_info() function, the server could
-	go all the way up to the root directory in older
-	versions. This is now fixed.
-
-	The check_symlinks() function has been removed. The
-	reason for this is that there is a time window
-	between checking whether part of a filename is a
-	symbolic link and actually opening the file. So
-	symlink checking can never be done securely.
-
-	A new AllowDotFiles keyword has been added that
-	allows for request-URI's that have a path component
-	that starts with a dot. Things like /./ and /../
-	are still forbidden of course.
-
-	In the makedir() function, the query string, if
-	any, is preserved in the 302 response.
-
-	The process_dummy() function and the Dummy specialty
-	have been removed. If an unknown specialty is found,
-	a 404 error is returned rather than a 500 error.
-	This sort of replaces the dummy functionality.
-
-	The "Refresh" feature has been removed.
-
-	In the process_fd() function, files are always
-	opened, even in a conditional GET. Also files are
-	opened in non-blocking mode to avoid accidents.
-
-	The server always returns a 404 error code if a file
-	cannot be opened. The 403 error code is strictly
-	reserved for clients that are denied access using
-	Access blocks.
-
-	Files specified in Error401File etc. must be plain
-	files, i.e. they must have a proper MIME type and
-	not be CGI's or anything else.
-
-	The AnyHost keyword has been added. This allows for
-	virtual servers that are used if a client sends a
-	Host: header that does not match any of the other
-	virtual server.
-
-	In a location, the * character is expanded to the
-	current value of the Host: header (converted to
-	lower case, and with possible trailing dots and
-	port numbers removed.) This feature can be combined
-	with the AnyHost keyword to create virtual servers
-	that can be added and removed on the fly without
-	restarting the server.
-
-	The UserDirectory keyword has been added to create
-	web space for any user on the system, if needed.
-
-	Dates before 1970 are allowed in If-Modified-Since
-	headers.
-
+	Store all headers in the r->headers array (up to a maximum
+	number, determined by NumHeaders.)
