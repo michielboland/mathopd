@@ -21,6 +21,9 @@ core.c:
 	of one minute, rather than infinity. This should take
 	care of connections that remain stuck after shutdown.
 
+	The reap_children function has been made external. Also,
+	that function now saves the value of errno.
+
 log.c:
 
 	New global function: open_log().
@@ -34,6 +37,8 @@ main.c:
 	Allow ChildLogs that can be %-expanded, just like the other
 	log files (via open_log).
 
+	Use cgi_stub for the child process (see stub.c).
+
 mathopd.h:
 
 	Added: request_header structure, nheaders and headers
@@ -44,7 +49,6 @@ mathopd.h:
 	and rhost to request.
 
 	Removed: cookie from request structure.
-
 
 request.c:
 
@@ -71,3 +75,9 @@ request.c:
 
 	Allow requests with an absolute URI in the Request-Line
 	("GET http://localhost/ HTTP/1.1").
+
+stub.c:
+
+	New file. This file is imported more or less literally from the
+	phpstub program. This means that phpstub is now obsolete (as far
+	as Mathopd 1.5 is concerned.)
