@@ -98,9 +98,23 @@ static void dump_connections(FILE *f)
 	fprintf(f, "\nReading: %d, Writing: %d, Waiting: %d, Forked: %d\n", n_reading, n_writing, n_waiting, n_forked);
 }
 
+static void tvadd(struct timeval *t1, struct timeval *t2, struct timeval *r)
+{
+	long u;
+
+	r->tv_sec = t1->tv_sec + t2->tv_sec;
+	u = t1->tv_usec + t2->tv_usec;
+	if (u >= 1000000) {
+		u -= 1000000;
+		++r->tv_sec;
+	}
+	r->tv_usec = u;
+}
+
 static void fdump(FILE *f)
 {
 	struct rusage ru;
+	struct timeval t;
 
 	fprintf(f, "Uptime: %d seconds\n", (int) (current_time - startuptime));
 	fprintf(f, "Active connections: %d out of %lu\n", stats.nconnections, tuning.num_connections);
@@ -110,9 +124,11 @@ static void fdump(FILE *f)
 	fprintf(f, "Number of requests executed: %lu\n", stats.nrequests);
 	fprintf(f, "\n");
 	getrusage(RUSAGE_SELF, &ru);
-	fprintf(f, "CPU time used by this process: %8ld.%02ld user %8ld.%02ld system\n", ru.ru_utime.tv_sec, ru.ru_utime.tv_usec / 10000, ru.ru_stime.tv_sec, ru.ru_stime.tv_usec / 10000);
+	tvadd(&ru.ru_utime, &ru.ru_stime, &t);
+	fprintf(f, "CPU time used by this process: %8ld.%02ld\n", t.tv_sec, t.tv_usec / 10000);
 	getrusage(RUSAGE_CHILDREN, &ru);
-	fprintf(f, "                     children: %8ld.%02ld user %8ld.%02ld system\n\n", ru.ru_utime.tv_sec, ru.ru_utime.tv_usec / 10000, ru.ru_stime.tv_sec, ru.ru_stime.tv_usec / 10000);
+	tvadd(&ru.ru_utime, &ru.ru_stime, &t);
+	fprintf(f, "                     children: %8ld.%02ld\n\n", t.tv_sec, t.tv_usec / 10000);
 	stats.maxconnections = stats.nconnections;
 	dump_connections(f);
 	fprintf(f, "*** End of dump\n");
