@@ -183,7 +183,6 @@ static int default_log_column[] = {
 	ML_BYTES_WRITTEN
 };
 
-#define ALLOC(x) if (((x) = malloc(sizeof *(x))) == 0) return e_memory
 #define COPY(x, y) if (((x) = strdup(y)) == 0) return e_memory
 
 #ifdef NEED_INET_ATON
@@ -362,7 +361,7 @@ static const char *config_list(struct configuration *p, struct simple_list **ls)
 	while ((t = gettoken(p)) != t_close) {
 		if (t != t_string && t != t_word)
 			return t;
-		ALLOC(l);
+		if ((l = malloc(sizeof *l)) == 0) return e_memory;
 		COPY(l->name, p->tokbuf);
 		l->next = *ls;
 		*ls = l;
@@ -443,7 +442,7 @@ static const char *config_mime(struct configuration *p, struct mime **ms, int cl
 		while ((t = gettoken(p)) != t_close) {
 			if (t != t_string && t != t_word)
 				return t;
-			ALLOC(m);
+			if ((m = malloc(sizeof *m)) == 0) return e_memory;
 			m->class = class;
 			m->name = name;
 			if (!strcasecmp(p->tokbuf, c_all))
@@ -513,7 +512,7 @@ static const char *config_acccl(struct configuration *p, struct access **ls, int
 	while ((t = gettoken(p)) != t_close) {
 		if (t != t_word)
 			return t;
-		ALLOC(l);
+		if ((l = malloc(sizeof *l)) == 0) return e_memory;
 		l->next = *ls;
 		*ls = l;
 		if (accltype == ALLOWDENY) {
@@ -572,7 +571,7 @@ static const char *config_owners(struct configuration *p, struct file_owner **op
 	while ((t = gettoken(p)) != t_close) {
 		if (t != t_word)
 			return t;
-		ALLOC(o);
+		if ((o = malloc(sizeof *o)) == 0) return e_memory;
 		o->next = *op;
 		*op = o;
 		if (!strcasecmp(p->tokbuf, c_user)) {
@@ -617,7 +616,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 	b = *as;
 	while (b && b->locations)
 		b = b->next;
-	ALLOC(a);
+	if ((a = malloc(sizeof *a)) == 0) return e_memory;
 	a->locations = 0;
 	a->alias = 0;
 	a->clients = 0;
@@ -667,7 +666,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 		if (t != t_word)
 			return t;
 		if (!strcasecmp(p->tokbuf, c_location)) {
-			ALLOC(l);
+			if ((l = malloc(sizeof *l)) == 0) return e_memory;
 			if ((t = gettoken(p)) != t_string && t != t_word)
 				return t;
 			chopslash(p->tokbuf);
@@ -742,7 +741,7 @@ static const char *config_vhost(struct virtual **vs, struct vserver *s, const ch
 {
 	struct virtual *v;
 
-	ALLOC(v);
+	if ((v = malloc(sizeof *v)) == 0) return e_memory;
 	if (host == 0)
 		v->host = 0;
 	else {
@@ -766,7 +765,7 @@ static const char *config_virtual(struct configuration *p, struct vserver **vs, 
 	int nameless;
 	const char *t;
 
-	ALLOC(v);
+	if ((v = malloc(sizeof *v)) == 0) return e_memory;
 	v->server = parent;
 	v->controls = parent->controls;
 	nameless = 1;
@@ -800,7 +799,7 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	struct server *s;
 	const char *t;
 
-	ALLOC(s);
+	if ((s = malloc(sizeof *s)) == 0) return e_memory;
 	num_servers++;
 	s->port = 80;
 	s->addr.s_addr = 0;
@@ -1019,8 +1018,8 @@ const char *config(const char *config_filename)
 		return e_memory;
 #endif
 	for (n = 0; n < tuning.num_connections; n++) {
-		ALLOC(cn);
-		ALLOC(cn->r);
+		if ((cn = malloc(sizeof *cn)) == 0) return e_memory;
+		if ((cn->r = malloc(sizeof *cn->r)) == 0) return e_memory;
 		if ((cn->input = new_pool(tuning.input_buf_size)) == 0)
 			return e_memory;
 		if ((cn->output = new_pool(tuning.buf_size)) == 0)
