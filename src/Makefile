@@ -14,16 +14,16 @@ SBINDIR = $(PREFIX)/sbin
 # On Linux, uncomment the following
 # CPPFLAGS = -DHAVE_CRYPT_H
 
-OBJS = base64.o cgi.o config.o core.o dump.o imap.o log.o main.o \
-	redirect.o request.o util.o stub.o
-DEPENDS = mathopd.h Makefile
-
 # Uncomment the following if your system does not support the poll() function
 # CPPFLAGS += -DPOLL_EMULATION
 # OBJS += poll-emul.o
 
 # Uncomment the following if your system does not have the socklen_t type
 # CPPFLAGS += -DNEED_SOCKLEN_T
+
+OBJS = base64.o cgi.o config.o core.o dump.o imap.o log.o main.o \
+	redirect.o request.o util.o stub.o
+DEPENDS = mathopd.h Makefile
 
 all: $(BIN)
 install: $(BIN)
