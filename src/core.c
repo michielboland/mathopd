@@ -81,7 +81,6 @@ static void init_connection(struct connection *cn)
 	init_pool(cn->input);
 	init_pool(cn->output);
 	init_request(cn->r);
-	cn->assbackwards = 1;
 	cn->keepalive = 0;
 	cn->nread = 0;
 	cn->nwritten = 0;
@@ -332,35 +331,51 @@ static void read_connection(struct connection *cn)
 		switch (state) {
 		case 0:
 			switch (c) {
-			case ' ':
-			case '\t':
-			case '\r':
+			default:
 				state = 1;
 				break;
+			case '\r':
+			case '\n':
+				break;
+			case ' ':
+			case '\t':
+				state = 2;
+				break;
 			}
+			if (state)
+				if (cn->action == HC_WAITING) {
+					gettimeofday(&cn->itv, 0);
+					cn->action = HC_READING;
+					--available_connections;
+				}
 			break;
 		case 1:
 			switch (c) {
 			default:
-				if (cn->action == HC_WAITING) {
-					cn->action = HC_READING;
-					--available_connections;
-				}
-				gettimeofday(&cn->itv, 0);
-				state = 2;
+				break;
 			case ' ':
 			case '\t':
+				state = 2;
+				break;
 			case '\r':
+				state = 3;
 				break;
 			case '\n':
-				state = 0;
+				state = 8;
 				break;
 			}
 			break;
 		case 2:
 			switch (c) {
+			case 'H':
+				state = 4;
+				break;
+			default:
+				state = 1;
+				break;
 			case ' ':
 			case '\t':
+				break;
 			case '\r':
 				state = 3;
 				break;
@@ -371,15 +386,17 @@ static void read_connection(struct connection *cn)
 			break;
 		case 3:
 			switch (c) {
-			default:
-				cn->assbackwards = 0;
-				state = 4;
-			case ' ':
-			case '\t':
-			case '\r':
-				break;
 			case '\n':
 				state = 8;
+				break;
+			default:
+				state = 1;
+				break;
+			case ' ':
+			case '\t':
+				state = 2;
+				break;
+			case '\r':
 				break;
 			}
 			break;
