@@ -282,7 +282,7 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 		}
 		ul = strtoul(tmpvalue, &cp, 10);
 		if (cp != tmpvalue) {
-			while (*cp != '\n' && (*cp == ' ' || *cp == '\t'))
+			while (*cp != '\n' && (*cp == ' ' || *cp == '\t' || *cp == '\r'))
 				++cp;
 		}
 		if (*cp != '\n' || ul >= UINT_MAX) {
