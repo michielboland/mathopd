@@ -1001,18 +1001,6 @@ int prepare_reply(struct request *r)
 		r->status_line = "500 Internal Server Error";
 		break;
 	}
-	if (r->error) {
-		log_d("* %s (%s)", r->status_line, r->error);
-		if (r->url)
-			log_d("  url:   %s", r->url);
-		if (r->vs && r->vs->fullname)
-			log_d("  host:  %s", r->vs->fullname);
-		if (r->user_agent)
-			log_d("  agent: %s", r->user_agent);
-		if (r->referer)
-			log_d("  ref:   %s", r->referer);
-		log_d("  peer:  %s", r->cn->ip);
-	}
 	if (r->error_file) {
 		if (add_fd(r, r->error_file) != -1)
 			send_message = 0;
