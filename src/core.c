@@ -529,8 +529,7 @@ void httpd_main(void)
 				}
 				pollfds[n].fd = cn->fd;
 				cn->pollno = n++;
-			}
-			else
+			} else
 				cn->pollno = -1;
 			cn = cn->next;
 		}
