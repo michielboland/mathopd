@@ -44,7 +44,7 @@ static char **cgi_argv;
 static int cgi_envc;
 static int cgi_argc;
 
-static int add(const char *name, const char *value)
+static int add(const char *name, const char *value, size_t choplen)
 {
 	char *tmp;
 	size_t namelen, valuelen;
@@ -62,6 +62,8 @@ static int add(const char *name, const char *value)
 	else {
 		namelen = strlen(name);
 		valuelen = strlen(value);
+		if (choplen && choplen < valuelen)
+			valuelen -= choplen;
 		tmp = malloc(namelen + valuelen + 2);
 		if (tmp == 0)
 			return -1;
@@ -75,7 +77,7 @@ static int add(const char *name, const char *value)
 	return 0;
 }
 
-#define ADD(x, y) if (add(x, y) == -1) return -1
+#define ADD(x, y) if (add(x, y, 0) == -1) return -1
 
 static int add_argv(const char *a, const char *b, int decode)
 {
@@ -192,7 +194,11 @@ static int make_cgi_envp(struct request *r)
 		}
 	}
 	ADD("REQUEST_METHOD", r->method_s);
-	ADD("SCRIPT_NAME", r->path);
+	if (r->path_args[0]) {
+		if (add("SCRIPT_NAME", r->path, strlen(r->path_args)) == -1)
+			return -1;
+	} else
+		ADD("SCRIPT_NAME", r->path);
 	ADD("SERVER_NAME", r->servername);
 	sprintf(t, "%s", inet_ntoa(r->cn->sock.sin_addr));
 	ADD("SERVER_ADDR", t);
