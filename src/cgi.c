@@ -414,6 +414,7 @@ int process_cgi(struct request *r)
 		destroy_parameters(cp);
 		return 500;
 	}
+	r->cn->pid = pid;
 	fcntl(p[0], F_SETFL, O_NONBLOCK);
 	init_child(pp, r, p[0]);
 	destroy_parameters(cp);
