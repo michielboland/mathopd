@@ -171,9 +171,6 @@ struct virtual {
 	char *fullname;
 	struct server *parent;
 	struct control *controls;
-	unsigned long nrequests;
-	unsigned long nread;
-	unsigned long nwritten;
 	struct virtual *next;
 	struct vserver *vserver;
 	int anyhost;

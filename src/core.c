@@ -253,8 +253,6 @@ static void write_connection(struct connection *cn)
 			}
 		}
 		cn->nwritten += m;
-		if (cn->r->vs)
-			cn->r->vs->nwritten += m;
 		p->start += m;
 	} while (n == m);
 }

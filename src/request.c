@@ -636,7 +636,6 @@ static int find_vs(struct request *r)
 			return 1;
 		v = d;
 	}
-	v->nrequests++;
 	r->vs = v;
 	if (v->host)
 		r->servername = v->host;

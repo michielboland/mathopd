@@ -716,9 +716,6 @@ static const char *config_vhost(struct virtual **vs, struct vserver *s, const ch
 	v->fullname = 0;
 	v->parent = s->server;
 	v->controls = 0; /* filled in later */
-	v->nrequests = 0;
-	v->nread = 0;
-	v->nwritten = 0;
 	v->vserver = s;
 	v->next = *vs;
 	v->anyhost = anyhost;
