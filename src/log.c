@@ -81,6 +81,7 @@ void log_request(struct request *r)
 	static int l1, l2;
 	struct tm *tp;
 	struct timeval tv;
+	time_t rounded_time;
 
 	if (log_fd == -1)
 		return;
@@ -100,12 +101,14 @@ void log_request(struct request *r)
 		return;
 	}
 	b = log_buffer;
+	gettimeofday(&tv, 0);
+	rounded_time = tv.tv_sec;
 	for (i = 0; i < log_columns; i++) {
 		l = log_buffer_size;
 		s = 0;
 		switch (log_column[i]) {
 		case ML_CTIME:
-			tp = log_gmt ? gmtime(&current_time) : localtime(&current_time);
+			tp = log_gmt ? gmtime(&rounded_time) : localtime(&rounded_time);
 			s = asctime(tp);
 			l = 24;
 			break;
@@ -171,8 +174,11 @@ void log_request(struct request *r)
 			s = r->args;
 			break;
 		case ML_TIME_TAKEN:
-			gettimeofday(&tv, 0);
 			sprintf(tmp, "%.6f", (tv.tv_sec + 1e-6 * tv.tv_usec) - (r->cn->itv.tv_sec + 1e-6 * r->cn->itv.tv_usec));
+			s = tmp;
+			break;
+		case ML_MICRO_TIME:
+			sprintf(tmp, "%.6f", tv.tv_sec + 1e-6 * tv.tv_usec);
 			s = tmp;
 			break;
 		}

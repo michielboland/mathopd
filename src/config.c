@@ -117,6 +117,7 @@ static const char c_log[] =			"Log";
 static const char c_log_format[] =		"LogFormat";
 static const char c_log_gmt[] =			"LogGMT";
 static const char c_method[] =			"Method";
+static const char c_micro_time[] =		"MicroTime";
 static const char c_no_apply[] =		"NoApply";
 static const char c_no_host[] =			"NoHost";
 static const char c_num_connections[] =		"NumConnections";
@@ -441,6 +442,8 @@ static const char *config_log(struct configuration *p, int **colsp, int *numcols
 			ml = ML_QUERY_STRING;
 		else if (!strcasecmp(p->tokbuf, c_time_taken))
 			ml = ML_TIME_TAKEN;
+		else if (!strcasecmp(p->tokbuf, c_micro_time))
+			ml = ML_MICRO_TIME;
 		else
 			return e_keyword;
 		++numcols;
