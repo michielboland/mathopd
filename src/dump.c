@@ -119,9 +119,9 @@ static void fdump(FILE *f)
 	fprintf(f, "Uptime: %d seconds\n", (int) (current_time - startuptime));
 	fprintf(f, "Active connections: %d out of %lu\n", stats.nconnections, tuning.num_connections);
 	fprintf(f, "Max simultaneous connections since last dump: %d\n", stats.maxconnections);
-	fprintf(f, "Number of forked child processes: %lu\n", stats.forked_children);
-	fprintf(f, "Number of exited child processes: %lu\n", stats.exited_children);
-	fprintf(f, "Number of requests executed: %lu\n", stats.nrequests);
+	fprintf(f, "Forked child processes: %lu\n", stats.forked_children);
+	fprintf(f, "Exited child processes: %lu\n", stats.exited_children);
+	fprintf(f, "Requests executed: %lu\n", stats.nrequests);
 	fprintf(f, "\n");
 	getrusage(RUSAGE_SELF, &ru);
 	tvadd(&ru.ru_utime, &ru.ru_stime, &t);
