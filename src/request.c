@@ -987,10 +987,12 @@ int prepare_reply(struct request *r)
 		default:
 			b += SPRINTF3(b, "<B>%s</B>\n",
 				      r->error ? r->error : se_unknown);
-			if (admin)
-				b += SPRINTF3(b, "<P>Please notify %s of "
-					      "this error.\n", admin);
 			break;
+		}
+		if (r->c && r->c->admin) {
+			b += SPRINTF3(b,
+				      "<p>Please notify %s of this error.",
+				      r->c->admin);
 		}
 		sprintf(b, "%s\n", ERROR_FOOTER);
 		r->content_length = strlen(buf);
