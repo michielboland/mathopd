@@ -328,12 +328,11 @@ static void destroy_parameters(struct cgi_parameters *cp)
 				free(cp->cgi_argv[i]);
 		free(cp->cgi_argv);
 	}
-	free(cp);
 }
 
 int process_cgi(struct request *r)
 {
-	struct cgi_parameters *cp;
+	struct cgi_parameters c;
 	uid_t u;
 	gid_t g;
 	int p[2], efd;
@@ -369,25 +368,19 @@ int process_cgi(struct request *r)
 			return 0;
 		}
 	}
-	cp = malloc(sizeof *cp);
-	if (cp == 0) {
+	c.cgi_envc = 0;
+	c.cgi_envp = 0;
+	c.cgi_argc = 0;
+	c.cgi_argv = 0;
+	if (init_cgi_env(r, &c) == -1) {
 		log_d("process_cgi: out of memory");
-		r->status = 500;
-		return 0;
-	}
-	cp->cgi_envc = 0;
-	cp->cgi_envp = 0;
-	cp->cgi_argc = 0;
-	cp->cgi_argv = 0;
-	if (init_cgi_env(r, cp) == -1) {
-		log_d("process_cgi: out of memory");
-		destroy_parameters(cp);
+		destroy_parameters(&c);
 		r->status = 500;
 		return 0;
 	}
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, p) == -1) {
 		lerror("socketpair");
-		destroy_parameters(cp);
+		destroy_parameters(&c);
 		r->status = 500;
 		return 0;
 	}
@@ -398,20 +391,20 @@ int process_cgi(struct request *r)
 		if (efd == -1) {
 			close(p[0]);
 			close(p[1]);
-			destroy_parameters(cp);
+			destroy_parameters(&c);
 			r->status = 500;
 			return 0;
 		}
 		fcntl(efd, F_SETFD, FD_CLOEXEC);
 	} else
 		efd = -1;
-	pid = spawn(cp->cgi_argv[0], (char **) cp->cgi_argv, cp->cgi_envp, p[1], efd, u, g, r->curdir);
+	pid = spawn(c.cgi_argv[0], (char **) c.cgi_argv, c.cgi_envp, p[1], efd, u, g, r->curdir);
 	if (efd != -1)
 		close(efd);
 	close(p[1]);
 	if (pid == -1) {
 		close(p[0]);
-		destroy_parameters(cp);
+		destroy_parameters(&c);
 		r->cn->keepalive = 0;
 		r->status = 503;
 		return 0;
@@ -419,7 +412,7 @@ int process_cgi(struct request *r)
 	r->cn->pid = pid;
 	fcntl(p[0], F_SETFL, O_NONBLOCK);
 	init_child(r->cn, p[0]);
-	destroy_parameters(cp);
+	destroy_parameters(&c);
 	if (debug)
 		log_d("process_cgi: %d", p[0]);
 	return -1;
