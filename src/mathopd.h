@@ -1,18 +1,5 @@
-/*
- * mathopd.h - header file for Mathopd
- *
- * Copyright 1996, 1997, Michiel Boland
- */
-
-/* In der Halle des Bergk"onigs */
-
 #ifndef _mathopd_h
 #define _mathopd_h
-
-/*
- * If you don't want/need any of these thingies, simply undefine
- * them.
- */
 
 #define CGI_MAGIC_TYPE "CGI"
 #define IMAP_MAGIC_TYPE "Imagemap"
@@ -42,7 +29,7 @@
 #define M_NONBLOCK FNDELAY
 #define M_AGAIN EWOULDBLOCK
 
-#else /* a sane system */
+#else
 
 #define M_NONBLOCK O_NONBLOCK
 #define M_AGAIN EAGAIN
@@ -140,12 +127,6 @@ enum {
 	L_AGENT,
 	L_DEBUG
 };
-
-#define streq(x,y) (strcmp(x,y) == 0)
-#define strceq(x,y) (strcasecmp(x,y) == 0)
-#define strneq(x,y,n) (strncmp(x,y,n) == 0)
-
-#define STRING(x) const char x[]
 
 struct pool {
 	char *floor;
@@ -274,7 +255,7 @@ struct connection {
 
 /* main */
 
-extern STRING(server_version);
+extern const char server_version[];
 extern volatile int gotsigterm;
 extern volatile int gotsighup;
 extern volatile int gotsigusr1;

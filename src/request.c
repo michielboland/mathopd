@@ -1,14 +1,6 @@
-/*
- * request.c - parse and process an HTTP request
- *
- * Copyright 1996, 1997, 1998, Michiel Boland
- */
-
-/* Mysterons */
-
 #include "mathopd.h"
 
-extern int cern; /* aargh */
+extern int cern;
 
 #ifdef BROKEN_SPRINTF
 #define SPRINTF2(x,y) (sprintf(x,y), strlen(x))
@@ -20,32 +12,32 @@ extern int cern; /* aargh */
 #define SPRINTF4 sprintf
 #endif
 
-static STRING(br_empty) =		"empty request";
-static STRING(br_bad_method) =		"bad method";
-static STRING(br_bad_url) =		"bad or missing url";
-static STRING(br_bad_protocol) =	"bad protocol";
-static STRING(br_bad_date) =		"bad date";
-static STRING(br_bad_path_name) =	"bad path name";
-static STRING(fb_not_plain) =		"file not plain";
-static STRING(fb_symlink) =		"symlink spotted";
-static STRING(fb_active) =		"actively forbidden";
-static STRING(fb_access) =		"no permission";
-static STRING(fb_post_file) =		"POST to file";
-static STRING(ni_not_implemented) =	"method not implemented";
-static STRING(se_alias) =		"cannot resolve pathname";
-static STRING(se_get_path_info) =	"cannot determine path argument";
-static STRING(se_no_control) =		"out of control";
-static STRING(se_no_mime) =		"no MIME type";
-static STRING(se_no_specialty) =	"unconfigured specialty";
-static STRING(se_no_virtual) =		"no virtual server";
-static STRING(se_open) =		"open failed";
-static STRING(su_open) =		"too many open files";
-static STRING(se_unknown) =		"unknown error (help!)";
-static STRING(ni_version_not_supp) =	"version not supported";
+static const char br_empty[] =			"empty request";
+static const char br_bad_method[] =		"bad method";
+static const char br_bad_url[] =		"bad or missing url";
+static const char br_bad_protocol[] =		"bad protocol";
+static const char br_bad_date[] =		"bad date";
+static const char br_bad_path_name[] =		"bad path name";
+static const char fb_not_plain[] =		"file not plain";
+static const char fb_symlink[] =		"symlink spotted";
+static const char fb_active[] =			"actively forbidden";
+static const char fb_access[] =			"no permission";
+static const char fb_post_file[] =		"POST to file";
+static const char ni_not_implemented[] =	"method not implemented";
+static const char se_alias[] =			"cannot resolve pathname";
+static const char se_get_path_info[] =		"cannot determine path args";
+static const char se_no_control[] =		"out of control";
+static const char se_no_mime[] =		"no MIME type";
+static const char se_no_specialty[] =		"unconfigured specialty";
+static const char se_no_virtual[] =		"no virtual server";
+static const char se_open[] =			"open failed";
+static const char su_open[] =			"too many open files";
+static const char se_unknown[] =		"unknown error (help!)";
+static const char ni_version_not_supp[] =	"version not supported";
 
-static STRING(m_get) =			"GET";
-static STRING(m_head) =			"HEAD";
-static STRING(m_post) =			"POST";
+static const char m_get[] =			"GET";
+static const char m_head[] =			"HEAD";
+static const char m_post[] =			"POST";
 
 static time_t timerfc(char *s)
 {
@@ -276,7 +268,7 @@ static int out3(struct pool *p, const char *a, const char *b, const char *c)
 static int output_headers(struct pool *p, struct request *r)
 {
 	long l;
-	static STRING(crlf) = "\r\n";
+	static const char crlf[] = "\r\n";
 	char t[16];
 
 #define OUT(y, z) if (out3(p, (y), (z), crlf) == -1) return -1
@@ -335,7 +327,7 @@ static char *dirmatch(char *s, char *t)
 	log(L_DEBUG, "dirmatch(\"%s\", \"%s\")", s, t);
 	if ((n = strlen(t)) == 0)
 		return s;
-	return strneq(s, t, n) &&
+	return !strncmp(s, t, n) &&
 		(s[n] == '/' || s[n] == '\0' || s[n-1] == '~') ? s + n : 0;
 }
 
@@ -359,7 +351,7 @@ static int get_mime(struct request *r)
 	while (m) {
 		if (m->ext) {
 			le = strlen(m->ext);
-			if (le > lm && le <= l && strceq(s + l - le, m->ext)) {
+			if (le > lm && le <= l && !strcasecmp(s + l - le, m->ext)) {
 				lm = le;
 				saved_type = m->name;
 				saved_s = m->type == M_SPECIAL;
@@ -510,9 +502,9 @@ static int process_special(struct request *r)
 
 	ct = r->content_type;
 	r->num_content = -1;
-	if (strceq(ct, CGI_MAGIC_TYPE))
+	if (!strcasecmp(ct, CGI_MAGIC_TYPE))
 		return process_cgi(r);
-	if (strceq(ct, IMAP_MAGIC_TYPE))
+	if (!strcasecmp(ct, IMAP_MAGIC_TYPE))
 		return process_imap(r);
 	r->error = se_no_specialty;
 	return 500;
@@ -679,19 +671,19 @@ static int get_method(char *p, struct request *r)
 	if (p == 0)
 		return -1;
 
-	if (streq(p, m_get)) {
+	if (!strcmp(p, m_get)) {
 		r->method = M_GET;
 		r->method_s = m_get;
 		return 0;
 	}
 
 	if (!r->cn->assbackwards) {
-		if (streq(p, m_head)) {
+		if (!strcmp(p, m_head)) {
 			r->method = M_HEAD;
 			r->method_s = m_head;
 			return 0;
 		}
-		if (streq(p, m_post)) {
+		if (!strcmp(p, m_post)) {
 			r->method = M_POST;
 			r->method_s = m_post;
 			return 0;
@@ -763,7 +755,7 @@ static int get_version(char *p, struct request *r)
 
 static int process_headers(struct request *r)
 {
-	static STRING(whitespace) = " \t";
+	static const char whitespace[] = " \t";
 	char *l, *m, *p, *s;
 
 	r->vs = 0;
@@ -841,27 +833,27 @@ static int process_headers(struct request *r)
 				++s;
 			if (*s == '\0')
 				continue;
-			if (strceq(l, "User-agent"))
+			if (!strcasecmp(l, "User-agent"))
 				r->user_agent = s;
-			else if (strceq(l, "Referer"))
+			else if (!strcasecmp(l, "Referer"))
 				r->referer = s;
-			else if (strceq(l, "From"))
+			else if (!strcasecmp(l, "From"))
 				r->from = s;
-			else if (strceq(l, "Authorization"))
+			else if (!strcasecmp(l, "Authorization"))
 				r->authorization = s;
-			else if (strceq(l, "Cookie"))
+			else if (!strcasecmp(l, "Cookie"))
 				r->cookie = s;
-			else if (strceq(l, "Host"))
+			else if (!strcasecmp(l, "Host"))
 				r->host = s;
-			else if (strceq(l, "Connection")) {
+			else if (!strcasecmp(l, "Connection")) {
 				if (r->protocol_minor) {
-					if (strceq(s, "Close"))
+					if (!strcasecmp(s, "Close"))
 						r->cn->keepalive = 0;
-				} else if (strceq(s, "Keep-Alive"))
+				} else if (!strcasecmp(s, "Keep-Alive"))
 					r->cn->keepalive = 1;
 			}
 			else if (r->method == M_GET) {
-				if (strceq(l, "If-modified-since")) {
+				if (!strcasecmp(l, "If-modified-since")) {
 					r->ims = timerfc(s);
 					if (r->ims == (time_t) -1) {
 						r->error = br_bad_date;
@@ -870,9 +862,9 @@ static int process_headers(struct request *r)
 				}
 			}
 			else if (r->method == M_POST) {
-				if (strceq(l, "Content-type"))
+				if (!strcasecmp(l, "Content-type"))
 					r->in_content_type = s;
-				else if (strceq(l, "Content-length"))
+				else if (!strcasecmp(l, "Content-length"))
 					r->in_content_length = s;
 			}
 		}
@@ -1094,7 +1086,7 @@ void construct_url(char *d, char *s, struct virtual *v)
 
 void escape_url(char *url)
 {
-	static STRING(hex) = "0123456789abcdef";
+	static const char hex[] = "0123456789abcdef";
 	char scratch[PATHLEN];
 	char *s;
 	register char c;
