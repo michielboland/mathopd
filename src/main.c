@@ -317,13 +317,10 @@ int fork_request(struct request *r, int (*f)(struct request *))
 				efd = fd;
 			}
 		}
+		fcntl(fd, F_SETFL, 0);
 		dup2(fd, 0);
 		dup2(fd, 1);
 		dup2(efd, 2);
-		fcntl(0, F_SETFL, 0);
-		fcntl(1, F_SETFL, 0);
-		if (efd == fd)
-			fcntl(2, F_SETFL, 0);
 		close(fd);
 		if (efd != fd)
 			close(efd);
