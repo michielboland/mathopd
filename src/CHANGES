@@ -98,3 +98,5 @@ for something better.
 
 The DefaultName: keyword has been removed.
 
+REMOTE_PORT and SERVER_ADDR environment variables are
+available to CGI scripts.
