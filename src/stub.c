@@ -271,7 +271,7 @@ static int stub_reap(void)
 
 	errno_save = errno;
 	while (1) {
-		pid = waitpid(-1, &status, WNOHANG);
+		pid = waitpid(-1, &status, WNOHANG | WUNTRACED);
 		if (pid <= 0)
 			break;
 		if (!WIFEXITED(status) && !WIFSIGNALED(status)) {
