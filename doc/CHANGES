@@ -36,6 +36,8 @@ config.c:
 
 	The "ScriptTimeout" keyword has been added.
 
+	The "PathInfo" keyword has been added.
+
 core.c:
 
 	If connections are active, call poll() with a timeout
@@ -101,6 +103,9 @@ request.c:
 	Return 411 error for POST requests without Content-Length.
 	(Thus for the time being we refuse POST requests with a chunked
 	message body.)
+
+	In get_path_info(), if the first call to stat() fails and
+	path_info_ok is not set, return an error immediately.
 
 stub.c:
 
