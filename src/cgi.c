@@ -169,10 +169,15 @@ static int make_cgi_envp(struct request *r)
 	ADD("HTTP_FROM", r->from);
 	ADD("HTTP_REFERER", r->referer);
 	ADD("HTTP_USER_AGENT", r->user_agent);
-	if (r->path_args[0]) {
-		faketoreal(r->path_args, path_translated, r, 0);
-		ADD("PATH_INFO", r->path_args);
-		ADD("PATH_TRANSLATED", path_translated);
+	if (r->class == CLASS_EXTERNAL) {
+		ADD("PATH_INFO", r->path);
+		ADD("PATH_TRANSLATED", r->path_translated);
+	} else {
+		if (r->path_args[0]) {
+			faketoreal(r->path_args, path_translated, r, 0);
+			ADD("PATH_INFO", r->path_args);
+			ADD("PATH_TRANSLATED", path_translated);
+		}
 	}
 	ADD("QUERY_STRING", r->args);
 	sprintf(t, "%s", inet_ntoa(r->cn->peer.sin_addr));
