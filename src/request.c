@@ -775,21 +775,14 @@ static int process_headers(struct request *r)
 	char *l, *u, *s;
 	time_t i;
 
-	while (1) {
-		l = getline(r->cn->input);
-		if (l == 0)
-			return -1;
-		while (*l == ' ')
-			++l;
-		u = strchr(l, ' ');
-		if (u)
-			break;
-		log_d("%s: ignoring garbage \"%s\"", inet_ntoa(r->cn->peer.sin_addr), l);
-	}
+	l = getline(r->cn->input);
+	if (l == 0)
+		return -1;
+	u = strchr(l, ' ');
+	if (u == 0)
+		return -1;
 	r->method_s = l;
 	*u++ = 0;
-	while (*u == ' ')
-		++u;
 	s = strrchr(u, ' ');
 	if (s == 0) {
 		if (r->cn->assbackwards == 0) {
@@ -798,9 +791,7 @@ static int process_headers(struct request *r)
 		}
 	} else {
 		r->version = s + 1;
-		do
-			*s-- = 0;
-		while (*s == ' ');
+		*s = 0;
 	}
 	r->url = u;
 	s = strchr(u, '?');
