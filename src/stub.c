@@ -356,8 +356,7 @@ static int readfromclient(struct pipe_params *p)
 		bytestoread = p->imax;
 	if (bytestoread == 0) {
 		log_d("readfromclient: bytestoread is zero!");
-		p->error_condition = STUB_ERROR_CLIENT;
-		return -1;
+		return 0;
 	}
 	r = recv(p->cfd, p->ibuf + p->ibp, bytestoread, 0);
 	if (debug)
@@ -372,7 +371,7 @@ static int readfromclient(struct pipe_params *p)
 			p->error_condition = STUB_ERROR_CLIENT;
 			return -1;
 		case EAGAIN:
-			break;
+			return 0;
 		}
 		break;
 	case 0:
@@ -386,7 +385,7 @@ static int readfromclient(struct pipe_params *p)
 		p->imax -= r;
 		break;
 	}
-	return 0;
+	return r == bytestoread;
 }
 
 static int readfromchild(struct pipe_params *p)
@@ -399,8 +398,7 @@ static int readfromchild(struct pipe_params *p)
 		bytestoread = p->pmax;
 	if (bytestoread == 0) {
 		log_d("readfromchild: bytestoread is zero!");
-		p->error_condition = STUB_ERROR_PIPE;
-		return -1;
+		return 0;
 	}
 	r = recv(p->pfd, p->pbuf + p->ipp, bytestoread, 0);
 	if (debug)
@@ -436,21 +434,27 @@ static int readfromchild(struct pipe_params *p)
 		}
 		break;
 	}
-	return 0;
+	return r == bytestoread;
 }
 
 static int writetoclient(struct pipe_params *p)
 {
+	size_t bytestowrite;
 	ssize_t r;
 
-	r = send(p->cfd, p->obuf + p->obp, p->otop - p->obp, 0);
+	bytestowrite = p->otop - p->obp;
+	if (bytestowrite == 0) {
+		log_d("writetoclient: bytestowrite is zero!");
+		return 0;
+	}
+	r = send(p->cfd, p->obuf + p->obp, bytestowrite, 0);
 	if (debug)
-		log_d("writetoclient: fd=%d, obp=%d, otop=%d, r=%d", p->cfd, p->obp, p->otop, r);
+		log_d("writetoclient: fd=%d, obp=%d, bytestowrite=%d, r=%d", p->cfd, p->obp, bytestowrite, r);
 	switch (r) {
 	case -1:
 		switch (errno) {
 		case EAGAIN:
-			break;
+			return 0;
 		default:
 			lerror("writetoclient");
 		case EPIPE:
@@ -467,16 +471,22 @@ static int writetoclient(struct pipe_params *p)
 			p->obp = p->otop = 0;
 		break;
 	}
-	return 0;
+	return r == bytestowrite;
 }
 
 static int writetochild(struct pipe_params *p)
 {
+	size_t bytestowrite;
 	ssize_t r;
 
-	r = send(p->pfd, p->ibuf + p->opp, p->ibp - p->opp, 0);
+	bytestowrite = p->ibp - p->opp;
+	if (bytestowrite == 0) {
+		log_d("writetochild: bytestowrite is zero!");
+		return 0;
+	}
+	r = send(p->pfd, p->ibuf + p->opp, bytestowrite, 0);
 	if (debug)
-		log_d("writetochild: fd=%d, opp=%d, ibp=%d, r=%d", p->pfd, p->opp, p->ibp, r);
+		log_d("writetochild: fd=%d, opp=%d, bytestowrite=%d, r=%d", p->pfd, p->opp, bytestowrite, r);
 	switch (r) {
 	case -1:
 		if (errno == EAGAIN)
@@ -492,7 +502,7 @@ static int writetochild(struct pipe_params *p)
 			p->opp = p->ibp = 0;
 		break;
 	}
-	return 0;
+	return r == bytestowrite;
 }
 
 static int scanlflf(struct pipe_params *p)
