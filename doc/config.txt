@@ -97,7 +97,7 @@ Desc:    If a virtual server has this keyword, it will match on any Host:
          header that is sent by the client. Other virtual servers that have
          an explicit Host name are still checked, so the 'AnyHost' virtual
          server will only be used as a last resort. See also the discussion
-         of wildcard expansion under the `Location' keyword.
+         of wildcard expansion under the 'Location' keyword.
 
 Keyword: Apply
 Where:   Clients
@@ -251,26 +251,26 @@ Default: Off
 Desc:    Normally, the UserFile (see the descriptions of the Realm and
          Userfile keywords) contains passwords in clear-text format. If
          you want to use encrypted passwords (for example, using the
-         `htpasswd' program) you must set the value of EncryptedUserFile
-         to `On' in the control block that contains the UserFile in
+         'htpasswd' program) you must set the value of EncryptedUserFile
+         to 'On' in the control block that contains the UserFile in
          question.
 
 Keyword: Error401File
 Where:   Control
 Type:    String
-Desc:    The contents of this file will be displayed whenever a `401' (not
+Desc:    The contents of this file will be displayed whenever a '401' (not
          authorized) error occurs.
 
 Keyword: Error403File
 Where:   Control
 Type:    String
-         The contents of this file will be displayed whenever a `403'
+         The contents of this file will be displayed whenever a '403'
          (forbidden) error occurs.
 
 Keyword: Error404File
 Where:   Control
 Type:    String
-         The contents of this file will be displayed whenever a `404' (not
+         The contents of this file will be displayed whenever a '404' (not
          found) error occurs.
 
 Keyword: ErrorLog
@@ -332,9 +332,9 @@ Where:   Control
 Type:    Block
 Desc:    Some operating systems require that some environment variables
          have certain values in order for child processes to work correctly.
-         To export these variables to child processes, use the `Export'
+         To export these variables to child processes, use the 'Export'
          keyword. If you want to export certain variables with preset values,
-         use `PutEnv' instead.
+         use 'PutEnv' instead.
          Example:
 
            Control {
@@ -344,9 +344,9 @@ Desc:    Some operating systems require that some environment variables
 Keyword: External
 Where:   Control
 Type:    Block
-Desc:    The `External' keywords defines a set of filename extensions that
+Desc:    The 'External' keywords defines a set of filename extensions that
          get special treatment. (See also: Types, Specials.) If mathopd
-         processes a filename whose extension is match in an `External'
+         processes a filename whose extension is match in an 'External'
          block, it will run an external program with the name of the file
          as its first argument. Before execution, mathopd will change its
          current directory to the directory that contains the file that is
@@ -359,7 +359,7 @@ Desc:    The `External' keywords defines a set of filename extensions that
              }
            }
 
-         This will treat all files that end with `.pl' as CGI scripts,
+         This will treat all files that end with '.pl' as CGI scripts,
          interpreted by /usr/bin/perl.
 
 Keyword: ExtraHeaders
@@ -382,17 +382,17 @@ Keyword: Host
 Where:   Virtual
 Type:    String
 Desc:    A virtual server has zero or more names. To name a virtual server,
-         use the `Host' keyword. More than one `Host' keyword is allowed
+         use the 'Host' keyword. More than one `Host' keyword is allowed
          for each virtual server.
 
 Keyword: IndexNames
 Where:   Control
 Type:    Block
-Desc:    Any request that ends with a slash (`/') is treated as an `index'.
+Desc:    Any request that ends with a slash ('/') is treated as an `index'.
          The terminology is a bit confusing, since no indexes are actually
          being made. What happens is that mathopd will map the request-URI
          to a directory. This directory is then scanned for a set of files
-         called indexes. (For instance `index.html'). As soon as a file is
+         called indexes. (For instance 'index.html'). As soon as a file is
          found, that file will be sent to the client.
          Example:
 
@@ -400,7 +400,7 @@ Desc:    Any request that ends with a slash (`/') is treated as an `index'.
              IndexNames { index.html Default.htm }
            }
 
-         Note that the value of `IndexNames' is carried over into all
+         Note that the value of 'IndexNames' is carried over into all
          subsequent control blocks. That is, if you define IndexNames once
          it is not possible to reset its value later on.
 
@@ -457,8 +457,8 @@ Desc:    The Location keyword is used in combination with the Alias keyword.
          redirected to mirrior1.an.example, the second client to mirror2,
          the third to mirror3, the fourth to mirror1, and so on.
 
-         Wildcard expansion: the wildcard character `*' in Location values
-         is expanded to the current value of the `host' header sent by the
+         Wildcard expansion: the wildcard character '*' in Location values
+         is expanded to the current value of the 'host' header sent by the
          client (after conversion to lower case.) This makes it possible to
          define a very large number of virtual servers in one go.
          Example:
@@ -668,7 +668,7 @@ Type:    String
 Desc:    If this keyword is present in a control block, resources in that
          block are protected using username-password combinations. The
          Realm keyword must be accompanied by a UserFile keyword. The
-         value of the Realm keyword is transmitted to the client in `401'
+         value of the Realm keyword is transmitted to the client in '401'
          error responses. Its value may be displayed by a web browser in
          a login dialog.
 
@@ -744,7 +744,7 @@ Where:   Global
 Type:    Block
 Desc:    The Server keyword sets up a physical server, that is, a TCP
          socket. Some TCP parameters may be tuned (see Address and Port.)
-         Inside a server block one can then declare `virtual' servers,
+         Inside a server block one can then declare 'virtual' servers,
          which is where all action occurs.
 
 Keyword: ServerName
@@ -755,7 +755,7 @@ Keyword: Specials
 Where:   Control
 Type:    Block
 Desc:    Some file extensions can be treated specially if they are
-         put into a `Specials' block. There are four specialties:
+         put into a 'Specials' block. There are four specialties:
 
            CGI
            Imagemap
@@ -764,7 +764,7 @@ Desc:    Some file extensions can be treated specially if they are
 
          If a specialty is defined with a name that is not one of the
          above four, a file that matches that specialty is treated as
-         if it did not exist. (See the `Dummy' example in the description
+         if it did not exist. (See the 'Dummy' example in the description
          of the ExactMatch keyword.)
 
          A very brief description of the four specialties follows.
@@ -807,7 +807,7 @@ Where:   Tuning
 Type:    Integer
 Default: 60
 Desc:    Connections that are idle for too long are aborted by Mathopd.
-         Idle in this case meaning `receiving or transmitting no data.'
+         Idle in this case meaning 'receiving or transmitting no data.'
          It is possible to increase or decrease the timeout by adding
          a Timeout keyword. The unit of the timeout value is seconds.
 
@@ -820,14 +820,14 @@ Desc:    Some items that control general tuning of the server can be
 Keyword: Types
 Where:   Control
 Type:    Block
-Desc:    All served content must be accompanied by a `Content-Type' header
+Desc:    All served content must be accompanied by a 'Content-Type' header
          that indicates the kind of content. Historically, HTTP servers
          have used the extension of a filename to determine its content.
-         For example a file whose name ends with `html' is likely to
-         contain HTML, a file with a name ending with `png' is probably
+         For example a file whose name ends with 'html' is likely to
+         contain HTML, a file with a name ending with 'png' is probably
          a PNG image, and so on. Mathopd follows this behaviour. File
-         extensions are mapped to media types (values of `Content-Type'
-         that web browsers understand) using the `Types' keyword.
+         extensions are mapped to media types (values of 'Content-Type'
+         that web browsers understand) using the 'Types' keyword.
          Example:
 
            Control {
@@ -841,12 +841,12 @@ Desc:    All served content must be accompanied by a `Content-Type' header
 
          As you can see, the media type is followed by a group of
          extensions that will be mapped to that type. The special
-         extension `*' is used to indicate a default: if a filename has
+         extension '*' is used to indicate a default: if a filename has
          an extension that does not occur in any of the Types (or Specials
-         or External), then the type for `*' (if it is defined) is used.
+         or External), then the type for '*' (if it is defined) is used.
 
-         Note that for Mathopd, `extension' really means just `last part'.
-         For example, a file that is called `flubrdhtml' is deemed to
+         Note that for Mathopd, 'extension' really means just `last part'.
+         For example, a file that is called 'flubrdhtml' is deemed to
          be a HTML file even though it does not really have an extension.
          This is a bit of a misfeature, but it does no real harm in
          practice.
@@ -857,7 +857,7 @@ Type:    Integer
 Default: 022
 Desc:    Mathopd will create log files with certain permissions. These
          permissions are determined by what is called in Unix lingo the
-         `umask'. A umask of 022 (the default) will create files that are
+         'umask'. A umask of 022 (the default) will create files that are
          readable by everyone but writeable only by the user that runs the
          server process. More restricted umasks are 026 or even 066.
          (The 0 at the beginning is not optional!)
@@ -908,11 +908,11 @@ Desc:    To allow each user to put up his or her personal pages, use the
            }
 
          In this example, a request for /users/boland/index.html will
-         result in a password lookup for user `boland'. Assume the home
+         result in a password lookup for user 'boland'. Assume the home
          directory for this user is /home/boland. Then the file served will
          be /home/boland/public_html/index.html.
 
-         Note: the `~' character, when used as the last character in
+         Note: the '~' character, when used as the last character in
          an alias is treated specially. For example:
 
            Control {
@@ -924,12 +924,12 @@ Desc:    To allow each user to put up his or her personal pages, use the
          With this setting, /~boland/index.html will be mapped to
          /home/boland/public_html/index.html, like before. This is to
          allow some sort of compatibilty to the often used custom to use
-         `~username' for user pages.
+         '~username' for user pages.
 
 Keyword: UserFile
 Where:   Control
 Type:    String
-Desc:    Control blocks that are `protected' by a Realm keyword need
+Desc:    Control blocks that are 'protected' by a Realm keyword need
          a UserFile keyword as well. The user file contains all username /
          password combinations that are valid for that specific realm.
          The user file should contain lines that look like
