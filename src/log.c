@@ -1,5 +1,5 @@
 /*
- *   Copyright 1999 Michiel Boland.
+ *   Copyright 1999, 2000 Michiel Boland.
  *
  *   Redistribution and use in source and binary forms, with or
  *   without modification, are permitted provided that the following
@@ -97,6 +97,10 @@ void log_request(struct request *r)
 		case ML_URI:
 			if (rok)
 				s = r->url;
+			break;
+		case ML_VERSION:
+			if (rok)
+				s = r->version;
 			break;
 		case ML_STATUS:
 			if (rok) {
