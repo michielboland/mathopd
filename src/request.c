@@ -1004,7 +1004,7 @@ static const char *header_list_next(const char *s, size_t *lp)
 	return s;
 }
 
-static int parse_connection_header(struct request *r, const char *s)
+static void parse_connection_header(struct request *r, const char *s)
 {
 	size_t l;
 
@@ -1018,7 +1018,6 @@ static int parse_connection_header(struct request *r, const char *s)
 			r->cn->keepalive = 0;
 		s += l;
 	}
-	return 0;
 }
 
 static int process_headers(struct request *r)
@@ -1080,14 +1079,9 @@ static int process_headers(struct request *r)
 		else if (!strcasecmp(l, "Host")) {
 			sanitize_host(s);
 			r->host = s;
-		} else if (!strcasecmp(l, "Connection")) {
-			if (parse_connection_header(r, s) == -1) {
-				if (debug)
-					log_d("parse_connection_header failed for \"%s\"", s);
-				r->status = 400;
-				return 0;
-			}
-		} else if (!strcasecmp(l, "If-Modified-Since"))
+		} else if (!strcasecmp(l, "Connection"))
+			parse_connection_header(r, s);
+		else if (!strcasecmp(l, "If-Modified-Since"))
 			r->ims_s = s;
 		else if (!strcasecmp(l, "If-Unmodified-Since"))
 			r->ius_s = s;
