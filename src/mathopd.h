@@ -258,6 +258,7 @@ struct request {
 	size_t in_mblen;
 	char curdir[PATHLEN];
 	int send_continue;
+	int forked;
 };
 
 struct cgi_header {
