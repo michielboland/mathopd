@@ -419,6 +419,13 @@ Keyword: Port
 Where:   Server
 Type:    Integer
 Default: 80
+Desc:    If you want Mathopd to run a server on a different port, rather
+         than the default for http, which is port 80, use a Port declaration.
+         Example:
+
+           Server {
+             Port 8080
+           }
 
 Keyword: PutEnv
 Where:   Control
