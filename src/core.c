@@ -114,13 +114,13 @@ static void nuke_connections(void)
 
 static void accept_connection(struct server *s)
 {
-	struct sockaddr_in sa;
+	struct sockaddr_in sa_remote, sa_local;
 	int lsa, fd;
 	struct connection *cn, *cw;
 
 	do {
-		lsa = sizeof sa;
-		fd = accept(s->fd, (struct sockaddr *) &sa, &lsa);
+		lsa = sizeof sa_remote;
+		fd = accept(s->fd, (struct sockaddr *) &sa_remote, &lsa);
 		if (fd == -1) {
 			if (errno != EAGAIN)
 				lerror("accept");
@@ -129,6 +129,11 @@ static void accept_connection(struct server *s)
 		s->naccepts++;
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		fcntl(fd, F_SETFL, O_NONBLOCK);
+		lsa = sizeof sa_local;
+		if (getsockname(fd, (struct sockaddr *) &sa_local, &lsa) == -1) {
+			lerror("getsockname");
+			break;
+		}
 		cn = connections;
 		cw = 0;
 		while (cn) {
@@ -143,7 +148,7 @@ static void accept_connection(struct server *s)
 			cn = cw;
 		}
 		if (cn == 0) {
-			log_d("connection to %s dropped", inet_ntoa(sa.sin_addr));
+			log_d("connection to %s[%hu] dropped", inet_ntoa(sa_remote.sin_addr), ntohs(sa_remote.sin_port));
 			close(fd);
 		} else {
 			s->nhandled++;
@@ -151,8 +156,8 @@ static void accept_connection(struct server *s)
 			cn->s = s;
 			cn->fd = fd;
 			cn->rfd = -1;
-			cn->peer = sa;
-			strncpy(cn->ip, inet_ntoa(sa.sin_addr), 15);
+			cn->peer = sa_remote;
+			cn->sock = sa_local;
 			cn->t = cn->it = current_time;
 			++nconnections;
 			if (nconnections > maxconnections)
@@ -215,7 +220,7 @@ static void write_connection(struct connection *cn)
 		if (m == -1) {
 			switch (errno) {
 			default:
-				log_d("error sending to %s", cn->ip);
+				log_d("error sending to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
 				lerror("send");
 			case EPIPE:
 				cn->action = HC_CLOSING;
@@ -251,7 +256,7 @@ static void read_connection(struct connection *cn)
 	if (nr == -1) {
 		switch (errno) {
 		default:
-			log_d("error peeking from %s", cn->ip);
+			log_d("error peeking from %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
 			lerror("recv");
 		case ECONNRESET:
 			cn->action = HC_CLOSING;
@@ -370,7 +375,7 @@ static void read_connection(struct connection *cn)
 	nr = recv(fd, p->end, i, 0);
 	if (nr != i) {
 		if (nr == -1) {
-			log_d("error reading from %s", cn->ip);
+			log_d("error reading from %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
 			lerror("recv");
 		} else {
 			cn->nread += nr;
@@ -403,7 +408,7 @@ static void cleanup_connections(void)
 		if (cn->state == HC_ACTIVE) {
 			if (cn->action != HC_CLOSING) {
 				if (current_time - cn->t >= tuning.timeout) {
-					log_d("timeout to %s", cn->ip);
+					log_d("timeout to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
 					cn->action = HC_CLOSING;
 				}
 			}
