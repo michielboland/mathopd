@@ -39,6 +39,7 @@ static const char rcsid[] = "$Id$";
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <stdio.h>
@@ -78,6 +79,7 @@ void log_request(struct request *r)
 	char *b;
 	static int l1, l2;
 	struct tm *tp;
+	struct timeval tv;
 
 	if (log_fd == -1)
 		return;
@@ -158,6 +160,11 @@ void log_request(struct request *r)
 			break;
 		case ML_QUERY_STRING:
 			s = r->args;
+			break;
+		case ML_TIME_TAKEN:
+			gettimeofday(&tv, 0);
+			sprintf(tmp, "%.6f", (tv.tv_sec + 1e-6 * tv.tv_usec) - (r->cn->itv.tv_sec + 1e-6 * r->cn->itv.tv_usec));
+			s = tmp;
 			break;
 		}
 		if (s == 0 || *s == 0) {
