@@ -218,9 +218,9 @@ static void close_servers(void)
 
 	s = servers;
 	while (s) {
-		if (s->fd != -1) {
-			close(s->fd);
-			s->fd = -1;
+		if (s->sock.fd != -1) {
+			close(s->sock.fd);
+			s->sock.fd = -1;
 		}
 		s = s->next;
 	}
@@ -282,7 +282,7 @@ static int accept_connection(struct server *s)
 		if (free_connections.head == 0 && waiting_connections.head == 0)
 			return 0;
 		l = sizeof sa_remote;
-		fd = accept(s->fd, (struct sockaddr *) &sa_remote, &l);
+		fd = accept(s->sock.fd, (struct sockaddr *) &sa_remote, &l);
 		if (fd == -1) {
 			if (errno != EAGAIN) {
 				lerror("accept");
@@ -596,12 +596,12 @@ static int setup_server_pollfds(int n)
 
 	s = servers;
 	while (s) {
-		if (s->fd != -1) {
+		if (s->sock.fd != -1) {
 			pollfds[n].events = POLLIN;
-			pollfds[n].fd = s->fd;
-			s->pollno = n++;
+			pollfds[n].fd = s->sock.fd;
+			s->sock.pollindex = n++;
 		} else
-			s->pollno = -1;
+			s->sock.pollindex = -1;
 		s = s->next;
 	}
 	return n;
@@ -641,8 +641,8 @@ static int run_servers(void)
 
 	s = servers;
 	while (s) {
-		if (s->pollno != -1)
-			if (pollfds[s->pollno].revents & POLLIN)
+		if (s->sock.pollindex != -1)
+			if (pollfds[s->sock.pollindex].revents & POLLIN)
 				if (accept_connection(s) == -1)
 					return -1;
 		s = s->next;

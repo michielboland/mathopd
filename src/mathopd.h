@@ -196,14 +196,19 @@ struct vserver {
 	struct vserver *next;
 };
 
-struct server {
+struct connection_fd {
 	int fd;
+	int pollindex;
+	short events;
+};
+
+struct server {
+	struct connection_fd sock;
 	unsigned long port;
 	struct in_addr addr;
 	struct virtual *children;
 	struct control *controls;
 	struct server *next;
-	int pollno;
 	struct vserver *vservers;
 	unsigned long backlog;
 };
@@ -282,12 +287,6 @@ struct pipe_params {
 	int nocontent;
 	int haslen;
 	size_t pmax;
-};
-
-struct connection_fd {
-	int fd;
-	int pollindex;
-	short events;
 };
 
 struct connection {
