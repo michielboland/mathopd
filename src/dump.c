@@ -39,6 +39,8 @@ static const char rcsid[] = "$Id$";
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <stdio.h>
@@ -133,6 +135,8 @@ static void dump_connections(FILE *f, struct connection *cn, struct connection *
 
 static void fdump(FILE *f, struct request *r)
 {
+	struct rusage ru;
+
 	fprintf(f,
 		"Uptime: %d seconds\n"
 		"Active connections: %d out of %lu\n"
@@ -147,6 +151,10 @@ static void fdump(FILE *f, struct request *r)
 		numchildren,
 		available_connections,
 		nrequests);
+	getrusage(RUSAGE_SELF, &ru);
+	fprintf(f, "CPU time used by this process: %11.2f user %11.2f system\n", ru.ru_utime.tv_sec + 1e-6 * ru.ru_utime.tv_usec, ru.ru_stime.tv_sec + 1e-6 * ru.ru_stime.tv_usec);
+	getrusage(RUSAGE_CHILDREN, &ru);
+	fprintf(f, "                     children: %11.2f user %11.2f system\n\n", ru.ru_utime.tv_sec + 1e-6 * ru.ru_utime.tv_usec, ru.ru_stime.tv_sec + 1e-6 * ru.ru_stime.tv_usec);
 	maxconnections = nconnections;
 	dump_servers(f, servers);
 	dump_connections(f, connections, r->cn);
