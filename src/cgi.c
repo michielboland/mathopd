@@ -245,12 +245,9 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 		if (add("REMOTE_USER", r->user, 0, cp) == -1)
 			return -1;
 	}
-	if (r->class == CLASS_EXTERNAL) {
-		if (add("PATH_INFO", r->path, 0, cp) == -1)
-			return -1;
-		if (add("PATH_TRANSLATED", r->path_translated, 0, cp) == -1)
-			return -1;
-	} else if (r->path_args[0]) {
+	if (add("SCRIPT_FILENAME", r->path_translated, 0, cp) == -1)
+		return -1;
+	if (r->path_args[0]) {
 		faketoreal(r->path_args, path_translated, r, 0, sizeof path_translated);
 		if (add("PATH_INFO", r->path_args, 0, cp) == -1)
 			return -1;
@@ -289,10 +286,7 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 	}
 	if (add("REQUEST_METHOD", r->method_s, 0, cp) == -1)
 		return -1;
-	if (r->path_args[0]) {
-		if (add("SCRIPT_NAME", r->path, strlen(r->path_args), cp) == -1)
-			return -1;
-	} else if (add("SCRIPT_NAME", r->path, 0, cp) == -1)
+	if (add("SCRIPT_NAME", r->path, strlen(r->path_args), cp) == -1)
 		return -1;
 	if (add("SERVER_NAME", r->host, 0, cp) == -1)
 		return -1;
