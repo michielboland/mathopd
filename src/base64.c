@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -38,7 +38,6 @@
 static const char rcsid[] = "$Id$";
 
 #include <string.h>
-#include <stdio.h>
 #ifdef HAVE_CRYPT_H
 #include <crypt.h>
 #endif
@@ -128,10 +127,10 @@ static int pwok(const char *good, const char *guess, int do_crypt)
 	return 0;
 }
 
-static int f_webuserok(const char *authorization, FILE *fp, char *username, int len, int do_crypt)
+static int f_webuserok(const char *authorization, int fd, char *username, int len, int do_crypt)
 {
-	char buf[128], tmp[128], *p, *q;
-	int c, gotcr;
+	char fbuf[4096], buf[128], tmp[128], *p, *q;
+	int fbp, flen, c, gotcr, eof;
 	size_t bp;
 
 	if (strlen(authorization) >= sizeof tmp) {
@@ -154,7 +153,27 @@ static int f_webuserok(const char *authorization, FILE *fp, char *username, int 
 	*q++ = 0;
 	bp = 0;
 	gotcr = 0;
-	while ((c = getc(fp)) != EOF)
+	flen = 0;
+	fbp = 0;
+	eof = 0;
+	while (1) {
+		if (fbp >= flen) {
+			if (eof)
+				return 0;
+			flen = read(fd, fbuf, sizeof fbuf);
+			if (debug)
+				log_d("f_webuserok: %d %d", fd, flen);
+			if (flen == -1) {
+				lerror("read");
+				return 0;
+			}
+			if (flen == 0)
+				return 0;
+			if (flen < sizeof fbuf)
+				eof = 1;
+			fbp = 0;
+		}
+		c = fbuf[fbp++];
 		if (c == '\n') {
 			if (bp < sizeof buf) {
 				buf[bp] = 0;
@@ -177,12 +196,11 @@ static int f_webuserok(const char *authorization, FILE *fp, char *username, int 
 			if (gotcr == 0 && bp < sizeof buf)
 				buf[bp++] = c;
 		}
-	return 0;
+	}
 }
 
 int webuserok(const char *authorization, const char *userfilename, char *username, int len, int do_crypt)
 {
-	FILE *f;
 	int fd;
 	int retval;
 
@@ -191,13 +209,8 @@ int webuserok(const char *authorization, const char *userfilename, char *usernam
 		log_d("cannot open userfile %s", userfilename);
 		return 0;
 	}
-	f = fdopen(fd, "r");
-	if (f == 0) {
-		log_d("webuserok: fdopen failed");
-		close(fd);
-		return 0;
-	}
-	retval = f_webuserok(authorization, f, username, len, do_crypt);
-	fclose(f);
+	fcntl(fd, F_SETFD, FD_CLOEXEC);
+	retval = f_webuserok(authorization, fd, username, len, do_crypt);
+	close(fd);
 	return retval;
 }
