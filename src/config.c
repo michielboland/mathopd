@@ -520,6 +520,7 @@ static const char *config_virtual(struct virtual **vs, struct server *parent)
 
 	ALLOC(v);
 	v->host = 0;
+	v->fullname = 0;
 	v->parent = parent;
 	v->controls = parent->controls;
 	v->nrequests = 0;
