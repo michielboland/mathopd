@@ -68,9 +68,8 @@ struct pipe_params {
 	int pstate;
 	size_t pstart;
 	int state;
-	int ifd;
-	int ofd;
-	int fd;
+	int cfd;
+	int pfd;
 	int timeout;
 	size_t imax;
 };
@@ -268,8 +267,7 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 static int pipe_run(struct pipe_params *p, struct connection *cn)
 {
 	int done;
-	int skip_poll;
-	struct pollfd pollfds[3];
+	struct pollfd pollfds[2];
 	char c;
 	ssize_t r;
 	size_t room;
@@ -279,47 +277,35 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 	size_t bytestoread;
 
 	done = 1;
-	skip_poll = 1;
 	pollfds[0].fd = -1;
 	pollfds[1].fd = -1;
-	pollfds[2].fd = -1;
 	pollfds[0].events = 0;
 	pollfds[1].events = 0;
-	pollfds[2].events = 0;
 	pollfds[0].revents = 0;
 	pollfds[1].revents = 0;
-	pollfds[2].revents = 0;
 	if (p->istate == 1 && p->ibp < p->isize && p->imax) {
 		done = 0;
-		skip_poll = 0;
-		pollfds[0].fd = p->ifd;
+		pollfds[0].fd = p->cfd;
 		pollfds[0].events |= POLLIN;
 	}
 	if (p->otop > p->obp) {
 		done = 0;
-		if (p->ofd == -1)
-			p->obp = p->otop = 0;
-		else {
-			skip_poll = 0;
-			pollfds[1].fd = p->ofd;
-			pollfds[1].events |= POLLOUT;
-		}
+		pollfds[0].fd = p->cfd;
+		pollfds[0].events |= POLLOUT;
 	}
 	if (p->pstate == 1 && p->ipp < p->psize) {
 		done = 0;
-		skip_poll = 0;
-		pollfds[2].fd = p->fd;
-		pollfds[2].events |= POLLIN;
+		pollfds[1].fd = p->pfd;
+		pollfds[1].events |= POLLIN;
 	}
 	if (p->ibp > p->opp) {
 		done = 0;
-		skip_poll = 0;
-		pollfds[2].fd = p->fd;
-		pollfds[2].events |= POLLOUT;
+		pollfds[1].fd = p->pfd;
+		pollfds[1].events |= POLLOUT;
 	}
 	if (done)
 		return 1;
-	n = skip_poll ? 1 : poll(pollfds, 3, p->timeout);
+	n = poll(pollfds, 2, p->timeout);
 	current_time = time(0);
 	if (gotsigchld) {
 		gotsigchld = 0;
@@ -339,17 +325,16 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		bytestoread = p->isize - p->ibp;
 		if (bytestoread > p->imax)
 			bytestoread = p->imax;
-		r = read(p->ifd, p->ibuf + p->ibp, bytestoread);
+		r = read(p->cfd, p->ibuf + p->ibp, bytestoread);
 		switch (r) {
 		case -1:
 			if (errno == EAGAIN)
 				break;
-			p->ofd = -1;
-			lerror("pipe_run: error reading from stdin");
+			lerror("pipe_run: error reading from client");
+			return 1;
 		case 0:
 			log_d("pipe_run: client went away while posting data");
-			p->istate = 2;
-			break;
+			return 1;
 		default:
 			cn->nread += r;
 			p->ibp += r;
@@ -357,28 +342,27 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 			break;
 		}
 	}
-	if (pollfds[1].revents & POLLOUT && p->ofd != -1) {
-		r = write(p->ofd, p->obuf + p->obp, p->otop - p->obp);
+	if (pollfds[0].revents & POLLOUT) {
+		r = write(p->cfd, p->obuf + p->obp, p->otop - p->obp);
 		switch (r) {
 		case -1:
 			if (errno == EAGAIN)
 				break;
-			p->ofd = -1;
-			lerror("pipe_run: error writing to stdout");
-			break;
+			lerror("pipe_run: error writing to client");
+			return 1;
 		default:
 			cn->nwritten += r;
 			p->obp += r;
 			break;
 		}
 	}
-	if (pollfds[2].revents & POLLIN) {
-		r = read(p->fd, p->pbuf + p->ipp, p->psize - p->ipp);
+	if (pollfds[1].revents & POLLIN) {
+		r = read(p->pfd, p->pbuf + p->ipp, p->psize - p->ipp);
 		switch (r) {
 		case -1:
 			if (errno == EAGAIN)
 				break;
-			lerror("pipe_run: error reading from pipe");
+			lerror("pipe_run: error reading from script");
 		case 0:
 			if (p->state == 0) {
 				log_d("pipe_run: premature end of script headers");
@@ -391,30 +375,21 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 			break;
 		}
 	}
-	if (pollfds[2].revents & POLLOUT) {
-		r = write(p->fd, p->ibuf + p->opp, p->ibp - p->opp);
+	if (pollfds[1].revents & POLLOUT) {
+		r = write(p->pfd, p->ibuf + p->opp, p->ibp - p->opp);
 		switch (r) {
 		case -1:
 			if (errno == EAGAIN)
 				break;
-			lerror("pipe_run: error writing to pipe");
+			lerror("pipe_run: error writing to script");
 			return 1;
 		default:
 			p->opp += r;
 			break;
 		}
 	}
-	if (p->opp == p->ibp) {
-		if (p->istate == 2) {
-			if (shutdown(p->fd, 1) == -1) {
-				lerror("pipe_run: error closing pipe");
-				return 1;
-			}
-			p->istate = 0;
-		}
-		if (p->opp)
-			p->opp = p->ibp = 0;
-	}
+	if (p->opp && p->opp == p->ibp)
+		p->opp = p->ibp = 0;
 	if (p->obp && p->obp == p->otop)
 		p->obp = p->otop = 0;
 	if (p->ipp && p->state != 2) {
@@ -463,13 +438,6 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 				p->pstart = p->ipp = 0;
 		}
 	}
-	if (p->otop == 0 && p->pstate == 2) {
-		if (p->ofd != -1 && shutdown(p->ofd, 1) == -1) {
-			lerror("pipe_run: error closing stdout");
-			return 1;
-		}
-		p->pstate = 0;
-	}
 	return 0;
 }
 
@@ -496,9 +464,8 @@ static int pipe_loop(int fd, struct request *r, int timeout)
 	p.pstate = 1;
 	p.pstart = 0;
 	p.state = 0;
-	p.ifd = r->cn->fd;
-	p.ofd = r->cn->fd;
-	p.fd = fd;
+	p.cfd = r->cn->fd;
+	p.pfd = fd;
 	timeout *= 1000;
 	p.timeout = timeout;
 	if (r->method == M_POST) {
