@@ -1146,6 +1146,12 @@ static int process_headers(struct request *r)
 		r->host = r->rhost;
 		sanitize_host(r->host);
 	}
+	if (r->host == 0 && r->protocol_minor == 1) {
+		if (debug)
+			log_d("HTTP/1.1 request without Host");
+		r->status = 400;
+		return 0;
+	}
 	if (r->host && r->host[0] == 0) {
 		if (debug)
 			log_d("empty Host header");
