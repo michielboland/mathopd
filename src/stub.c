@@ -620,8 +620,6 @@ void pipe_run(struct connection *p)
 		close_connection(p);
 		return;
 	}
-	cevents &= POLLIN | POLLOUT;
-	pevents &= POLLIN | POLLOUT;
 	canwritetoclient = cevents & POLLOUT || p->output.end == p->output.floor;
 	canwritetochild = pevents & POLLOUT || p->client_input.end == p->client_input.floor;
 	if (cevents & POLLIN)
