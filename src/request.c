@@ -1158,14 +1158,12 @@ static int process_headers(struct request *r)
 		}
 		u += 2;
 		s = strchr(u, '/');
-		if (s == 0) {
-			if (debug)
-				log_d("absoluteURI \"%s\" should contain an abs_path", r->url);
-			r->status = 400;
-			return 0;
+		if (s == 0)
+			strcpy(r->rhost, u);
+		else {
+			memcpy(r->rhost, u, s - u);
+			r->rhost[s - u] = 0;
 		}
-		memcpy(r->rhost, u, s - u);
-		r->rhost[s - u] = 0;
 		r->host = r->rhost;
 		sanitize_host(r->host);
 	}
@@ -1181,7 +1179,9 @@ static int process_headers(struct request *r)
 		r->status = 400;
 		return 0;
 	}
-	if (unescape_url(s, r->path) == -1) {
+	if (s == 0)
+		strcpy(r->path, "/");
+	else if (unescape_url(s, r->path) == -1) {
 		if (debug)
 			log_d("unescape_url failed for \"%s\"", s);
 		r->status = 400;
