@@ -233,7 +233,7 @@ static int f_process_imap(struct request *r, FILE *fp)
 		log_d("imagemap: %s", status);
 		return 500;
 	}
-	if (url) {
+	if (url || (*default_url && (url = default_url))) {
 		l = snprintf(r->newloc, PATHLEN, "%s", url);
 		if (l >= PATHLEN) {
 			log_d("imagemap: url too large");
