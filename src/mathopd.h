@@ -297,7 +297,14 @@ struct connection_list {
 	struct connection *tail;
 };
 
+struct pipe_params_list {
+	struct pipe_params *head;
+	struct pipe_params *tail;
+};
+
 struct pipe_params {
+	struct pipe_params *next;
+	struct pipe_params *prev;
 	char *ibuf;
 	char *obuf;
 	char *pbuf;
@@ -324,7 +331,6 @@ struct pipe_params {
 	int ppollno;
 	int error_condition;
 	struct connection *cn;
-	struct pipe_params *next;
 	time_t t;
 };
 
@@ -433,7 +439,7 @@ extern void lerror(const char *);
 
 /* stub */
 
-extern struct pipe_params *children;
+extern struct pipe_params *new_pipe_params(void);
 extern int init_children(size_t);
 extern void init_child(struct pipe_params *, struct request *, int);
 extern int setup_child_pollfds(int);
