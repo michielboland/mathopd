@@ -477,9 +477,10 @@ void httpd_main(void)
 	short r;
 	time_t hours;
 	int accepting;
+	time_t last_time;
 
 	accepting = 1;
-	current_time = startuptime = time(0);
+	last_time = current_time = startuptime = time(0);
 	hours = current_time / 3600;
 	log_d("*** %s starting", server_version);
 	while (gotsigterm == 0) {
@@ -548,14 +549,15 @@ void httpd_main(void)
 				break;
 			}
 			rv = poll(pollfds, n, INFTIM);
-		} else {
-			if (n == 0)
-				rv = poll(pollfds, 0, 1000);
-			else
-				rv = poll(pollfds, n, INFTIM);
-			accepting = 1;
-		}
+		} else
+			rv = poll(pollfds, n, 1000);
 		current_time = time(0);
+		if (current_time != last_time) {
+			if (accepting == 0) {
+				accepting = 1;
+			}
+			last_time = current_time;
+		}
 		if (rv == -1) {
 			if (errno != EINTR) {
 				lerror("poll");
