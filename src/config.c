@@ -104,6 +104,7 @@ static const char c_port[] =		"Port";
 static const char c_realm[] =		"Realm";
 static const char c_refresh[] =		"Refresh";
 static const char c_root_directory[] =	"RootDirectory";
+static const char c_script_user[] =	"ScriptUser";
 static const char c_server[] =		"Server";
 static const char c_specials[] =	"Specials";
 static const char c_stayroot[] =	"StayRoot";
@@ -493,6 +494,7 @@ static const char *config_control(struct control **as)
 		a->child_filename = b->child_filename;
 		a->dns = b->dns;
 		a->exports = b->exports;
+		a->script_user = b->script_user;
 	} else {
 		a->index_names = 0;
 		a->accesses = 0;
@@ -510,6 +512,7 @@ static const char *config_control(struct control **as)
 		a->child_filename = 0;
 		a->dns = 1;
 		a->exports = 0;
+		a->script_user = 0;
 	}
 	a->next = *as;
 	*as = a;
@@ -572,6 +575,8 @@ static const char *config_control(struct control **as)
 			t = config_list(&a->exports);
 		else if (!strcasecmp(tokbuf, c_exact_match))
 			t = config_flag(&a->exact_match);
+		else if (!strcasecmp(tokbuf, c_script_user))
+			t = config_string(&a->script_user);
 		else
 			t = e_keyword;
 		if (t)
