@@ -85,7 +85,7 @@ ownership, use
 
   Control {
    AllowedOwners {
-    *
+    World
    }
   }
 
