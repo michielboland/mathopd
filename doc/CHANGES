@@ -1,6 +1,0 @@
-Changelog for Mathopd-1.4
-
-1.4b14 (1 nov 2001)
-The REQUEST_URI variable is now set in CGI scripts.
-The log buffer is allocated in such a way that overflow of log file entries
-should no longer occur.
