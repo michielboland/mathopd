@@ -59,7 +59,7 @@ struct pollfd *pollfds;
 #endif
 
 static const char *err;
-static char *fqdn = "0";
+static char *fqdn;
 static char tokbuf[STRLEN];
 static int line = 1;
 static int num_servers = 0;
@@ -553,7 +553,7 @@ static const char *config_server(struct server **ss)
 	num_servers++;
 	s->port = 0;
 	s->addr.s_addr = htonl(INADDR_ANY);
-	s->name = 0;
+	s->s_name = 0;
 	s->children = 0;
 	s->controls = controls;
 	s->next = *ss;
@@ -566,9 +566,9 @@ static const char *config_server(struct server **ss)
 		if (!strcasecmp(tokbuf, c_port))
 			t = config_int(&s->port);
 		else if (!strcasecmp(tokbuf, c_name))
-			t = config_name(&s->name, &s->addr);
+			t = config_name(&s->s_name, &s->addr);
 		else if (!strcasecmp(tokbuf, c_address))
-			t = config_address(&s->name, &s->addr);
+			t = config_address(&s->s_name, &s->addr);
 		else if (!strcasecmp(tokbuf, c_virtual))
 			t = config_virtual(&s->children, s, 0);
 		else if (!strcasecmp(tokbuf, c_control))
@@ -597,10 +597,10 @@ static const char *fill_servernames(void)
 	while (s) {
 		if (s->port == 0)
 			s->port = DEFAULT_PORT;
-		s->name = fqdn;
+		s->s_name = fqdn;
 		v = s->children;
 		while (v) {
-			name = v->host ? v->host : s->name;
+			name = v->host ? v->host : s->s_name ? s->s_name : "0";
 			if (s->port == DEFAULT_PORT)
 				v->fullname = name;
 			else {

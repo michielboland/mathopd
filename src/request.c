@@ -628,8 +628,8 @@ static int find_vs(struct request *r)
 	v->nrequests++;
 	if (v->host)
 		r->servername = v->host;
-	else if (v->parent->name)
-		r->servername = v->parent->name;
+	else if (v->parent->s_name)
+		r->servername = v->parent->s_name;
 	else
 		r->servername = r->iphost;
 	if (r->host && v->host == 0) {

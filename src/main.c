@@ -39,7 +39,7 @@
 
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.2b19";
+const char server_version[] = "Mathopd/1.2b20";
 
 volatile int gotsigterm;
 volatile int gotsighup;
@@ -91,8 +91,8 @@ static void startup_server(struct server *s)
 	sa.sin_port = htons(s->port);
 
 	if (bind(s->fd, (struct sockaddr *) &sa, sizeof sa) == -1)
-		die("bind", "cannot start up server %s at port %d",
-		    s->name, s->port);
+		die("bind", "cannot start up server at %s port %d",
+		    s->s_name ? s->s_name : "0", s->port);
 
 	if (listen(s->fd, 128) == -1)
 		die("listen", 0);
