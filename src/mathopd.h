@@ -47,9 +47,9 @@
 #define SA_INTERRUPT 0
 #endif
 
-#define DEFAULT_BUF_SIZE 4096
+#define DEFAULT_BUF_SIZE 12288
 #define INPUT_BUF_SIZE 2048
-#define DEFAULT_NUM_CONNECTIONS 24
+#define DEFAULT_NUM_CONNECTIONS 64
 #define DEFAULT_TIMEOUT 60
 #define DEFAULT_PORT 80
 #define DEFAULT_FILEMODE 0666
@@ -230,6 +230,14 @@ struct connection {
 #endif
 };
 
+struct tuning {
+	int buf_size;
+	int input_buf_size;
+	int num_connections;
+	int timeout;
+	int accept_multi;
+};
+
 /* main */
 
 extern const char server_version[];
@@ -248,10 +256,7 @@ extern int fork_request(struct request *, int (*)(struct request *));
 
 /* config */
 
-extern int buf_size;
-extern int input_buf_size;
-extern int num_connections;
-extern int timeout;
+extern struct tuning tuning;
 extern struct simple_list *exports;
 extern char *pid_filename;
 extern char *log_filename;
