@@ -524,17 +524,10 @@ static int process_fd(struct request *r)
 	if (r->method == M_GET) {
 		fd = open(r->path_translated, O_RDONLY);
 		if (fd == -1) {
-			switch (errno) {
-			case EACCES:
-				r->error_file = r->c->error_403_file;
-				return 403;
-			case EMFILE:
-				lerror("open");
-				return 503;
-			default:
-				lerror("open");
-				return 500;
-			}
+			log_d("cannot open %s", r->path_translated);
+			lerror("open");
+			r->error_file = r->c->error_404_file;
+			return 404;
 		}
 		rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
 		r->cn->rfd = fd;
