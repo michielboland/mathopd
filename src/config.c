@@ -1,9 +1,6 @@
 #include "mathopd.h"
 
-int buf_size = DEFAULT_BUF_SIZE;
-int input_buf_size = INPUT_BUF_SIZE;
-int num_connections = DEFAULT_NUM_CONNECTIONS;
-int timeout = DEFAULT_TIMEOUT;
+struct tuning tuning;
 
 char *pid_filename;
 char *log_filename;
@@ -31,6 +28,7 @@ static int line = 1;
 static int num_servers = 0;
 static struct control *controls;
 
+static const char c_accept_multi[] =	"AcceptMulti";
 static const char c_access[] =		"Access";
 static const char c_address[] =		"Address";
 static const char c_admin[] =		"Admin";
@@ -71,6 +69,7 @@ static const char c_server[] =		"Server";
 static const char c_specials[] =	"Specials";
 static const char c_symlinks[] =	"Symlinks";
 static const char c_timeout[] =		"Timeout";
+static const char c_tuning[] =		"Tuning";
 static const char c_types[] =		"Types";
 static const char c_virtual[] =		"Virtual";
 static const char c_umask[] =		"Umask";
@@ -597,6 +596,29 @@ static const char *fill_servernames(void)
 	return 0;
 }
 
+static const char *config_tuning(struct tuning *tp)
+{
+	const char *t = 0;
+
+	GETOPEN();
+	while (NOTCLOSE()) {
+		REQWORD();
+		if (!strcasecmp(tokbuf, c_timeout))
+			t = config_int(&tp->timeout);
+		else if (!strcasecmp(tokbuf, c_buf_size))
+			t = config_int(&tp->buf_size);
+		else if (!strcasecmp(tokbuf, c_num_connections))
+			t = config_int(&tp->num_connections);
+		else if (!strcasecmp(tokbuf, c_accept_multi))
+			t = config_flag(&tp->accept_multi);
+		else
+			t = e_keyword;
+		if (t)
+			return t;
+	}
+	return 0;
+}
+
 static const char *config_main(void)
 {
 	const char *t = 0;
@@ -611,12 +633,6 @@ static const char *config_main(void)
 			t = config_string(&fqdn);
 		else if (!strcasecmp(tokbuf, c_umask))
 			t = config_int(&fcm);
-		else if (!strcasecmp(tokbuf, c_timeout))
-			t = config_int(&timeout);
-		else if (!strcasecmp(tokbuf, c_buf_size))
-			t = config_int(&buf_size);
-		else if (!strcasecmp(tokbuf, c_num_connections))
-			t = config_int(&num_connections);
 		else if (!strcasecmp(tokbuf, c_user))
 			t = config_user(&user_id);
 		else if (!strcasecmp(tokbuf, c_group))
@@ -631,6 +647,8 @@ static const char *config_main(void)
 			t = config_string(&child_filename);
 		else if (!strcasecmp(tokbuf, c_export))
 			t = config_list(&exports);
+		else if (!strcasecmp(tokbuf, c_tuning))
+			t = config_tuning(&tuning);
 		else if (!strcasecmp(tokbuf, c_control))
 			t = config_control(&controls);
 		else if (!strcasecmp(tokbuf, c_server))
@@ -667,6 +685,12 @@ void config(void)
 	int n;
 	struct connection *cn;
 
+	tuning.buf_size = DEFAULT_BUF_SIZE;
+	tuning.input_buf_size = INPUT_BUF_SIZE;
+	tuning.num_connections = DEFAULT_NUM_CONNECTIONS;
+	tuning.timeout = DEFAULT_TIMEOUT;
+	tuning.accept_multi = 1;
+
 	s = config_main();
 
 	if (s)
@@ -688,11 +712,11 @@ void config(void)
 		die(0, e_memory);
 #endif
 
-	for (n = 0; n < num_connections; n++) {
+	for (n = 0; n < tuning.num_connections; n++) {
 		if ((cn = NEW(struct connection)) == 0
 			|| (cn->r = NEW(struct request)) == 0
-			|| (cn->input = new_pool(INPUT_BUF_SIZE)) == 0
-			|| (cn->output = new_pool(buf_size)) == 0)
+			|| (cn->input = new_pool(tuning.input_buf_size)) == 0
+			|| (cn->output = new_pool(tuning.buf_size)) == 0)
 			die(0, e_memory);
 		else {
 			cn->ip[15] = '\0';
