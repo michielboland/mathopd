@@ -72,6 +72,8 @@ int process_redirect(struct request *r)
 		return 500;
 	}
 	*c = 0;
+	if (c > r->newloc && c[-1] == '\r')
+		c[-1] = 0;
 	r->location = r->newloc;
 	return 302;
 }
