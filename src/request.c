@@ -298,8 +298,6 @@ static char *dirmatch(char *s, char *t)
 {
 	size_t n;
 
-	if (debug)
-		log_d("dirmatch(\"%s\", \"%s\")", s, t);
 	n = strlen(t);
 	if (n == 0)
 		return s;
