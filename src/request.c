@@ -54,7 +54,7 @@ static const char m_get[] =			"GET";
 static const char m_head[] =			"HEAD";
 static const char m_post[] =			"POST";
 
-static time_t timerfc(char *s)
+static time_t timerfc(const char *s)
 {
 	static const int daytab[2][12] = {
 		{ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 },
