@@ -141,6 +141,7 @@ struct control {
 	char *alias;
 	int symlinksok;
 	int path_args_ok;
+	int exact_match;
 	struct simple_list *index_names;
 	struct access *accesses;
 	struct mime *mimes;
