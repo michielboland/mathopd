@@ -871,10 +871,8 @@ static int process_headers(struct request *r)
 		r->protocol_minor = 9;
 	} else {
 		s = r->version;
-		if (strncmp(s, "HTTP/1.", 7)) {
-			log_d("%s: unsupported version \"%s\"", inet_ntoa(r->cn->peer.sin_addr), s);
+		if (strncmp(s, "HTTP/1.", 7))
 			return 400;
-		}
 		r->protocol_major = 1;
 		switch (s[7]) {
 		case '0':
