@@ -76,9 +76,9 @@ int process_redirect(struct request *r)
 		r->status = 500;
 		return 0;
 	}
-	*c = 0;
 	if (c > r->newloc && c[-1] == '\r')
-		c[-1] = 0;
+		--c;
+	*c = 0;
 	r->location = r->newloc;
 	r->status = 302;
 	return 0;
