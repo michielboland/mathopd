@@ -475,6 +475,12 @@ static int process_special(struct request *r)
 		return process_cgi(r);
 	if (r->status)
 		return 0;
+	if (r->method == M_POST) {
+		if (debug)
+			log_d("POST to specialty rejected");
+		r->status = 405;
+		return 0;
+	}
 	if (!strcasecmp(ct, IMAP_MAGIC_TYPE))
 		return process_imap(r);
 	if (!strcasecmp(ct, REDIRECT_MAGIC_TYPE))
@@ -1202,7 +1208,6 @@ static int process_headers(struct request *r)
 			log_d("ignoring Content-Length header from client");
 			r->in_content_length = 0;
 		}
-		r->cn->keepalive = 0;
 	}
 	s = r->in_content_length;
 	if (s) {
@@ -1338,6 +1343,11 @@ static int prepare_reply(struct request *r)
 	const char *status_line;
 	char *cl_start, *cl_end;
 
+	if (r->in_mblen || r->in_transfer_encoding) {
+		if (debug)
+			log_d("client sent request-body; turning off keepalive");
+		r->cn->keepalive = 0;
+	}
 	p = &r->cn->output;
 	send_message = r->num_content == -1 && r->method != M_HEAD && r->status != 204 && r->status != 304;
 	status_line = http_code_phrase(r->status);
@@ -1449,8 +1459,6 @@ static int prepare_reply(struct request *r)
 	}
 	sprintf(cl_start, "%*ld", cl_end - cl_start, r->content_length);
 	*cl_end = '\r';
-	if (r->status >= 400 && r->method != M_GET && r->method != M_HEAD)
-		r->cn->keepalive = 0;
 	return 0;
 }
 
