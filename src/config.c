@@ -559,12 +559,12 @@ static const char *config_control(struct control **as)
 			t = config_flag(&a->do_crypt);
 		else if (!strcasecmp(tokbuf, c_child_log))
 			t = config_string(&a->child_filename);
-		else if (!strcasecmp(tokbuf, c_exact_match))
-			t = config_flag(&a->exact_match);
 		else if (!strcasecmp(tokbuf, c_dns))
 			t = config_int(&a->dns);
 		else if (!strcasecmp(tokbuf, c_export))
 			t = config_list(&a->exports);
+		else if (!strcasecmp(tokbuf, c_exact_match))
+			t = config_flag(&a->exact_match);
 		else
 			t = e_keyword;
 		if (t)
@@ -776,7 +776,7 @@ static struct pool *new_pool(size_t s)
 	return p;
 }
 
-static const char *config2(void)
+const char *config(void)
 {
 	const char *s;
 	int n;
@@ -814,13 +814,4 @@ static const char *config2(void)
 		connections = cn;
 	}
 	return 0;
-}
-
-void config(void)
-{
-	const char *s;
-
-	s = config2();
-	if (s)
-		die(0, "%s", s);
 }
