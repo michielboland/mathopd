@@ -39,8 +39,8 @@
 int nconnections;
 int maxconnections;
 time_t current_time;
+int log_file;
 
-static int log_file;
 static int error_file;
 
 static void init_pool(struct pool *p)
