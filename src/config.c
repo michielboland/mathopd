@@ -20,6 +20,7 @@ char *error_filename;
 char *child_filename;
 
 char *admin;
+char *rootdir;
 char *coredir;
 struct connection *connections;
 struct server *servers;
@@ -69,6 +70,7 @@ static STRING(c_off) =			"Off";
 static STRING(c_on) =			"On";
 static STRING(c_pid) =			"PIDFile";
 static STRING(c_port) =			"Port";
+static STRING(c_root_directory) =	"RootDirectory";
 static STRING(c_server) =		"Server";
 static STRING(c_specials) =		"Specials";
 static STRING(c_symlinks) =		"Symlinks";
@@ -568,7 +570,9 @@ static const char *config_main(void)
 
 	while (NOTEOF()) {
 		REQWORD();
-		if (strceq(tokbuf, c_core_directory))
+		if (strceq(tokbuf, c_root_directory))
+			t = config_string(&rootdir);
+		else if (strceq(tokbuf, c_core_directory))
 			t = config_string(&coredir);
 		else if (strceq(tokbuf, c_default_name))
 			t = config_string(&fqdn);
