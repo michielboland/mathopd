@@ -368,9 +368,9 @@ static const char *config_log(FILE *f, int **colsp, int *numcolsp)
 	ml = 0;
 	cols = *colsp;
 	numcols = *numcolsp;
-  	GETOPEN(f);
+	GETOPEN(f);
 	while (NOTCLOSE(f)) {
-	  	REQWORD();
+		REQWORD();
 		if (!strcasecmp(tokbuf, c_ctime))
 			ml = ML_CTIME;
 		else if (!strcasecmp(tokbuf, c_user))
