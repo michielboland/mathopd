@@ -315,7 +315,7 @@ extern int init_pollfds(size_t);
 /* request */
 
 extern int process_request(struct request *);
-extern struct control *faketoreal(char *, char *, struct request *, int);
+extern struct control *faketoreal(char *, char *, struct request *, int, int);
 extern int prepare_reply(struct request *);
 
 /* imap */

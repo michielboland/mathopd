@@ -645,11 +645,38 @@ static int check_realm(struct request *r)
 	return -1;
 }
 
-struct control *faketoreal(char *x, char *y, struct request *r, int update)
+static size_t expand_hostname(char *dest, const char *source, const char *host, int m)
+{
+	int c, l, n;
+
+	if (m <= 0) /* should never happen */
+		return 0;
+	n = m;
+	do {
+		c = *source++;
+		switch (c) {
+		case '*':
+			dest += l = sprintf(dest, "%.*s", n, host);
+			n -= l;
+			break;
+		default:
+			*dest++ = c;
+			--n;
+			break;
+		case 0:
+			*dest = 0;
+			break;
+		}
+	} while (n && c);
+	return m - n;
+}
+
+struct control *faketoreal(char *x, char *y, struct request *r, int update, int maxlen)
 {
 	struct control *c;
 	char *s, *t;
 	struct passwd *p;
+	int l;
 
 	if (r->vs == 0) {
 		log_d("virtualhost not initialized!");
@@ -661,10 +688,13 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 			s = c->exact_match ? exactmatch(x, c->alias) : dirmatch(x, c->alias);
 			if (s && (c->clients == 0 || evaluate_access(r->cn->peer.sin_addr.s_addr, c->clients) == APPLY)) {
 				if (c->user_directory == 0) {
-					strcpy(y, c->locations->name);
-					r->location_length = strlen(y);
+					if (r->host)
+						l = expand_hostname(y, c->locations->name, r->host, maxlen - 1);
+					else
+						l = sprintf(y, "%.*s", maxlen - 1, c->locations->name);
+					r->location_length = l;
 					if (c->locations->name[0] == '/' || !c->path_args_ok)
-						strcat(y, s);
+						sprintf(y + l, "%.*s", maxlen - (l + 1), s);
 					break;
 				}
 				t = strchr(s, '/');
@@ -674,9 +704,16 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 				if (t)
 					*t = '/';
 				if (p && p->pw_dir) {
-					r->location_length = sprintf(y, "%s/%s", p->pw_dir, c->locations->name);
+					l = strlen(p->pw_dir);
+					if (l + 2 > maxlen) {
+						log_d("overflow in faketoreal");
+						return 0;
+					}
+					l = sprintf(y, "%s/%.*s", p->pw_dir, maxlen - (l + 2), c->locations->name); 
+					r->location_length = l;
+					maxlen -= l + 1;
 					if (t && (c->locations->name[0] == '/' || !c->path_args_ok))
-						strcat(y, t);
+						sprintf(y + l, "%.*s", maxlen, t);
 					break;
 				}
 			}
@@ -700,7 +737,7 @@ static int process_path(struct request *r)
 	case 1:
 		return 404;
 	}
-	if ((r->c = faketoreal(r->path, r->path_translated, r, 1)) == 0)
+	if ((r->c = faketoreal(r->path, r->path_translated, r, 1, sizeof r->path_translated)) == 0)
 		return 500;
 	if (r->c->accesses && evaluate_access(r->cn->peer.sin_addr.s_addr, r->c->accesses) == DENY) {
 		r->error_file = r->c->error_403_file;
