@@ -345,13 +345,17 @@ static void write_connection(struct connection *cn)
 	do {
 		n = p->end - p->start;
 		if (n == 0) {
-			p->start = p->end = p->floor;
-			n = fill_connection(cn);
-			if (n <= 0) {
-				if (n == 0 && cn->keepalive)
+			if (cn->left == 0) {
+				if (cn->keepalive)
 					reinit_connection(cn);
 				else
 					close_connection(cn);
+				return;
+			}
+			p->start = p->end = p->floor;
+			n = fill_connection(cn);
+			if (n <= 0) {
+				close_connection(cn);
 				return;
 			}
 		}
