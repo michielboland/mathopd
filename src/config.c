@@ -291,7 +291,6 @@ static const char *gettoken(struct configuration *p)
 			else {
 				newtokbufsize = p->size + TOKEN_LENGTH_INCREMENT;
 				newtokbuf = realloc(p->tokbuf, newtokbufsize);
-				fprintf(stderr, "realloc(%p, %d) = %p\n", p->tokbuf, newtokbufsize, newtokbuf);
 				if (newtokbuf == 0) {
 					state = 0;
 					t = e_memory;
