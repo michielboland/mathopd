@@ -31,9 +31,6 @@ core.c:
 	of one minute, rather than infinity. This should take
 	care of connections that remain stuck after shutdown.
 
-	The reap_children function has been made external. Also,
-	that function now saves the value of errno.
-
 log.c:
 
 	New global function: open_log().
