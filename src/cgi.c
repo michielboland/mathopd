@@ -326,19 +326,6 @@ static int make_cgi_argv(struct request *r, char *b, struct cgi_parameters *cp)
 	return 0;
 }
 
-static int cgi_error(struct request *r, int code)
-{
-	struct pool *p;
-
-	log_d("error executing script %s", r->path_translated);
-	r->status = code;
-	if (prepare_reply(r) != -1) {
-		p = r->cn->output;
-		write(1, p->start, p->end - p->start);
-	}
-	return -1;
-}
-
 static int init_cgi_env(struct request *r, struct cgi_parameters *cp)
 {
 	char *p, *b;
@@ -445,35 +432,35 @@ static int exec_cgi(struct request *r)
 	if (setuid(0) != -1) {
 		if (r->c->script_user) {
 			if (become_user(r->c->script_user) == -1)
-				return cgi_error(r, 404);
+				return -1;
 		} else if (r->c->run_scripts_as_owner) {
 			if (set_uids(r->finfo.st_uid, r->finfo.st_gid) == -1)
-				return cgi_error(r, 404);
+				return -1;
 		}
 		if (geteuid() == u) {
 			log_d("cannot run scripts withouth changing identity");
-			return cgi_error(r, 404);
+			return -1;
 		}
 	}
 	if (getuid() == 0 || geteuid() == 0) {
 		log_d("cannot run scripts as the super-user");
-		return cgi_error(r, 500);
+		return -1;
 	}
 	cp = malloc(sizeof *cp);
 	if (cp == 0)
-		return cgi_error(r, 500);
+		return -1;
 	cp->cgi_envc = 0;
 	cp->cgi_envp = 0;
 	cp->cgi_argc = 0;
 	cp->cgi_argv = 0;
 	if (init_cgi_env(r, cp) == -1) {
 		destroy_parameters(cp);
-		return cgi_error(r, 500);
+		return -1;
 	}
 	execve(cp->cgi_argv[0], (char **) cp->cgi_argv, cp->cgi_envp);
 	lerror("execve");
 	destroy_parameters(cp);
-	return cgi_error(r, 404);
+	return -1;
 }
 
 int process_cgi(struct request *r)
