@@ -263,6 +263,7 @@ static int output_headers(struct pool *p, struct request *r)
 {
 	long cl;
 	char tmp_outbuf[2048], gbuf[40], *b;
+	struct simple_list *h;
 
 	if (r->cn->assbackwards)
 		return 0;
@@ -292,6 +293,9 @@ static int output_headers(struct pool *p, struct request *r)
 			b += sprintf(b, "Connection: Keep-Alive\r\n");
 	} else if (r->protocol_minor)
 		b += sprintf(b, "Connection: Close\r\n");
+	if (r->c)
+		for (h = r->c->extra_headers; h; h = h->next)
+			b += sprintf(b, "%s\r\n", h->name);
 	b += sprintf(b, "\r\n");
 	return putstring(p, tmp_outbuf);
 }
