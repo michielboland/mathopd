@@ -123,34 +123,28 @@ static void startup_server(struct server *s)
 		die("listen", 0);
 }
 
-static void sigterm(int sig)
+static void sighandler(int sig)
 {
-	gotsigterm = 1;
-}
-
-static void sighup(int sig)
-{
-	gotsighup = 1;
-}
-
-static void sigusr1(int sig)
-{
-	gotsigusr1 = 1;
-}
-
-static void sigusr2(int sig)
-{
-	gotsigusr2 = 1;
-}
-
-static void sigchld(int sig)
-{
-	gotsigchld = 1;
-}
-
-static void sigquit(int sig)
-{
-	gotsigquit = 1;
+	switch (sig) {
+	case SIGTERM:
+		gotsigterm = 1;
+		break;
+	case SIGHUP:
+		gotsighup = 1;
+		break;
+	case SIGUSR1:
+		gotsigusr1 = 1;
+		break;
+	case SIGUSR2:
+		gotsigusr2 = 1;
+		break;
+	case SIGCHLD:
+		gotsigchld = 1;
+		break;
+	case SIGQUIT:
+		gotsigquit = 1;
+		break;
+	}
 }
 
 int main(int argc, char *argv[])
@@ -268,13 +262,13 @@ int main(int argc, char *argv[])
 		if (fork())
 			_exit(0);
 	}
-	mysignal(SIGCHLD, sigchld);
-	mysignal(SIGHUP, sighup);
-	mysignal(SIGTERM, sigterm);
-	mysignal(SIGINT, sigterm);
-	mysignal(SIGQUIT, sigquit);
-	mysignal(SIGUSR1, sigusr1);
-	mysignal(SIGUSR2, sigusr2);
+	mysignal(SIGCHLD, sighandler);
+	mysignal(SIGHUP, sighandler);
+	mysignal(SIGTERM, sighandler);
+	mysignal(SIGINT, sighandler);
+	mysignal(SIGQUIT, sighandler);
+	mysignal(SIGUSR1, sighandler);
+	mysignal(SIGUSR2, sighandler);
 	mysignal(SIGPIPE, SIG_IGN);
 	my_pid = getpid();
 	if (pid_fd != -1) {
