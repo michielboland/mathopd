@@ -45,3 +45,12 @@ Send a Refresh: header only if the status is 200.
 Added MaxAge Control block keyword. If set, mathopd
 sends a Cache-Control: max-age header with the set value.
 
+The configuration file can now be specified on the
+command line rather than fed through standard input.
+
+PATH_TRANSLATED is no longer set in CGI programs,
+as I don't understand its use. I would be very
+curious if any programs are broken by this.
+
+Standard input, output and error are not closed
+if mathopd is started with the -n flag.
