@@ -48,10 +48,6 @@ static const char rcsid[] = "$Id$";
 #include <string.h>
 #include "mathopd.h"
 
-#ifndef TOKEN_LENGTH_INCREMENT
-#define TOKEN_LENGTH_INCREMENT 32
-#endif
-
 struct tuning tuning;
 char *pid_filename;
 char *log_filename;
@@ -282,7 +278,7 @@ static const char *gettoken(struct configuration *p)
 			if (i + 1 < p->size)
 				p->tokbuf[i++] = c;
 			else {
-				newtokbufsize = p->size + TOKEN_LENGTH_INCREMENT;
+				newtokbufsize = 2 * p->size;
 				newtokbuf = realloc(p->tokbuf, newtokbufsize);
 				if (newtokbuf == 0) {
 					state = 0;
@@ -968,7 +964,7 @@ const char *config(const char *config_filename)
 	const char *s;
 	struct configuration c;
 
-	c.size = TOKEN_LENGTH_INCREMENT;
+	c.size = 64;
 	c.tokbuf = malloc(c.size);
 	if (c.tokbuf == 0)
 		return e_memory;
