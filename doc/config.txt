@@ -93,6 +93,10 @@ Desc:    Normally, Mathopd will not serve any file if any part of its
 
 Keyword: AnyHost
 Where:   Virtual
+Desc:    If a virtual server has this keyword, it will match on any Host:
+         header that is sent by the client. Other virtual servers that have
+         an explicit Host name are still checked, so the 'AnyHost' virtual
+         server will only be used as a last resort.
 
 Keyword: Apply
 Where:   Clients
@@ -101,6 +105,11 @@ Type:    Network
 Keyword: BufSize
 Where:   Tuning
 Type:    Integer
+Desc:    The server uses two buffers to store incoming and outgoing data.
+         The size of the outgoing buffer is determined by the value of the
+         BufSize keyword. The default value is 12288 (12Kbytes.)
+         Larger buffers can lead to less system calls, but also increase the
+         amount of memory used by the server process.
 
 Keyword: BytesRead
 Where:   LogFormat
@@ -111,6 +120,10 @@ Where:   LogFormat
 Keyword: ChildLog
 Where:   Control
 Type:    String
+Desc:    If a child process, such as a CGI script, writes a message to its
+         standard error file descriptor (fd 2) it will end up in the file 
+         designated by the ChildLog keyword. If no ChildLog is specified,
+         error output is mixed with any other output from scripts.
 
 Keyword: Clients
 Where:   Control
@@ -188,6 +201,46 @@ Default: 2048
 Keyword: Location
 Where:   Control
 Type:    String
+Desc:    The Location keyword is used in combination with the Alias keyword.
+         There are two types of locations: physical locations and 'redirects'.
+         A physicial location is anything that starts with a slash ('/'),
+         a redirect is anything else.
+         When mathopd processes a request, the Alias that matches the
+         Request-URI sent by the client is replaced with its corresponding
+         location. For example, in the following situation
+
+           Control {
+             Alias /doc
+             Location /usr/share/doc/handbook
+           }
+
+         when a client requests a URI '/doc/x11.html', the server will
+         send the contents of /usr/share/doc/handbook/x11.html.
+         When the location is a redirect, the server will send a HTTP
+         '302' status response, which should cause the client to redirect
+         to the desired location. Example:
+
+           Control {
+             Alias /secure
+             Location https://an.example
+           }
+
+         In this example, when a client request a URI '/secure/test.html',
+         the server will redirect the client to 'https://an.example/text.html'.
+
+         More than one Location keywords can be used with one alias. Mathopd
+         will rotate the locations on a round-robin bases. Example:
+
+           Control {
+             Alias /download
+             Location http://mirror1.an.example/download
+             Location http://mirror2.an.example/download
+             Location http://mirror3.an.example/download
+           }
+
+         The first client that request something under /download will be
+         redirected to mirrior1.an.example, the second client to mirror2,
+         the third to mirror3, the fourth to mirror1, and so on.
 
 Keyword: Log
 Where:   Global
