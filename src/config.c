@@ -524,8 +524,7 @@ static const char *config_control(struct control **as)
 	return 0;
 }
 
-static const char *config_virtual(struct virtual **vs, struct server *parent,
-				  int trivial)
+static const char *config_virtual(struct virtual **vs, struct server *parent, int trivial)
 {
 	const char *t = 0;
 	struct virtual *v;
