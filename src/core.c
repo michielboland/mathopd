@@ -110,15 +110,11 @@ void set_connection_state(struct connection *c, enum connection_state state)
 	enum connection_state oldstate;
 	struct connection_list *o, *n;
 
-	if (debug)
-		log_d("set_connection_state: %d %d", c - connection_array, state);
 	oldstate = c->connection_state;
-	if (state == oldstate) {
-		log_d("set_connection_state: state == oldstate (%d)", state);
+	if (state == oldstate)
 		return;
-	}
 	switch (oldstate) {
-	case HC_UNATTACHED:
+	default:
 		o = 0;
 		break;
 	case HC_FREE:
@@ -136,12 +132,9 @@ void set_connection_state(struct connection *c, enum connection_state state)
 	case HC_FORKED:
 		o = &forked_connections;
 		break;
-	default:
-		log_d("set_connection_state: unknown state: %d", state);
-		abort();
 	}
 	switch (state) {
-	case HC_UNATTACHED:
+	default:
 		n = 0;
 		break;
 	case HC_FREE:
@@ -159,9 +152,6 @@ void set_connection_state(struct connection *c, enum connection_state state)
 	case HC_FORKED:
 		n = &forked_connections;
 		break;
-	default:
-		log_d("set_connection_state: unknown state: %d", state);
-		abort();
 	}
 	if (o)
 		c_unlink(c, o);
