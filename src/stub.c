@@ -606,7 +606,6 @@ int setup_child_pollfds(int n)
 
 static void close_child(struct pipe_params *p, int nextaction)
 {
-	log_d("close_child");
 	close(p->pfd);
 	p->cn->state = HC_ACTIVE;
 	p->cn->action = nextaction;

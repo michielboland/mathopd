@@ -89,8 +89,6 @@ static void init_connection(struct connection *cn)
 
 static void reinit_connection(struct connection *cn)
 {
-	if (debug)
-		log_d("reinit_connection(%p)", cn);
 	log_request(cn->r);
 	cn->logged = 1;
 	if (cn->rfd != -1) {
@@ -103,8 +101,6 @@ static void reinit_connection(struct connection *cn)
 
 static void close_connection(struct connection *cn)
 {
-	if (debug)
-		log_d("close_connection(%p)", cn);
 	if (cn->nread || cn->nwritten || cn->logged == 0)
 		log_request(cn->r);
 	--nconnections;
@@ -522,12 +518,9 @@ static void cleanup_connections(void)
 	cn = connections;
 	while (cn) {
 		if (cn->state == HC_ACTIVE) {
-			if (cn->action == HC_REINIT) {
-				if (debug)
-					log_d("reinitializing connection to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
+			if (cn->action == HC_REINIT)
 				reinit_connection(cn);
-			}
-			if (cn->action == HC_CLOSING)
+			else if (cn->action == HC_CLOSING)
 				close_connection(cn);
 			else if (current_time >= cn->t + (time_t) tuning.timeout) {
 				if (debug)
