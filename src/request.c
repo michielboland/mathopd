@@ -988,7 +988,7 @@ int prepare_reply(struct request *r)
 			log(L_WARNING, "  agent: %s", r->user_agent);
 		if (r->referer)
 			log(L_WARNING, "  ref:   %s", r->referer);
-		log(L_WARNING, "  peer:  %s\n", r->cn->ip);
+		log(L_WARNING, "  peer:  %s", r->cn->ip);
 	}
 	if (r->error_file) {
 		if (add_fd(r, r->error_file) != -1)
