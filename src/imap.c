@@ -114,7 +114,7 @@ static int f_process_imap(struct request *r, FILE *fp)
 	char input[STRLEN], default_url[STRLEN];
 	point testpoint, pointarray[MAXVERTS];
 	long dist, mindist;
-	int k, line, sawpoint, text;
+	int k, l, line, sawpoint, text;
 	char *t, *u, *v, *w, *url;
 	const char *status;
 	static const char comma[] = ", ()\t\r\n";
@@ -232,7 +232,11 @@ static int f_process_imap(struct request *r, FILE *fp)
 		return 500;
 	}
 	if (url) {
-		escape_url(url, r->newloc);
+		l = snprintf(r->newloc, PATHLEN, "%s", url);
+		if (l >= PATHLEN) {
+			log_d("imagemap: url too large");
+			return 500;
+		}
 		r->location = r->newloc;
 		return 302;
 	}
