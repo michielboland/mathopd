@@ -9,7 +9,7 @@ SBINDIR=$(PREFIX)/sbin
 
 OBJS=	base64.o cgi.o config.o core.o dummy.o dump.o imap.o log.o main.o \
 	redirect.o request.o util.o
-DEPENDS=mathopd.h Makefile
+DEPENDS=mathopd.h $(MAKEFILE)
 
 all: $(BIN)
 install: $(BIN)
