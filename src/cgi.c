@@ -345,8 +345,6 @@ int process_cgi(struct request *r)
 	if (s == 0)
 		return 500;
 	sprintf(curdir, "%.*s", s - r->path_translated, r->path_translated);
-	if (r->cn->assbackwards)
-		return 500;
 	pp = children;
 	while (pp) {
 		if (pp->cn == 0)
