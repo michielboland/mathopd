@@ -44,7 +44,11 @@ static const char rcsid[] = "$Id$";
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
+#ifndef POLL_EMULATION
 #include <poll.h>
+#else
+#include "poll-emul.h"
+#endif
 #include <unistd.h>
 #include <limits.h>
 #include <stdio.h>
