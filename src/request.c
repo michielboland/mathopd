@@ -17,7 +17,7 @@ static const char se_get_path_info[] =		"cannot determine path args";
 static const char se_no_control[] =		"out of control";
 static const char se_no_mime[] =		"no MIME type";
 static const char se_no_specialty[] =		"unconfigured specialty";
-static const char se_no_virtual[] =		"no virtual server";
+static const char se_no_virtual[] =		"virtual server does not exist";
 static const char se_open[] =			"open failed";
 static const char su_open[] =			"too many open files";
 static const char se_unknown[] =		"unknown error (help!)";
@@ -573,14 +573,14 @@ static int find_vs(struct request *r)
 			break;
 		v = v->next;
 	}
-	if (v == 0 && gv)
+	if (v == 0) {
+		if (r->host || gv == 0)
+			return 1;
 		v = gv;
-	if (v) {
-		r->vs = v;
-		v->nrequests++;
-		return 0;
 	}
-	return 1;
+	r->vs = v;
+	v->nrequests++;
+	return 0;
 }
 
 static int check_realm(struct request *r)
