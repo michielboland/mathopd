@@ -777,13 +777,12 @@ Keyword: ScriptBufSize
 Where:   Tuning
 Type:    Integer
 Default: 4096
-Desc:    The server uses two buffers for CGI scripts. The size of these
-         is determined by the value of ScriptBufSize. Note that the
-         value of ScriptBufSize must be equal to or greather than the
-         InputBufSize; if this is not the case, Mathopd will increase
-         the value of ScriptBufSize itself. It is recommended that
-         ScriptBufSize be at least sixteen bytes less than BufSize, to
-         leave room in the output buffer for 'chunk' delimiters.
+Desc:    The server uses two buffers for CGI scripts: one for data that
+         is passed to a script, and another for data arriving from a script.
+         It is recommended that ScriptBufSize be equal to or greater than
+         InputBufSize. Also the ScriptBufSize should be at least sixteen
+         bytes less than BufSize, to leave room in the output buffer for
+         'chunk' delimiters.
 
 Keyword: ScriptTimeout
 Where:   Tuning
