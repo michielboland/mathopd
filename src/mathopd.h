@@ -182,6 +182,7 @@ struct control {
 	int dns;
 	struct simple_list *exports;
 	char *script_user;
+	int run_scripts_as_owner;
 };
 
 struct virtual {
