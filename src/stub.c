@@ -55,7 +55,6 @@ static const char rcsid[] = "$Id$";
 #include "mathopd.h"
 
 #define PLBUFSIZE 4080
-#define STUB_NHEADERS 100
 
 struct cgi_header {
 	const char *name;
@@ -64,6 +63,8 @@ struct cgi_header {
 	size_t len;
 };
 
+static struct cgi_header *cgi_headers;
+
 struct pipe_params *children;
 
 int init_children(size_t n)
@@ -71,6 +72,11 @@ int init_children(size_t n)
 	size_t i;
 	struct pipe_params *p;
 
+	if (tuning.num_headers) {
+		cgi_headers = malloc(tuning.num_headers * sizeof *cgi_headers);
+		if (cgi_headers == 0)
+			return -1;
+	}
 	for (i = 0; i < n; i++){
 		if ((p = malloc(sizeof *p)) == 0)
 			return -1;
@@ -99,7 +105,6 @@ static int no_room(void)
 static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 {
 	int addheader, c, s, l;
-	struct cgi_header headers[STUB_NHEADERS];
 	size_t i, nheaders, status, location, length;
 	const char *p, *tmpname, *tmpvalue;
 	int havestatus, havelocation, firstline, havelength;
@@ -219,14 +224,14 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 			if (addheader == 0)
 				log_d("convert_cgi_headers: disallowing header \"%.*s\"", len, tmpname);
 			else {
-				if (nheaders == STUB_NHEADERS) {
+				if (nheaders >= tuning.num_headers) {
 					log_d("convert_cgi_headers: too many header lines");
 					return -1;
 				}
-				headers[nheaders].name = tmpname;
-				headers[nheaders].value = tmpvalue;
-				headers[nheaders].namelen = tmpnamelen;
-				headers[nheaders++].len = len;
+				cgi_headers[nheaders].name = tmpname;
+				cgi_headers[nheaders].value = tmpvalue;
+				cgi_headers[nheaders].namelen = tmpnamelen;
+				cgi_headers[nheaders++].len = len;
 				addheader = 0;
 			}
 		}
@@ -249,9 +254,9 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 		memcpy(pp->obuf + len, "HTTP/1.1 200 OK\r\n", 17);
 		len += 17;
 	} else {
-		s = atoi(headers[status].value);
+		s = atoi(cgi_headers[status].value);
 		if (s < 200 || s > 599) {
-			log_d("convert_cgi_headers: illegal header line \"%.*s\"", headers[status].len, headers[status].name);
+			log_d("convert_cgi_headers: illegal header line \"%.*s\"", cgi_headers[status].len, cgi_headers[status].name);
 			return -1;
 		}
 		if (s == 204 || s == 304) {
@@ -262,20 +267,20 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 			pp->nocontent = 1;
 			pp->chunkit = 0;
 		}
-		tmpvaluelen = headers[status].len - (headers[status].value - headers[status].name);
+		tmpvaluelen = cgi_headers[status].len - (cgi_headers[status].value - cgi_headers[status].name);
 		if (len + tmpvaluelen + 11 > pp->osize)
 			return no_room();
 		memcpy(pp->obuf + len, "HTTP/1.1 ", 9);
 		len += 9;
-		memcpy(pp->obuf + len, headers[status].value, tmpvaluelen);
+		memcpy(pp->obuf + len, cgi_headers[status].value, tmpvaluelen);
 		len += tmpvaluelen;
 		pp->obuf[len++] = '\r';
 		pp->obuf[len++] = '\n';
 	}
 	if (havelength) {
-		tmpvalue = headers[length].value;
+		tmpvalue = cgi_headers[length].value;
 		if (*tmpvalue == '-') {
-			log_d("convert_cgi_headers: illegal content-length header \"%.*s\"", headers[length].len, headers[length].name);
+			log_d("convert_cgi_headers: illegal content-length header \"%.*s\"", cgi_headers[length].len, cgi_headers[length].name);
 			return -1;
 		}
 		ul = strtoul(tmpvalue, &cp, 10);
@@ -284,7 +289,7 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 				++cp;
 		}
 		if (*cp != '\n' || ul >= UINT_MAX) {
-			log_d("convert_cgi_headers: illegal content-length header \"%.*s\"", headers[length].len, headers[length].name);
+			log_d("convert_cgi_headers: illegal content-length header \"%.*s\"", cgi_headers[length].len, cgi_headers[length].name);
 			return -1;
 		}
 		pp->chunkit = 0;
@@ -311,10 +316,10 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 	}
 	for (i = 0; i < nheaders; i++) {
 		if (havestatus == 0 || i != status) {
-			if (len + headers[i].len + 2 > pp->osize)
+			if (len + cgi_headers[i].len + 2 > pp->osize)
 				return no_room();
-			memcpy(pp->obuf + len, headers[i].name, headers[i].len);
-			len += headers[i].len;
+			memcpy(pp->obuf + len, cgi_headers[i].name, cgi_headers[i].len);
+			len += cgi_headers[i].len;
 			pp->obuf[len++] = '\r';
 			pp->obuf[len++] = '\n';
 		}
