@@ -420,7 +420,6 @@ static int append_indexes(struct request *r)
 {
 	char *p, *q;
 	struct simple_list *i;
-	int rv;
 
 	p = r->path_translated;
 	q = p + strlen(p);
@@ -428,8 +427,7 @@ static int append_indexes(struct request *r)
 	i = r->c->index_names;
 	while (i) {
 		strcpy(q, i->name);
-		rv = stat(p, &r->finfo);
-		if (rv != -1)
+		if (stat(p, &r->finfo) != -1)
 			break;
 		i = i->next;
 	}
