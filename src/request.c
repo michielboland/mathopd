@@ -2,16 +2,6 @@
 
 extern int cern;
 
-#ifdef BROKEN_SPRINTF
-#define SPRINTF2(x,y) (sprintf(x,y), strlen(x))
-#define SPRINTF3(x,y,z) (sprintf(x,y,z), strlen(x))
-#define SPRINTF4(x,y,z,w) (sprintf(x,y,z,w), strlen(x))
-#else
-#define SPRINTF2 sprintf
-#define SPRINTF3 sprintf
-#define SPRINTF4 sprintf
-#endif
-
 static const char br_empty[] =			"empty request";
 static const char br_bad_method[] =		"bad method";
 static const char br_bad_url[] =		"bad or missing url";
@@ -231,93 +221,73 @@ static char *getline(struct pool *p)
 	return 0;
 }
 
-static int putstrings(struct pool *p, int n, ...)
+static int putstring(struct pool *p, char *s)
 {
-	int bl, sl;
-	char *s;
-	va_list ap;
+	int l;
 
-	va_start(ap, n);
-	bl = p->ceiling - p->end;
-	while (--n >= 0) {
-		s = va_arg(ap, char *);
-		if (s) {
-			sl = strlen(s);
-			if (sl > bl) {
-				log(L_ERROR, "output buffer overflow");
-				break;
-			}
-			memcpy(p->end, s, sl);
-			p->end += sl;
-			bl -= sl;
-		}
-		else {
-			log(L_ERROR, "null pointer in putstrings");
-			break;
-		}
+	l = strlen(s);
+	if (l > p->ceiling - p->end) {
+		log(L_ERROR, "no more room to put string!?!?");
+		return -1;
 	}
-	va_end(ap);
-	return n >= 0 ? -1 : 0;
-}
-
-static int out3(struct pool *p, const char *a, const char *b, const char *c)
-{
-	return b ? putstrings(p, 3, a, b, c) : 0;
+	memcpy(p->end, s, l);
+	p->end += l;
+	return 0;
 }
 
 static int output_headers(struct pool *p, struct request *r)
 {
-	long l;
-	static const char crlf[] = "\r\n";
-	char t[16];
+	long cl;
+	char tmp_outbuf[2048], *b;
 
-#define OUT(y, z) if (out3(p, (y), (z), crlf) == -1) return -1
+	log(L_DEBUG, "output_headers: started");
 
-	if (r->cn->assbackwards)
+	if (r->cn->assbackwards) {
+		log(L_WARNING, "old-style connection from %s", r->cn->ip);
 		return 0;
+	}
 
-	sprintf(t, "HTTP/%d.%d ",
+	b = tmp_outbuf;
+
+	b += sprintf(b, "HTTP/%d.%d %s\r\n"
+		"Server: %s\r\n"
+		"Date: %s\r\n",
 		r->protocol_major,
-		r->protocol_minor);
+		r->protocol_minor,
+		r->status_line,
+		server_version,
+		rfctime(current_time));
 
-	OUT(t, r->status_line);
-
-	OUT("Server: ", server_version);
-
-	OUT("Date: ", rfctime(current_time));
-
-	if (r->c && r->c->refresh) {
-		char buf[20];
-
-		sprintf(buf, "%d", r->c->refresh);
-		OUT("Refresh: ", buf);
+	if (r->c) {
+		if (r->c->refresh)
+			b += sprintf(b, "Refresh: %d\r\n", r->c->refresh);
+		if (r->status == 401 && r->c->realm)
+			b += sprintf(b, "WWW-Authenticate: Basic realm="
+				"\"%s\"\r\n", r->c->realm);
 	}
 
 	if (r->num_content >= 0) {
-
-		OUT("Content-type: ", r->content_type);
-
-		if ((l = r->content_length) >= 0) {
-			char buf[20];
-
-			sprintf(buf, "%ld", l);
-			OUT("Content-length: ", buf);
-		}
-
-		if (r->last_modified) {
-			OUT("Last-modified: ", rfctime(r->last_modified));
-		}
+		b += sprintf(b, "Content-type: %s\r\n", r->content_type);
+		cl = r->content_length;
+		if (cl >= 0)
+			b += sprintf(b, "Content-length: %ld\r\n", cl);
+		if (r->last_modified)
+			b += sprintf(b, "Last-Modified: %s\r\n",
+				rfctime(r->last_modified));
 	}
 
-	OUT("Location: ", r->location);
+	if (r->location)
+		b += sprintf(b, "Location: %.512s\r\n", r->location);
 
 	if (r->cn->keepalive) {
 		if (r->protocol_minor == 0)
-			OUT("Connection: ", "Keep-Alive");
+			b += sprintf(b, "Connection: Keep-Alive\r\n");
 	} else if (r->protocol_minor)
-		OUT("Connection: ", "Close");
+		b += sprintf(b, "Connection: Close\r\n");
 
-	return putstrings(p, 1, crlf);
+	b += sprintf(b, "\r\n");
+
+	return putstring(p, tmp_outbuf);
 }
 
 static char *dirmatch(char *s, char *t)
@@ -595,6 +565,27 @@ static int find_vs(struct request *r)
 	return 1;
 }
 
+static int check_realm(struct request *r)
+{
+	char *a;
+
+	if (r == 0 || r->c == 0 || r->c->realm == 0 || r->c->userfile == 0)
+		return 0;
+	a = r->authorization;
+	if (a == 0)
+		return -1;
+	log(L_DEBUG, "a='%s'", a);
+	if (strncasecmp(a, "basic", 5))
+		return -1;
+	a += 5;
+	while (isspace(*a))
+		++a;
+	log(L_DEBUG, "and now '%s'", a);
+	if (webuserok(a, r->c->userfile))
+		return 0;
+	return -1;
+}
+
 static int process_path(struct request *r)
 {
 	log(L_DEBUG, "process_path starting: find_vs,");
@@ -623,6 +614,10 @@ static int process_path(struct request *r)
 		== DENY) {
 		r->error = fb_active;
 		return 403;
+	}
+	log(L_DEBUG, " check_realm");
+	if (check_realm(r) == -1) {
+		return 401;
 	}
 	log(L_DEBUG, " check_path,");
 	if (check_path(r) == -1) {
@@ -898,6 +893,9 @@ int prepare_reply(struct request *r)
 	case 400:
 		r->status_line = "400 Bad Request";
 		break;
+	case 401:
+		r->status_line = "401 Not Authorized";
+		break;
 	case 403:
 		r->status_line = "403 Forbidden";
 		break;
@@ -935,40 +933,44 @@ int prepare_reply(struct request *r)
 	if (send_message) {
 		char *b = buf;
 
-		b += SPRINTF3(b, "<title>%s</title>\n", r->status_line);
+		b += sprintf(b, "<title>%s</title>\n", r->status_line);
 
 		switch (r->status) {
 		case 302:
-			b += SPRINTF4(b, "This document has moved to URL "
+			b += sprintf(b, "This document has moved to URL "
 				      "<a href=\"%s\">%s</a>.\n",
 				      r->location, r->location);
+			break;
+		case 401:
+			b += sprintf(b, "You need proper authorization to "
+				"use this resource.\n");
 			break;
 		case 400:
 		case 405:
 		case 501:
 		case 505:
-			b += SPRINTF2(b, "Your request was not understood "
+			b += sprintf(b, "Your request was not understood "
 				      "or not allowed by this server.\n");
 			break;
 		case 403:
-			b += SPRINTF2(b, "Access to this resource has been "
+			b += sprintf(b, "Access to this resource has been "
 				      "denied to you.\n");
 			break;
 		case 404:
-			b += SPRINTF2(b, "The resource requested could not be "
+			b += sprintf(b, "The resource requested could not be "
 				      "found on this server.\n");
 			break;
 		case 503:
-			b += SPRINTF2(b, "The server is temporarily busy.\n");
+			b += sprintf(b, "The server is temporarily busy.\n");
 			break;
 		default:
-			b += SPRINTF2(b, "An internal server error has "
+			b += sprintf(b, "An internal server error has "
 				      "occurred.\n");
 			break;
 		}
 
 		if (r->c && r->c->admin) {
-			b += SPRINTF3(b,
+			b += sprintf(b,
 				      "<p>Please contact the site "
 				      "administrator at <i>%s</i>.\n",
 				      r->c->admin);
@@ -982,7 +984,7 @@ int prepare_reply(struct request *r)
 		r->cn->keepalive = 0;
 
 	return (output_headers(p, r) == -1
-		|| (send_message && putstrings(p, 1, buf) == -1)) ? -1 : 0;
+		|| (send_message && putstring(p, buf) == -1)) ? -1 : 0;
 }
 
 static void log_request(struct request *r)
