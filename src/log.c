@@ -264,7 +264,7 @@ void log_d(const char *fmt, ...)
 	log_line[l++] = '\n';
 	if (error_file != -1 && write(error_file, log_line, l) == -1)
 		gotsigterm = 1;
-	if (am_daemon == 0 && forked == 0)
+	if (am_daemon == 0)
 		write(2, log_line, l);
 	errno = saved_errno;
 	va_end(ap);
