@@ -22,6 +22,9 @@ DEPENDS = mathopd.h Makefile
 # CPPFLAGS += -DPOLL_EMULATION
 # OBJS += poll-emul.o
 
+# Uncomment the following if you system does not have the socklen_t type
+# CPPFLAGS += -DNEED_SOCKLEN_T
+
 all: $(BIN)
 install: $(BIN)
 	install -c $(BIN) $(SBINDIR)
