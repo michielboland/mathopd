@@ -192,11 +192,10 @@ static char *rfctime(time_t t, char *buf)
 {
 	struct tm *tp;
 
-	if (debug)
-		log_d("D rfctime");
 	tp = gmtime(&t);
 	if (tp == 0) {
 		log_d("gmtime failed!?!?!?");
+		sprintf(buf, "?");
 		return 0;
 	}
 	strftime(buf, 31, "%a, %d %b %Y %H:%M:%S GMT", tp);
