@@ -43,7 +43,8 @@ volatile int gotsighup;
 volatile int gotsigusr1;
 volatile int gotsigusr2;
 volatile int gotsigwinch;
-volatile int numchildren;
+volatile int gotsigchld;
+int numchildren;
 time_t startuptime;
 int debug;
 int fcm;
@@ -53,6 +54,7 @@ static char *progname;
 static int forked;
 
 static const char su_fork[] = "could not fork";
+static const char devnull[] = "/dev/null";
 
 static int mysignal(int sig, void(*f)(int), int flags)
 {
@@ -123,12 +125,7 @@ static void sigwinch(int sig)
 
 static void sigchld(int sig)
 {
-	int saved_errno, pid;
-
-	saved_errno = errno;
-	while ((pid = waitpid(-1, 0, WNOHANG)) > 0)
-		++numchildren;
-	errno = saved_errno;
+	gotsigchld = 1;
 }
 
 int main(int argc, char *argv[])
@@ -168,15 +165,13 @@ int main(int argc, char *argv[])
 	if (debug)
 		fprintf(stderr, "Number of fds available: %d\n", n);
 	setrlimit(RLIMIT_NOFILE, &rl);
-	for (i = 0; i < n; i++) {
-		switch(i) {
-		default:
-			close(i);
-		case STDIN_FILENO:
-		case STDERR_FILENO:
-			break;
-		}
-	}
+	for (i = 3; i < n; i++)
+		close(i);
+	null_fd = open(devnull, O_RDWR);
+	if (null_fd == -1)
+		die("open", "Cannot open %d", devnull);
+	while (null_fd < 3)
+		null_fd = dup(null_fd);
 	config();
 	s = servers;
 	while (s) {
@@ -216,6 +211,10 @@ int main(int argc, char *argv[])
 	}
 	else
 		pid_fd = -1;
+	dup2(null_fd, 0);
+	dup2(null_fd, 1);
+	dup2(null_fd, 2);
+	close(null_fd);
 	if (daemon) {
 		if (fork())
 			_exit(0);
@@ -223,14 +222,14 @@ int main(int argc, char *argv[])
 		if (fork())
 			_exit(0);
 	}
-	mysignal(SIGCHLD, sigchld, SA_RESTART | SA_NOCLDSTOP);
-	mysignal(SIGHUP,  sighup,  SA_INTERRUPT);
-	mysignal(SIGTERM, sigterm, SA_INTERRUPT);
-	mysignal(SIGINT,  sigterm, SA_INTERRUPT);
-	mysignal(SIGQUIT, sigterm, SA_INTERRUPT);
-	mysignal(SIGUSR1, sigusr1, SA_INTERRUPT);
-	mysignal(SIGUSR2, sigusr2, SA_INTERRUPT);
-	mysignal(SIGWINCH, sigwinch, SA_INTERRUPT);
+	mysignal(SIGCHLD, sigchld, SA_NOCLDSTOP);
+	mysignal(SIGHUP,  sighup, 0);
+	mysignal(SIGTERM, sigterm, 0);
+	mysignal(SIGINT,  sigterm, 0);
+	mysignal(SIGQUIT, sigterm, 0);
+	mysignal(SIGUSR1, sigusr1, 0);
+	mysignal(SIGUSR2, sigusr2, 0);
+	mysignal(SIGWINCH, sigwinch, 0);
 	mysignal(SIGPIPE, SIG_IGN, 0);
 	my_pid = getpid();
 	if (pid_fd != -1) {
@@ -239,17 +238,12 @@ int main(int argc, char *argv[])
 		write(pid_fd, buf, strlen(buf));
 		close(pid_fd);
 	}
-	null_fd = open("/", O_RDONLY);
-	if (null_fd == -1)
-		die("open", "Cannot open /");
-	dup2(null_fd, STDIN_FILENO);
-	dup2(null_fd, STDERR_FILENO);
-	close(null_fd);
 	gotsighup = 1;
 	gotsigterm = 0;
 	gotsigusr1 = 0;
 	gotsigusr2 = 0;
 	gotsigwinch = 1;
+	gotsigchld = 0;
 	time(&startuptime);
 	time(&current_time);
 	base64initialize();
@@ -275,12 +269,17 @@ void die(const char *t, const char *fmt, ...)
 
 int fork_request(struct request *r, int (*f)(struct request *))
 {
-	int fd, efd;
+	int fd, efd, rv;
+	pid_t pid;
 
 	if (forked)
 		_exit(1);
-	switch (fork()) {
+	pid = fork();
+	switch (pid) {
 	case 0:
+		my_pid = getpid();
+		if (debug)
+			log(L_DEBUG, "fork_request: child process created");
 		forked = 1;
 		mysignal(SIGPIPE, SIG_DFL, 0);
 		fd = r->cn->fd;
@@ -291,21 +290,45 @@ int fork_request(struct request *r, int (*f)(struct request *))
 			if (efd == -1)
 				efd = fd;
 		}
-		dup2(efd, STDERR_FILENO);
-		dup2(fd, STDIN_FILENO);
-		dup2(STDIN_FILENO, STDOUT_FILENO);
-		fcntl(STDIN_FILENO, F_SETFL, 0);
-		fcntl(STDOUT_FILENO, F_SETFL, 0);
-		close(fd);
-		if (efd != fd)
-			close(efd);
-		_exit((*f)(r));
+		rv = dup2(fd, 0);
+		if (debug)
+			log(L_DEBUG, "fork_request: dup2(%d, 0) = %d", fd, rv);
+		rv = dup2(fd, 1);
+		if (debug)
+			log(L_DEBUG, "fork_request: dup2(%d, 1) = %d", fd, rv);
+		rv = dup2(efd, 2);
+		if (debug)
+			log(L_DEBUG, "fork_request: dup2(%d, 2) = %d", efd, rv);
+		rv = fcntl(0, F_SETFL, 0);
+		if (debug)
+			log(L_DEBUG, "fork_request: fcntl(0, F_SETFL, 0) = %d", rv);
+		rv = fcntl(1, F_SETFL, 0);
+		if (debug)
+			log(L_DEBUG, "fork_request: fcntl(1, F_SETFL, 0) = %d", rv);
+		if (efd == fd) {
+			rv = fcntl(2, F_SETFL, 0);
+			if (debug)
+				log(L_DEBUG, "fork_request: fcntl(2, F_SETFL, 0) = %d", rv);
+		}
+		rv = close(fd);
+		if (debug)
+			log(L_DEBUG, "fork_request: close(%d) = %d", fd, rv);
+		if (efd != fd) {
+			rv = close(efd);
+			if (debug)
+				log(L_DEBUG, "fork_request: close(%d) = %d", efd, rv);
+		}
+		rv = f(r);
+		if (debug)
+			log(L_DEBUG, "fork_request: _exit(%d)", rv);
+		_exit(rv);
 		break;
 	case -1:
 		lerror("fork");
 		r->error = su_fork;
 		return 503;
 	default:
+		log(L_LOG, "child process %d created", pid);
 		r->status_line = "---";
 	}
 	return -1;
