@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 1999, 2000, 2001 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -47,7 +47,7 @@ int unescape_url(const char *from, char *to)
 	char c;
 	int x1, x2;
 
-	while ((c = *from++) != 0) {
+	while ((c = *from++) != 0)
 		if (c == '%') {
 			x1 = *from++;
 			if (!isxdigit(x1))
@@ -58,7 +58,6 @@ int unescape_url(const char *from, char *to)
 			*to++ = (HEXDIGIT(x1) << 4) + HEXDIGIT(x2);
 		} else
 			*to++ = c;
-	}
 	*to = 0;
 	return 0;
 }
@@ -68,7 +67,7 @@ int unescape_url_n(const char *from, char *to, size_t n)
 	char c;
 	int x1, x2;
 
-	while (n-- && (c = *from++) != 0) {
+	while (n-- && (c = *from++) != 0)
 		if (c == '%') {
 			x1 = *from++;
 			if (!isxdigit(x1))
@@ -79,7 +78,6 @@ int unescape_url_n(const char *from, char *to, size_t n)
 			*to++ = (HEXDIGIT(x1) << 4) + HEXDIGIT(x2);
 		} else
 			*to++ = c;
-	}
 	*to = 0;
 	return 0;
 }
