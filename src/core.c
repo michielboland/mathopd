@@ -136,7 +136,7 @@ static void close_connections(void)
 	}
 }
 
-static void accept_connection(struct server *s)
+static int accept_connection(struct server *s)
 {
 	struct sockaddr_in sa_remote, sa_local;
 	socklen_t lsa;
@@ -147,9 +147,11 @@ static void accept_connection(struct server *s)
 		lsa = sizeof sa_remote;
 		fd = accept(s->fd, (struct sockaddr *) &sa_remote, &lsa);
 		if (fd == -1) {
-			if (errno != EAGAIN)
+			if (errno != EAGAIN) {
 				lerror("accept");
-			break;
+				return -1;
+			}
+			return 0;
 		}
 		s->naccepts++;
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
@@ -193,6 +195,7 @@ static void accept_connection(struct server *s)
 			cn->action = HC_READING;
 		}
 	} while (tuning.accept_multi);
+	return 0;
 }
 
 static int fill_connection(struct connection *cn)
