@@ -338,14 +338,11 @@ int process_cgi(struct request *r)
 	gid_t g;
 	int p[2], efd;
 	pid_t pid;
-	char curdir[PATHLEN], *s;
 
-	s = strrchr(r->path_translated, '/');
-	if (s == 0) {
+	if (r->curdir[0] == 0) {
 		r->status = 500;
 		return 0;
 	}
-	sprintf(curdir, "%.*s", s - r->path_translated, r->path_translated);
 	switch (r->c->script_identity) {
 	case SI_CHANGETOFIXED:
 		u = r->c->script_uid;
@@ -401,7 +398,7 @@ int process_cgi(struct request *r)
 		fcntl(efd, F_SETFD, FD_CLOEXEC);
 	} else
 		efd = -1;
-	pid = spawn(cp->cgi_argv[0], (char **) cp->cgi_argv, cp->cgi_envp, p[1], efd, u, g, curdir);
+	pid = spawn(cp->cgi_argv[0], (char **) cp->cgi_argv, cp->cgi_envp, p[1], efd, u, g, r->curdir);
 	if (efd != -1)
 		close(efd);
 	close(p[1]);
