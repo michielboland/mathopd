@@ -51,6 +51,7 @@ static const char rcsid[] = "$Id$";
 #include <grp.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include "mathopd.h"
 
 const char server_version[] = "Mathopd/1.4b13";
