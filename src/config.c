@@ -478,6 +478,8 @@ static const char *config_virtual(struct virtual **vs, struct server *parent,
 	v->parent = parent;
 	v->controls = parent->controls;
 	v->nrequests = 0;
+	v->nread = 0;
+	v->nwritten = 0;
 	v->next = *vs;
 	*vs = v;
 	if (trivial)
