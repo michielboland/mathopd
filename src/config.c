@@ -530,8 +530,10 @@ static const char *fill_servernames(void)
 	char buf[256];
 	char *name;
 
+#if 0
 	if (s == 0)
 		return e_no_servers;
+#endif
 	while (s) {
 		if (s->port == 0)
 			s->port = DEFAULT_PORT;
