@@ -136,7 +136,6 @@ Suppose the configuration reads as follows:-
     Virtual {
       Host localhost
       Control {
-        ChildLog /dev/null
         Alias /
         Location /tmp
         External {
