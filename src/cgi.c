@@ -1,7 +1,7 @@
 #include "mathopd.h"
 
 static char **cgi_envp;
-static char **cgi_argv;
+static const char **cgi_argv;
 static int cgi_envc;
 static int cgi_argc;
 
@@ -10,17 +10,16 @@ static int add(const char *name, const char *value)
 	if (name && value == 0)
 		return 0;
 	if (cgi_envc == 0)
-		cgi_envp = (char **) malloc(sizeof (char *));
+		cgi_envp = malloc(sizeof (char *));
 	else
-		cgi_envp = (char **) realloc(cgi_envp, 
-					     (cgi_envc + 1) * sizeof (char *));
+		cgi_envp = realloc(cgi_envp, (cgi_envc + 1) * sizeof (char *));
 	if (cgi_envp == 0)
 		return -1;
 	if (name == 0)
 		cgi_envp[cgi_envc] = 0;
 	else {
 		if ((cgi_envp[cgi_envc] =
-		     (char *) malloc(strlen(name) + 2 + strlen(value))) == 0)
+		     malloc(strlen(name) + 2 + strlen(value))) == 0)
 			return -1;
 		sprintf(cgi_envp[cgi_envc], "%s=%s", name, value);
 	}
@@ -28,12 +27,12 @@ static int add(const char *name, const char *value)
 	return 0;
 }
 
-static int add_argv(char *a)
+static int add_argv(const char *a)
 {
 	if (cgi_argc == 0)
-		cgi_argv = (char **) malloc(sizeof (char *));
-	else cgi_argv = (char **) realloc(cgi_argv, 
-					  (cgi_argc + 1) * sizeof (char *));
+		cgi_argv = malloc(sizeof (char *));
+	else
+		cgi_argv = realloc(cgi_argv, (cgi_argc + 1) * sizeof (char *));
 	if (cgi_argv == 0)
 		return -1;
 	cgi_argv[cgi_argc] = a;
@@ -111,6 +110,8 @@ static int make_cgi_argv(struct request *r, char *b)
 {
 	cgi_argc = 0;
 	cgi_argv = 0;
+	if (r->class == CLASS_EXTERNAL)
+		ADD_ARGV(r->content_type);
 	ADD_ARGV(b);
 	if (r->args && strchr(r->args, '=') == 0) {
 		char *a, *w;
@@ -161,7 +162,8 @@ static int exec_cgi(struct request *r)
 		lerror("chdir");
 		return cgi_error(r, 500, "chdir failed");
 	}
-	if (execve(cgi_argv[0], cgi_argv, cgi_envp) == -1) {
+	log(L_DEBUG, "execve(\"%s\", ...)", cgi_argv[0]);
+	if (execve(cgi_argv[0], (char **) cgi_argv, cgi_envp) == -1) {
 		lerror("execve");
 		return cgi_error(r, 500, "exec failed");
 	}
