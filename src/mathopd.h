@@ -325,6 +325,7 @@ struct statistics {
 	int nconnections;
 	int maxconnections;
 	unsigned long nrequests;
+	unsigned long forked_children;
 	unsigned long exited_children;
 };
 

@@ -308,6 +308,7 @@ pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd,
 #endif
 	switch (pid) {
 	default:
+		++stats.forked_children;
 		if (debug)
 			log_d("child process %d created", pid);
 		return pid;
