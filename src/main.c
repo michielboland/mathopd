@@ -308,12 +308,9 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		if (child_filename == 0)
 			efd = fd;
 		else {
-			efd = open(child_filename, O_WRONLY | O_CREAT | O_APPEND, 0666);
-			if (efd == -1) {
-				log_d("cannot open child log %s", child_filename);
-				lerror("open");
+			efd = open_log(child_filename);
+			if (efd == -1)
 				efd = fd;
-			}
 		}
 		fcntl(fd, F_SETFL, 0);
 		dup2(fd, 0);
