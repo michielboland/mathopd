@@ -1254,6 +1254,8 @@ static const char *http_code_phrase(int status)
 		return "414 Request-URI Too Long";
 	case 416:
 		return "416 Requested Range Not Satisfiable";
+	case 417:
+		return "417 Expectation Failed";
 	case 501:
 		return "501 Not Implemented";
 	case 503:
