@@ -294,10 +294,18 @@ int fork_request(struct request *r, int (*f)(struct request *))
 {
 	int fd, efd;
 	pid_t pid;
-	char *child_filename;
 
 	if (forked)
 		_exit(1);
+	if (r->c->child_filename == 0) {
+		log_d("ChildLog must be set");
+		return 500;
+	}
+	efd = open_log(r->c->child_filename);
+	if (efd == -1)
+		return 500;
+	if (debug)
+		log_d("fork_request: efd=%d", efd);
 	pid = fork();
 	switch (pid) {
 	case 0:
@@ -305,27 +313,19 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		forked = 1;
 		mysignal(SIGPIPE, SIG_DFL);
 		fd = r->cn->fd;
-		child_filename = r->c->child_filename;
-		if (child_filename == 0)
-			efd = fd;
-		else {
-			efd = open_log(child_filename);
-			if (efd == -1)
-				efd = fd;
-		}
 		fcntl(fd, F_SETFL, 0);
 		dup2(fd, 0);
 		dup2(fd, 1);
 		dup2(efd, 2);
 		close(fd);
-		if (efd != fd)
-			close(efd);
+		close(efd);
 		_exit(f(r));
 		break;
 	case -1:
 		lerror("fork");
 		return 503;
 	default:
+		close(efd);
 		if (debug)
 			log_d("child process %d created", pid);
 		r->status_line = "---";
