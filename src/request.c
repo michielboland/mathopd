@@ -1311,7 +1311,7 @@ static int prepare_reply(struct request *r)
 	} else if (r->protocol_minor)
 		if (pool_print(p, "Connection: close\r\n") == -1)
 			return -1;
-	if (r->c && (r->status == 200 || r->status == 206))
+	if (r->c && r->status == 200)
 		for (h = r->c->extra_headers; h; h = h->next)
 			if (pool_print(p, "%s\r\n", h->name) == -1)
 				return -1;
