@@ -587,6 +587,9 @@ Desc:    This keyword controls the number of processes that will be created.
          in the PIDfile is not a process ID, but a negative number, indicating
          the process group for all mathopd processes.
 
+         Note: the value of NumProcesses will be ignored if the server is
+         started with the '-n' flag.
+
 Keyword: Options
 Where:   Server
 Desc:    The Options keyword sets so-called socket options for a particular
