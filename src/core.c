@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 1999, 2000, 2001 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -111,7 +111,7 @@ static void close_connection(struct connection *cn)
 	cn->state = HC_FREE;
 }
 
-static void nuke_servers(void)
+static void close_servers(void)
 {
 	struct server *s;
 
@@ -123,7 +123,7 @@ static void nuke_servers(void)
 	}
 }
 
-static void nuke_connections(void)
+static void close_connections(void)
 {
 	struct connection *cn;
 
@@ -484,12 +484,12 @@ void httpd_main(void)
 		}
 		if (gotsigusr1) {
 			gotsigusr1 = 0;
-			nuke_connections();
+			close_connections();
 			log_d("connections closed");
 		}
 		if (gotsigusr2) {
 			gotsigusr2 = 0;
-			nuke_servers();
+			close_servers();
 			log_d("servers closed");
 		}
 		if (gotsigchld) {
