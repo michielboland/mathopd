@@ -59,6 +59,7 @@ tuning-item:
 	"ScriptTimeout" integer
 	"ScriptBufSize" integer
 	"Clobber" flag
+	"Wait" integer
 
 control-item:
 	"Location" string

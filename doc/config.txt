@@ -1022,3 +1022,10 @@ Type:    Block
 Desc:    The 'Virtual' keyword starts a virtual server block.
          Virtual blocks can be declared globally or inside a server block.
          Global virtual blocks are inherited by all servers that follow.
+
+Keyword: Wait
+Where:   Tuning
+Type:    Integer
+Default: 60
+Desc:    The value of 'Wait' represents the amount of time, in seconds,
+         the server will wait for a request from the client.
