@@ -299,6 +299,10 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		log_d("ChildLog must be set");
 		return 500;
 	}
+	if (r->cn->assbackwards) {
+		log_d("fork_request: no HTTP/0.9 allowed here");
+		return 500;
+	}
 	pid = fork();
 	switch (pid) {
 	case 0:
