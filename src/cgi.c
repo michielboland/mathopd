@@ -153,13 +153,13 @@ static int add_http_vars(struct request *r, struct cgi_parameters *cp)
 		name = r->headers[i].rh_name;
 		if (strcasecmp(name, "Authorization") == 0 && r->user && r->user[0])
 			continue;
-		l = strlen(name) + strlen(r->headers[i].rh_value) + 6;
+		l = strlen(name) + strlen(r->headers[i].rh_value) + 7;
 		for (j = i + 1; j < n; j++) {
 			if (seen[j])
 				continue;
 			if (strcasecmp(r->headers[j].rh_name, name) == 0) {
 				seen[j] = 1;
-				l += strlen(r->headers[j].rh_name) + 2;
+				l += strlen(r->headers[j].rh_value) + 1;
 			}
 		}
 		tmp = malloc(l);
