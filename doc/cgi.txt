@@ -99,3 +99,81 @@ In the above setup, scripts from www.an.example will run as user
 'example' and scripts from www.another.example will run as user
 'another'. No scripts can run from www.athird.example, because no
 ScriptUser is defined there.
+
+Invocation
+--------------------------------
+
+Normally, when a CGI program is invoked by Mathopd, its current
+directory will be the directory that contains the program itself.
+
+If CGI programs are invoked through the CGI specialty, the value of
+argv[0] inside the main() routine of the CGI will be the full pathname
+of the program.
+
+If CGI programs are invoked through the "External" mechanism, the
+name of the external program is split up at each space character,
+and the resulting fragments are stored in the beginning of the argv
+array. Then, the full pathname of the CGI script is appended.
+
+If the Request-URI contains a query, and the query does not contain
+the '=' character, the query is split up at each '+' character, any
+""%" HEX HEX" encoding in the fragments is decoded, and the query
+fragments are then passed as command-line arguments to the CGI
+program.
+
+If the Request-URI contains a query, and the query contains an '='
+character, no command-line arguments are passed to the CGI program.
+Instead, the program should use the QUERY_STRING environment variable
+to read the query. The query in QUERY_STRING is not hex-decoded.
+
+Example
+--------------------------------
+
+Suppose the configuration reads as follows:-
+
+  Server {
+    Port 8037
+    Virtual {
+      Host localhost
+      Control {
+        ChildLog /dev/null
+        Alias /
+        Location /tmp
+        External {
+          "/usr/bin/awk -f" { .awk }
+        }
+      }
+    }
+  }
+
+We place a file test.awk in /tmp that reads as follows:-
+
+  BEGIN {
+    print "Content-Type: text/plain"
+    print ""
+    print "ARGC=" ARGC
+    for (i = 1; i < ARGC; i++)
+      print "ARGV[" i "]=\"" ARGV[i] "\""
+    if ("QUERY_STRING" in ENVIRON)
+      print "QUERY_STRING=\"" ENVIRON["QUERY_STRING"] "\""
+    else
+      print "QUERY_STRING not set"
+    exit
+  }
+
+Output from http://localhost:8037/test.awk
+
+ARGC=1
+QUERY_STRING not set
+
+Output from http://localhost:8037/test.awk?A+%42
+
+ARGC=3
+ARGV[1]="A"
+ARGV[2]="B"
+QUERY_STRING="A+%42"
+
+Output from http://localhost:8037/test.awk?A=%42
+
+ARGC=1
+QUERY_STRING="A=%42"
