@@ -238,7 +238,7 @@ struct connection {
 	struct server *s;
 	int fd;
 	int rfd;
-	struct in_addr peer;
+	struct sockaddr_in peer;
 	char ip[16];
 	time_t t;
 	time_t it;

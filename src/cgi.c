@@ -62,7 +62,7 @@ static int make_cgi_envp(struct request *r)
 	cgi_envp = 0;
 	sprintf(t, "%d", sv->port);
 	addr = r->cn->ip;
-	ia = r->cn->peer.s_addr;
+	ia = r->cn->peer.sin_addr.s_addr;
 
 #define ADD(x, y) if (add(x, y) == -1) return -1
 

@@ -39,15 +39,15 @@ static void reinit_connection(struct connection *cn, int action)
 }
 
 static void init_connection(struct connection *cn, struct server *s, int fd,
-			    struct in_addr ia)
+			    struct sockaddr_in sa)
 {
 	s->nhandled++;
 	cn->state = HC_ACTIVE;
 	cn->s = s;
 	cn->fd = fd;
 	cn->rfd = -1;
-	cn->peer = ia;
-	strncpy(cn->ip, inet_ntoa(ia), 15);
+	cn->peer = sa;
+	strncpy(cn->ip, inet_ntoa(sa.sin_addr), 15);
 	cn->t = cn->it = current_time;
 	++nconnections;
 	if (nconnections > maxconnections)
@@ -109,10 +109,10 @@ static void accept_connection(struct server *s)
 			cn = cn->next;
 		}
 		if (cn)
-			init_connection(cn, s, fd, sa.sin_addr);
+			init_connection(cn, s, fd, sa);
 		else if (cw) {
 			close_connection(cw);
-			init_connection(cw, s, fd, sa.sin_addr);
+			init_connection(cw, s, fd, sa);
 		}
 		else {
 			log(L_ERROR, "connection to %s dropped",

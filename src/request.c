@@ -619,7 +619,8 @@ static int process_path(struct request *r)
 		return 302;
 	}
 	log(L_DEBUG, " evaluate_access,");
-	if (evaluate_access(r->cn->peer.s_addr, r->c->accesses) == DENY) {
+	if (evaluate_access(r->cn->peer.sin_addr.s_addr, r->c->accesses)
+		== DENY) {
 		r->error = fb_active;
 		return 403;
 	}
@@ -1013,16 +1014,17 @@ static void log_request(struct request *r)
 		    cl);
 	} else {
 		ti = ctime(&current_time);
-		log(L_TRANS, "%.24s\t-\t%s\t-\t%s\t%s\t%s\t%.3s\t%ld\t%.128s\t%.128s",
-		    ti ? ti : "???",
-		    cn->ip,
-		    r->vs->fullname,
-		    r->method_s,
-		    r->path,
-		    r->status_line,
-		    cl,
-		    r->referer ? r->referer : "-",
-		    r->user_agent ? r->user_agent : "-");
+		log(L_TRANS, "%.24s\t-\t%s\t%hu\t%s\t%s\t%s\t%.3s\t%ld\t%.128s\t%.128s",
+			ti ? ti : "???",
+			cn->ip,
+			htons(cn->peer.sin_port),
+			r->vs->fullname,
+			r->method_s,
+			r->path,
+			r->status_line,
+			cl,
+			r->referer ? r->referer : "-",
+			r->user_agent ? r->user_agent : "-");
 	}
 }
 
@@ -1050,7 +1052,7 @@ int process_request(struct request *r)
 
 struct control *faketoreal(char *x, char *y, struct request *r, int update)
 {
-	unsigned long ip = r->cn->peer.s_addr;
+	unsigned long ip = r->cn->peer.sin_addr.s_addr;
 	struct control *c;
 	char *s = 0;
 
