@@ -128,6 +128,33 @@ Desc:    If a child process, such as a CGI script, writes a message to its
 Keyword: Clients
 Where:   Control
 Type:    Block
+Desc:    This directive is similar to 'Access', except that it causes
+         'conditional alias matching', rather than blocking traffic with
+         '403 Forbidden' errors. As such, it is only useful when used in
+         combination with Control blocks that contain an Alias. To distinguish
+         a 'Clients' access list from a 'normal' access list, the keywords
+         to be used inside the list are 'Apply' and 'NoApply', rather than
+         'Allow' and 'Deny'.
+
+         All this is perhaps best illustrated by an example.
+
+           Control {
+             Alias /
+             Location /usr/share/doc/handbook
+           }
+           Control {
+             Alias /
+             Location /usr/share/doc/internal/handbook
+             Clients {
+               Apply 192.168.57.0/24
+             }
+
+         In this example, visitors from within the 192.168.57.0/24 network
+         will get their content served from /usr/share/doc/internal/handbook,
+         whereas other clients will see /usr/share/doc/handbook. Note that
+         the order of the control blocks matters. If you put the unconditional
+         alias at the bottom, rather than at the top, it will be matched first
+         by the server, thus occluding the conditional alias.
 
 Keyword: ContentLength
 Where:   LogFormat
