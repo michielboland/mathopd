@@ -180,18 +180,20 @@ static int f_process_imap(struct request *r, FILE *fp)
 				status = "no point";
 				break;
 			}
-			dist = sqr(pointarray[0].x - testpoint.x) + sqr(pointarray[0].y - testpoint.y);
-			if (sawpoint == 0 || dist < mindist) {
-				sawpoint = 1;
-				mindist = dist;
-				strcpy(default_url, u);
+			if (text == 0) {
+				dist = sqr(pointarray[0].x - testpoint.x) + sqr(pointarray[0].y - testpoint.y);
+				if (sawpoint == 0 || dist < mindist) {
+					sawpoint = 1;
+					mindist = dist;
+					strcpy(default_url, u);
+				}
 			}
 		} else if (!strcmp(t, "rect")) {
 			if (k < 2) {
 				status = "too few rect points";
 				break;
 			}
-			if (pointinrect(testpoint, pointarray)) {
+			if (text == 0 && pointinrect(testpoint, pointarray)) {
 				url = u;
 				break;
 			}
@@ -200,7 +202,7 @@ static int f_process_imap(struct request *r, FILE *fp)
 				status = "too few circle points";
 				break;
 			}
-			if (pointincircle(testpoint, pointarray)) {
+			if (text == 0 && pointincircle(testpoint, pointarray)) {
 				url = u;
 				break;
 			}
@@ -209,7 +211,7 @@ static int f_process_imap(struct request *r, FILE *fp)
 				status = "too few spoly points";
 				break;
 			}
-			if (pointinpoly(testpoint, pointarray, k)) {
+			if (text == 0 && pointinpoly(testpoint, pointarray, k)) {
 				url = u;
 				break;
 			}
@@ -218,7 +220,7 @@ static int f_process_imap(struct request *r, FILE *fp)
 				status = "too few poly points";
 				break;
 			}
-			if (pointinpoly(testpoint, pointarray, k) & 1) {
+			if (text == 0 && pointinpoly(testpoint, pointarray, k) & 1) {
 				url = u;
 				break;
 			}
