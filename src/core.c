@@ -530,11 +530,6 @@ void lerror(const char *s)
 		log_d("%.80s: %.80s", s, errmsg ? errmsg : "???");
 	else
 		log_d("%.80s", errmsg ? errmsg : "???");
-	switch (saved_errno) {
-	case ENFILE:
-		log_d("oh no!!!");
-		gotsigterm = 1;
-	}
 	errno = saved_errno;
 }
 
