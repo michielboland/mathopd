@@ -96,7 +96,7 @@
 #define DEFAULT_NUM_CONNECTIONS 24
 #define DEFAULT_TIMEOUT 60
 #define DEFAULT_PORT 80
-#define DEFAULT_FILEMODE 0644
+#define DEFAULT_FILEMODE 0666
 
 #define ERROR_FOOTER "<HR><ADDRESS>Mathopd</ADDRESS>"
 
@@ -277,6 +277,7 @@ extern volatile int gotsigusr2;
 extern volatile int numchildren;
 extern time_t startuptime;
 extern int debug;
+extern int fcm;
 extern void die(const char *, const char *, ...);
 extern int fork_request(struct request *, int (*)(struct request *));
 
