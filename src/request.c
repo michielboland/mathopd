@@ -404,7 +404,7 @@ static int check_path(struct request *r)
 		s_slash,
 		s_slashdot,
 		s_slashdotdot,
-		s_forbidden,
+		s_forbidden
 	} s;
 
 	p = r->path;
