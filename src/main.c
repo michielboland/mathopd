@@ -39,7 +39,7 @@
 
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.2b21";
+const char server_version[] = "Mathopd/1.2b22";
 
 volatile int gotsigterm;
 volatile int gotsighup;
@@ -287,10 +287,13 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		forked = 1;
 		mysignal(SIGPIPE, SIG_DFL, 0);
 		fd = r->cn->fd;
-		efd = open(child_filename,
-			   O_WRONLY | O_CREAT | O_APPEND, DEFAULT_FILEMODE);
-		if (efd == -1)
+		if (child_filename == 0)
 			efd = fd;
+		else {
+			efd = open(child_filename, O_WRONLY | O_CREAT | O_APPEND, DEFAULT_FILEMODE);
+			if (efd == -1)
+				efd = fd;
+		}
 		dup2(efd, STDERR_FILENO);
 		dup2(fd, STDIN_FILENO);
 		dup2(STDIN_FILENO, STDOUT_FILENO);
