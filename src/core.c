@@ -314,10 +314,14 @@ static int fill_connection(struct connection *cn)
 	p = &cn->output;
 	poolleft = p->ceiling - p->end;
 	fileleft = cn->left;
+	if (debug)
+		log_d("fileleft = %d", fileleft);
 	n = fileleft > poolleft ? poolleft : (int) fileleft;
 	if (n <= 0)
 		return 0;
 	cn->left -= n;
+	if (debug)
+		log_d("left decreased to %d", cn->left);
 	m = read(cn->rfd, p->end, n);
 	if (debug)
 		log_d("fill_connection: %d %d %d %d", cn->rfd, p->end - p->floor, n, m);
@@ -560,6 +564,8 @@ static int scan_request(struct connection *cn)
 			return 0;
 		}
 		cn->left = cn->rfd == -1 ? 0 : cn->r->content_length;
+		if (debug)
+			log_d("initial left: %d", cn->left);
 		if (fill_connection(cn) == -1) {
 			close_connection(cn);
 			return -1;
