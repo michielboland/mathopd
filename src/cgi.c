@@ -375,6 +375,10 @@ int process_cgi(struct request *r)
 			r->status = 500;
 			return 0;
 		}
+	} else if (u) {
+		log_d("root privileges are required to change identity");
+		r->status = 500;
+		return 0;
 	}
 	c.cgi_envc = 0;
 	c.cgi_envp = 0;
