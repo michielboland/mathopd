@@ -343,7 +343,7 @@ static int exec_cgi(struct request *r)
 	if (execve(cgi_argv[0], (char **) cgi_argv, cgi_envp) == -1) {
 		log_d("could not execute %s", cgi_argv[0]);
 		lerror("execve");
-		return cgi_error(r, 500);
+		return cgi_error(r, errno == EACCES ? 403 : 500);
 	}
 	return 0;
 }
