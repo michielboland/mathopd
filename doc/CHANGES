@@ -5,3 +5,7 @@ request.c:
 	The '*' character in Error40[134]File and
 	AutoIndexCommand is replaced with the current
 	value of the Host header.
+
+	If the Error*File is not present, the original
+	HTTP status code is sent back, rather than a 500
+	error.
