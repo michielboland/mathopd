@@ -115,14 +115,6 @@ core.c:
 	(where PID is the process ID of server). This is an experimental
 	feature.
 
-dump.c:
-
-	Adjust the formatting slightly.
-
-	Take the new connections states into account.
-
-	Mark the `current' connection.
-
 imap.c:
 
 	Replace the strtok() function with something that is a
