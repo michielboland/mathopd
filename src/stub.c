@@ -45,6 +45,7 @@ static const char rcsid[] = "$Id$";
 #include <sysexits.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include "mathopd.h"
@@ -84,7 +85,7 @@ struct cgi_header {
 	size_t len;
 };
 
-static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, size_t outsize, size_t *r)
+static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, size_t outsize, size_t *r, int *sp)
 {
 	int addheader, c, s;
 	struct cgi_header headers[100];
@@ -100,16 +101,6 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 	havelocation = 0;
 	status = 0;
 	location = 0;
-	if (insize >= 5 && memcmp(inbuf, "HTTP/", 5) == 0) {
-		if (outsize < insize) {
-			log_d("convert_cgi_headers: output buffer is too small");
-			return -1;
-		}
-		log_d("convert_cgi_headers: NPH script detected");
-		memcpy(outbuf, inbuf, insize);
-		*r = insize;
-		return 0;
-	}
 	s = 0;
 	nheaders = 0;
 	len = 0;
@@ -181,6 +172,13 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 							location = nheaders;
 							havelocation = 1;
 						}
+					} else if (strncmp(tmpname, "HTTP/", 5) == 0) {
+						if (havestatus)
+							addheader = 0;
+						else {
+							status = nheaders;
+							havestatus = 1;
+						}
 					}
 					break;
 				}
@@ -210,6 +208,7 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 			log_d("convert_cgi_headers: no room to put Moved line");
 			return -1;
 		}
+		s = 302;
 		memcpy(outbuf + len, "HTTP/1.0 302 Moved\r\n", 20);
 		len += 20;
 	} else if (havestatus == 0) {
@@ -217,9 +216,15 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 			log_d("convert_cgi_headers: no room to put OK line");
 			return -1;
 		}
+		s = 200;
 		memcpy(outbuf + len, "HTTP/1.0 200 OK\r\n", 17);
 		len += 17;
 	} else {
+		s = atoi(headers[status].value);
+		if (s < 100 || s > 999) {
+			log_d("convert_cgi_headers: illegal header line \"%.*s\"", headers[status].len, headers[status].name);
+			return -1;
+		}
 		tmpvaluelen = headers[status].len - (headers[status].value - headers[status].name);
 		if (len + tmpvaluelen + 11 > outsize) {
 			log_d("convert_cgi_headers: no room to put status line");
@@ -251,10 +256,11 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 	outbuf[len++] = '\r';
 	outbuf[len++] = '\n';
 	*r = len;
+	*sp = s;
 	return 0;
 }
 
-static int pipe_run(struct pipe_params *p)
+static int pipe_run(struct pipe_params *p, struct connection *cn)
 {
 	int done;
 	int skip_poll;
@@ -308,6 +314,7 @@ static int pipe_run(struct pipe_params *p)
 	if (done)
 		return 1;
 	n = skip_poll ? 1 : poll(pollfds, 3, p->timeout);
+	current_time = time(0);
 	if (gotsigchld) {
 		gotsigchld = 0;
 		reap_children();
@@ -334,6 +341,7 @@ static int pipe_run(struct pipe_params *p)
 			p->istate = 2;
 			break;
 		default:
+			cn->nread += r;
 			p->ibp += r;
 			p->cir += r;
 			break;
@@ -349,6 +357,7 @@ static int pipe_run(struct pipe_params *p)
 			lerror("pipe_loop: error writing to stdout");
 			break;
 		default:
+			cn->nwritten += r;
 			p->cow += r;
 			p->obp += r;
 			break;
@@ -424,7 +433,7 @@ static int pipe_run(struct pipe_params *p)
 			}
 		}
 		if (p->state == 2) {
-			convert_result = convert_cgi_headers(p->pbuf, p->pstart, p->obuf, p->osize, &p->otop);
+			convert_result = convert_cgi_headers(p->pbuf, p->pstart, p->obuf, p->osize, &p->otop, &cn->r->status);
 			if (convert_result == -1) {
 				log_d("pipe_loop: problem in convert_cgi_headers");
 				return 1;
@@ -457,12 +466,13 @@ static int pipe_run(struct pipe_params *p)
 	return 0;
 }
 
-void pipe_loop(int fd, int cfd, int timeout)
+static int pipe_loop(int fd, struct connection *cn, int timeout)
 {
 	char ibuf[PLBUFSIZE];
 	char obuf[PLBUFSIZE];
 	char pbuf[PLBUFSIZE];
 	struct pipe_params p;
+	int rv;
 
 	p.ibuf = ibuf;
 	p.obuf = obuf;
@@ -483,51 +493,54 @@ void pipe_loop(int fd, int cfd, int timeout)
 	p.cow = 0;
 	p.cpr = 0;
 	p.cpw = 0;
-	p.ifd = cfd;
-	p.ofd = cfd;
+	p.ifd = cn->fd;
+	p.ofd = cn->fd;
 	p.fd = fd;
 	timeout *= 1000;
 	p.timeout = timeout;
-	while (pipe_run(&p) == 0)
-		;
-	if (debug)
-		log_d("pipe_loop: cir=%lu cpw=%lu cpr=%lu cow=%lu", p.cir, p.cpw, p.cpr, p.cow);
+	do
+		rv = pipe_run(&p, cn);
+	while (rv == 0);
+	return rv;
 }
 
 int cgi_stub(struct request *r, int (*f)(struct request *))
 {
-	int p[2], efd;
+	int p[2], efd, rv;
 	pid_t pid;
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, p) == -1) {
 		lerror("socketpair");
-		return -1;
+		rv = -1;
+	} else {
+		pid = fork();
+		switch (pid) {
+		case -1:
+			lerror("fork");
+			rv = -1;
+			break;
+		case 0:
+			my_pid = getpid();
+			efd = open_log(r->c->child_filename);
+			if (efd == -1)
+				_exit(EX_UNAVAILABLE);
+			close(p[0]);
+			dup2(p[1], 0);
+			dup2(p[1], 1);
+			dup2(efd, 2);
+			close(p[1]);
+			close(efd);
+			_exit(f(r));
+			break;
+		default:
+			if (debug)
+				log_d("cgi_stub: child process %d created", pid);
+			close(p[1]);
+			fcntl(p[0], F_SETFL, O_NONBLOCK);
+			rv = pipe_loop(p[0], r->cn, 3600);
+			break;
+		}
 	}
-	pid = fork();
-	switch (pid) {
-	case -1:
-		lerror("fork");
-		return -1;
-	case 0:
-		my_pid = getpid();
-		efd = open_log(r->c->child_filename);
-		if (efd == -1)
-			_exit(EX_UNAVAILABLE);
-		close(p[0]);
-		dup2(p[1], 0);
-		dup2(p[1], 1);
-		dup2(efd, 2);
-		close(p[1]);
-		close(efd);
-		_exit(f(r));
-		break;
-	default:
-		if (debug)
-			log_d("cgi_stub: child process %d created", pid);
-		close(p[1]);
-		fcntl(p[0], F_SETFL, O_NONBLOCK);
-		pipe_loop(p[0], r->cn->fd, 3600);
-		break;
-	}
-	return 0;
+	log_request(r);
+	return rv;
 }
