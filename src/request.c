@@ -737,15 +737,6 @@ static int process_path(struct request *r)
 		r->error = se_alias;
 		return 500;
 	}
-	if (r->path_translated[0] == 0) {
-		r->error = se_alias;
-		return 500;
-	}
-	if (r->path_translated[0] != '/') {
-		escape_url(r->path_translated, r->newloc);
-		r->location = r->newloc;
-		return 302;
-	}
 	if (evaluate_access(r->cn->peer.sin_addr.s_addr, r->c->accesses) == DENY) {
 		r->error = fb_active;
 		r->error_file = r->c->error_403_file;
@@ -754,6 +745,15 @@ static int process_path(struct request *r)
 	if (check_realm(r) == -1) {
 		r->error_file = r->c->error_401_file;
 		return 401;
+	}
+	if (r->path_translated[0] == 0) {
+		r->error = se_alias;
+		return 500;
+	}
+	if (r->path_translated[0] != '/') {
+		escape_url(r->path_translated, r->newloc);
+		r->location = r->newloc;
+		return 302;
 	}
 	if (check_path(r) == -1) {
 		r->error = br_bad_path_name;
