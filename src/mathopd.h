@@ -301,8 +301,6 @@ extern int log_columns;
 extern int *log_column;
 extern int log_gmt;
 
-extern struct pollfd *pollfds;
-
 /* core */
 
 extern int nconnections;
@@ -312,6 +310,7 @@ extern time_t current_time;
 extern void log_d(const char *, ...);
 extern void lerror(const char *);
 extern void httpd_main(void);
+extern int init_pollfds(size_t);
 
 /* request */
 

@@ -64,8 +64,6 @@ struct server *servers;
 
 char *user_name;
 
-struct pollfd *pollfds;
-
 int log_columns;
 int *log_column;
 int log_gmt;
@@ -988,8 +986,7 @@ const char *config(const char *config_filename)
 	s = fill_servernames();
 	if (s)
 		return s;
-	pollfds = malloc((tuning.num_connections + num_servers) * sizeof *pollfds);
-	if (pollfds == 0)
+	if (init_pollfds(tuning.num_connections + num_servers) == -1)
 		return e_memory;
 	for (n = 0; n < tuning.num_connections; n++) {
 		if ((cn = malloc(sizeof *cn)) == 0)

@@ -51,12 +51,15 @@ static const char rcsid[] = "$Id$";
 #include <stdio.h>
 #include <time.h>
 #include <poll.h>
+#include <stdlib.h>
 #include "mathopd.h"
 
 int nconnections;
 int maxconnections;
 time_t startuptime;
 time_t current_time;
+
+static struct pollfd *pollfds;
 
 static void init_pool(struct pool *p)
 {
@@ -569,4 +572,10 @@ void httpd_main(void)
 		cleanup_connections();
 	}
 	log_d("*** shutting down");
+}
+
+int init_pollfds(size_t n)
+{
+	pollfds = realloc(pollfds, n * sizeof *pollfds);
+	return pollfds == 0 ? -1 : 0;
 }
