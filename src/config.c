@@ -769,17 +769,14 @@ static const char *config_server(struct configuration *p, struct server **ss)
 
 	if ((s = malloc(sizeof *s)) == 0)
 		return e_memory;
-	num_servers++;
 	s->port = 80;
 	s->addr.s_addr = 0;
 	s->s_name = 0;
 	s->children = 0;
 	s->vservers= 0;
 	s->controls = controls;
-	s->next = *ss;
 	s->naccepts = 0;
 	s->nhandled = 0;
-	*ss = s;
 	if ((t = gettoken(p)) != t_open)
 		return t;
 	while ((t = gettoken(p)) != t_close) {
@@ -802,6 +799,9 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	}
 	if (s->port == 0 || s->port > 0xffff)
 		return e_illegalport;
+	num_servers++;
+	s->next = *ss;
+	*ss = s;
 	return 0;
 }
 
