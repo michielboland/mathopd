@@ -469,46 +469,6 @@ void lerror(const char *s)
 	errno = saved_errno;
 }
 
-static void do_servers(struct server *s, fd_set *r)
-{
-	while (s) {
-		if (s->fd != -1) {
-#ifdef POLL
-			if (pollfds[s->pollno].revents & POLLIN)
-#else
-			if (FD_ISSET(s->fd, r))
-#endif
-				accept_connection(s);
-		}
-		s = s->next;
-	}
-}
-
-static void do_connections(struct connection *cn, fd_set *r, fd_set *w)
-{
-	while (cn) {
-		if (cn->state == HC_ACTIVE) {
-#ifdef POLL
-			if (cn->pollno != -1) {
-				r = pollfds[cn->pollno].revents;
-				if (r & POLLIN)
-					read_connection(cn);
-				else if (r & POLLOUT)
-					write_connection(cn);
-				else if (r)
-					cn->action = HC_CLOSING;
-			}
-#else
-			if (FD_ISSET(cn->fd, r))
-				read_connection(cn);
-			else if (FD_ISSET(cn->fd, w))
-				write_connection(cn);
-#endif
-		}
-		cn = cn->next;
-	}
-}
-
 void httpd_main(void)
 {
 	struct server *s;
@@ -624,10 +584,11 @@ void httpd_main(void)
 			log(L_ERROR, "no more sockets to select from");
 			break;
 		}
-		log(L_DEBUG, "selecting...");
 #ifdef POLL
+		log(L_DEBUG, "polling...");
 		rv = poll(pollfds, n, INFTIM);
 #else
+		log(L_DEBUG, "selecting...");
 #ifdef HPUX
 		rv = select(m + 1, (int *) &rfds, (int *) &wfds, 0, 0);
 #else
@@ -652,8 +613,42 @@ void httpd_main(void)
 		else {
 			error = 0;
 			if (rv) {
-				do_servers(servers, &rfds);
-				do_connections(connections, &rfds, &wfds);
+
+				s = servers;
+				while (s) {
+					if (s->fd != -1) {
+#ifdef POLL
+						if (pollfds[s->pollno].revents & POLLIN)
+#else
+						if (FD_ISSET(s->fd, &rfds))
+#endif
+							accept_connection(s);
+					}
+					s = s->next;
+				}
+
+				cn = connections;
+				while (cn) {
+					if (cn->state == HC_ACTIVE) {
+#ifdef POLL
+						if (cn->pollno != -1) {
+							r = pollfds[cn->pollno].revents;
+							if (r & POLLIN)
+								read_connection(cn);
+							else if (r & POLLOUT)
+								write_connection(cn);
+							else if (r)
+								cn->action = HC_CLOSING;
+						}
+#else
+						if (FD_ISSET(cn->fd, &rfds))
+							read_connection(cn);
+						else if (FD_ISSET(cn->fd, &wfds))
+							write_connection(cn);
+#endif
+					}
+					cn = cn->next;
+				}
 			}
 			log(L_DEBUG, "cleaning up");
 			cleanup_connections();
