@@ -248,7 +248,7 @@ void log_d(const char *fmt, ...)
 	size_t l;
 	struct tm *tp;
 
-	if (error_fd == -1 && am_daemon)
+	if (error_fd == -1)
 		return;
 	va_start(ap, fmt);
 	saved_errno = errno;
@@ -264,8 +264,6 @@ void log_d(const char *fmt, ...)
 	log_line[l++] = '\n';
 	if (error_fd != -1 && write(error_fd, log_line, l) == -1)
 		gotsigterm = 1;
-	if (am_daemon == 0)
-		write(2, log_line, l);
 	errno = saved_errno;
 	va_end(ap);
 }
