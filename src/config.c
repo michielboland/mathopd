@@ -59,7 +59,6 @@ char *error_filename;
 
 char *rootdir;
 char *coredir;
-struct connection *connections;
 struct server *servers;
 struct virtual *virtuals;
 struct vserver *vservers;
@@ -980,29 +979,9 @@ static const char *config_main(struct configuration *p)
 	return 0;
 }
 
-static struct pool *new_pool(size_t s)
-{
-	char *t;
-	struct pool *p;
-
-	p = malloc(sizeof *p);
-	if (p == 0)
-		return 0;
-	t = malloc(s);
-	if (t == 0) {
-		free(p);
-		return 0;
-	}
-	p->floor = t;
-	p->ceiling = t + s;
-	return p;
-}
-
 const char *config(const char *config_filename)
 {
 	const char *s;
-	unsigned long n;
-	struct connection *cn;
 	struct configuration *p;
 
 	p = malloc(sizeof *p);
@@ -1055,27 +1034,18 @@ const char *config(const char *config_filename)
 		log_column = default_log_column;
 		log_columns = sizeof default_log_column / sizeof default_log_column[0];
 	}
+	return 0;
+}
+
+int init_buffers(void)
+{
 	if (init_pollfds(2 * tuning.num_connections + num_servers) == -1)
-		return e_memory;
+		return -1;
 	if (init_children(tuning.num_connections) == -1)
-		return e_memory;
-	for (n = 0; n < tuning.num_connections; n++) {
-		if ((cn = malloc(sizeof *cn)) == 0)
-			return e_memory;
-		if ((cn->r = malloc(sizeof *cn->r)) == 0)
-			return e_memory;
-		if ((cn->r->headers = malloc(tuning.num_headers * sizeof *cn->r->headers)) == 0)
-			return e_memory;
-		if ((cn->input = new_pool(tuning.input_buf_size)) == 0)
-			return e_memory;
-		if ((cn->output = new_pool(tuning.buf_size)) == 0)
-			return e_memory;
-		cn->r->cn = cn;
-		cn->next = connections;
-		cn->state = HC_FREE;
-		connections = cn;
-	}
+		return -1;
+	if (init_connections(tuning.num_connections) == -1)
+		return -1;
 	if (init_log_buffer(tuning.input_buf_size + 1000) == -1)
-		return e_memory;
+		return -1;
 	return 0;
 }
