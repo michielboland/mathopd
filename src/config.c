@@ -960,7 +960,6 @@ const char *config(const char *config_filename)
 			return e_memory;
 		if ((cn->output = new_pool(tuning.buf_size)) == 0)
 			return e_memory;
-		cn->ip[15] = 0;
 		cn->r->cn = cn;
 		cn->next = connections;
 		cn->state = HC_FREE;
