@@ -151,13 +151,6 @@ static void accept_connection(struct server *s)
 			break;
 		}
 #endif
-		if (s->tcp_nodelay) {
-			if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &s->tcp_nodelay, sizeof s->tcp_nodelay) == -1) {
-				lerror("setsockopt");
-				close(fd);
-				break;
-			}
-		}
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		fcntl(fd, F_SETFL, O_NONBLOCK);
 		lsa = sizeof sa_local;
