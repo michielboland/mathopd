@@ -752,13 +752,6 @@ static const char *config_sockopts(struct configuration *p, struct server_sockop
 			what = SO_INT;
 		} else
 #endif
-#ifdef SO_KEEPALIVE
-		if (!strcasecmp(p->tokbuf, "keepalive")) {
-			l = SOL_SOCKET;
-			n = SO_KEEPALIVE;
-			what = SO_FLAG;
-		} else
-#endif
 #ifdef IPV6_V6ONLY
 		if (!strcasecmp(p->tokbuf, "v6only")) {
 			l = IPPROTO_IPV6;
