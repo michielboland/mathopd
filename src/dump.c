@@ -153,7 +153,6 @@ int process_dump(struct request *r)
 	if (r->method != M_GET && r->method != M_HEAD)
 		return 405;
 	if (r->path_args[0]) {
-		log_d("process_dump: no crap");
 		r->error_file = r->c->error_404_file;
 		return 404;
 	}
