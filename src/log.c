@@ -42,7 +42,6 @@ static const char rcsid[] = "$Id$";
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <stdio.h>
 #include <time.h>
 #include <unistd.h>
 #include <string.h>
