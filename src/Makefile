@@ -1,5 +1,5 @@
 BIN=mathopd
-OBJS=main.o config.o core.o request.o imap.o cgi.o
+OBJS=main.o config.o core.o request.o imap.o cgi.o dump.o
 DEPENDS=mathopd.h Makefile
 
 CC=gcc
