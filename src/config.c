@@ -1030,6 +1030,10 @@ const char *config(const char *config_filename)
 		log_column = default_log_column;
 		log_columns = sizeof default_log_column / sizeof default_log_column[0];
 	}
+	if (tuning.script_buf_size < tuning.input_buf_size) {
+		fprintf(stderr, "Warning: ScriptBufSize increased to InputBufSize\n");
+		tuning.script_buf_size = tuning.input_buf_size;
+	}
 	return 0;
 }
 
