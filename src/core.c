@@ -459,8 +459,10 @@ void httpd_main(void)
 	int rv;
 	int n;
 	short r;
+	time_t hours;
 
 	current_time = startuptime = time(0);
+	hours = current_time / 3600;
 	log_d("*** %s starting", server_version);
 	while (gotsigterm == 0) {
 		if (gotsighup) {
@@ -532,6 +534,12 @@ void httpd_main(void)
 				break;
 			} else
 				continue;
+		}
+		if (current_time / 3600 != hours) {
+			hours = current_time / 3600;
+			init_logs();
+			if (debug)
+				log_d("logs rotated");
 		}
 		if (rv) {
 			s = servers;
