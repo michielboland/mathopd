@@ -842,7 +842,7 @@ static int process_path(struct request *r)
 	return 500;
 }
 
-static int process_range_header(struct request *r, const char *s)
+static int parse_range_header(struct request *r, const char *s)
 {
 	char *t;
 	int suffix;
@@ -1059,7 +1059,7 @@ static int process_headers(struct request *r)
 		else {
 			s = r->range_s;
 			if (s) {
-				if (process_range_header(r, s) == -1)
+				if (parse_range_header(r, s) == -1)
 					log_d("ignoring Range header \"%s\"", s);
 			}
 		}
