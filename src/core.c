@@ -451,14 +451,12 @@ void httpd_main(void)
 	struct connection *cn;
 	int first = 1;
 	int error = 0;
-	int gotactive, rv;
+	int rv;
 #ifdef POLL
-	int to = timeout * 1000 + 500;
 	int n;
 	short r;
 #else
 	fd_set rfds, wfds;
-	struct timeval tv;
 	int m;
 #endif
 
@@ -510,13 +508,9 @@ void httpd_main(void)
 		}
 
 		cn = connections;
-		gotactive = 0;
 
 		while (cn) {
 			if (cn->state == HC_ACTIVE) {
-#ifndef NO_TIMEOUT
-				gotactive = 1;
-#endif
 				switch (cn->action) {
 				case HC_WAITING:
 				case HC_READING:
@@ -558,15 +552,12 @@ void httpd_main(void)
 			break;
 		}
 #ifdef POLL
-		rv = poll(pollfds, n, gotactive ? to : INFTIM);
+		rv = poll(pollfds, n, INFTIM);
 #else
-		tv.tv_sec = timeout;
-		tv.tv_usec = 0;
 #ifdef HPUX
-		rv = select(m + 1, (int *) &rfds, (int *) &wfds, 0,
-			    gotactive ? &tv : 0);
+		rv = select(m + 1, (int *) &rfds, (int *) &wfds, 0, 0);
 #else
-		rv = select(m + 1, &rfds, &wfds, 0, gotactive ? &tv : 0);
+		rv = select(m + 1, &rfds, &wfds, 0, 0);
 #endif /* HPUX */
 #endif /* POLL */
 		if (rv == -1) {
