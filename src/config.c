@@ -87,6 +87,7 @@ static const char c_admin[] =		"Admin";
 static const char c_alias[] =		"Alias";
 static const char c_allow[] =		"Allow";
 static const char c_allow_dotfiles[] =	"AllowDotfiles";
+static const char c_any_host[] =	"AnyHost";
 static const char c_apply[] =		"Apply";
 static const char c_buf_size[] =	"BufSize";
 static const char c_bytes_read[] =	"BytesRead";
@@ -116,7 +117,7 @@ static const char c_log_format[] =	"LogFormat";
 static const char c_method[] =		"Method";
 static const char c_name[] =		"Name";
 static const char c_noapply[] =		"NoApply";
-static const char c_nohost[] =		"NoHost";
+static const char c_no_host[] =		"NoHost";
 static const char c_num_connections[] =	"NumConnections";
 static const char c_off[] =		"Off";
 static const char c_on[] =		"On";
@@ -737,6 +738,7 @@ static const char *config_virtual(struct configuration *p, struct vserver **vs, 
 		return e_memory;
 	v->server = parent;
 	v->controls = parent->controls;
+	v->anyhost = 0;
 	nameless = 1;
 	v->next = *vs;
 	*vs = v;
@@ -750,12 +752,15 @@ static const char *config_virtual(struct configuration *p, struct vserver **vs, 
 				return t;
 			nameless = 0;
 			t = config_vhost(&parent->children, v, p->tokbuf);
-		} else if (!strcasecmp(p->tokbuf, c_nohost)) {
+		} else if (!strcasecmp(p->tokbuf, c_no_host)) {
 			nameless = 0;
 			t = config_vhost(&parent->children, v, 0);
 		} else if (!strcasecmp(p->tokbuf, c_control))
 			t = config_control(p, &v->controls);
-		else
+		else if (!strcasecmp(p->tokbuf, c_any_host)) {
+			v->anyhost = 1;
+			continue;
+		} else
 			t = e_keyword;
 		if (t)
 			return t;
