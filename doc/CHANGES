@@ -3,9 +3,15 @@ Changes between Mathopd 1.4 and Mathopd 1.5
 cgi.c:
 
 	All headers are now converted into HTTP_ environment
-	variables, not just some.
+	variables, not just some. (With the exception that
+	HTTP_CONTENT_LENGTH and HTTP_CONTENT_TYPE are not set,
+	because these are already in other variables, and
+	HTTP_AUTHORIZATION is not set if the user is
+	authenticated by Mathopd.
 
 	The value of GATEWAY_INTERFACE is now set.
+	If the user is authenticated by Mathopd, the value of
+	AUTH_TYPE is set.
 
 	The value of SERVER_NAME is set to the value of the
 	Host: header sent by the client. This appears to make
@@ -17,6 +23,15 @@ cgi.c:
 	neither ScriptUser nor RunScriptAsOwner were set. But
 	that does not catch cases where ScriptUser == User or
 	other anomalies.)
+
+	The setting of PATH_INFO and PATH_TRANSLATED is now
+	independent on whether we run as a pure CGI program or
+	an 'External' script. The SCRIPT_FILENAME variable now
+	what would be in PATH_TRANSLATED for external scripts.
+	This keeps php happy.
+
+	External scripts can now be called with added command-line
+	arguments.
 
 config.c:
 
@@ -66,6 +81,10 @@ dump.c:
 log.c:
 
 	New global function: open_log().
+
+	We no longer log to standard error if the -n command-line
+	option is set, because that interferes with the ChildLog
+	for forked requests.
 
 main.c:
 
