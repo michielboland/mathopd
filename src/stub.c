@@ -435,52 +435,62 @@ static int readfromclient(struct pipe_params *p)
 	return 0;
 }
 
+static int scanlflf(struct pipe_params *p);
+
 static int readfromchild(struct pipe_params *p)
 {
 	size_t bytestoread;
 	ssize_t r;
+	int o;
 
-	bytestoread = p->psize - p->ipp;
-	if (p->haslen && bytestoread > p->pmax)
-		bytestoread = p->pmax;
-	if (bytestoread == 0) {
-		log_d("readfromchild: bytestoread is zero!");
-		return 0;
-	}
-	r = recv(p->pfd, p->pbuf + p->ipp, bytestoread, 0);
-	if (debug)
-		log_d("readfromchild: %d %d %d %d", p->pfd, p->ipp, bytestoread, r);
-	switch (r) {
-	case -1:
-		if (errno == EAGAIN)
+	o = tuning.script_lo_wat;
+	do {
+		bytestoread = p->psize - p->ipp;
+		if (p->haslen && bytestoread > p->pmax)
+			bytestoread = p->pmax;
+		if (bytestoread == 0) {
+			log_d("readfromchild: bytestoread is zero!");
 			return 0;
-		lerror("readfromchild");
-		p->error_condition = STUB_ERROR_PIPE;
-		return -1;
-	case 0:
-		if (p->state != 2) {
-			log_d("readfromchild: premature end of script headers (ipp=%d)", p->ipp);
-			p->error_condition = STUB_ERROR_RESTART;
-			return -1;
 		}
-		if (p->haslen) {
-			log_d("readfromchild: script went away (pmax=%d)", p->pmax);
+		r = recv(p->pfd, p->pbuf + p->ipp, bytestoread, 0);
+		if (debug)
+			log_d("readfromchild: %d %d %d %d", p->pfd, p->ipp, bytestoread, r);
+		switch (r) {
+		case -1:
+			if (errno == EAGAIN)
+				return 0;
+			lerror("readfromchild");
 			p->error_condition = STUB_ERROR_PIPE;
 			return -1;
+		case 0:
+			if (p->state != 2) {
+				log_d("readfromchild: premature end of script headers (ipp=%d)", p->ipp);
+				p->error_condition = STUB_ERROR_RESTART;
+				return -1;
+			}
+			if (p->haslen) {
+				log_d("readfromchild: script went away (pmax=%d)", p->pmax);
+				p->error_condition = STUB_ERROR_PIPE;
+				return -1;
+			}
+			p->t = current_time;
+			p->pstate = 2;
+			break;
+		default:
+			p->t = current_time;
+			p->ipp += r;
+			if (p->haslen) {
+				p->pmax -= r;
+				if (p->pmax == 0)
+					p->pstate = 2;
+			}
+			if (p->state != 2) {
+				if (scanlflf(p) == -1)
+					return -1;
+			}
+			break;
 		}
-		p->t = current_time;
-		p->pstate = 2;
-		break;
-	default:
-		p->t = current_time;
-		p->ipp += r;
-		if (p->haslen) {
-			p->pmax -= r;
-			if (p->pmax == 0)
-				p->pstate = 2;
-		}
-		break;
-	}
+	} while (o && r < o && r > 0 && (size_t) r < bytestoread);
 	return 0;
 }
 
@@ -684,10 +694,6 @@ static void pipe_run(struct pipe_params *p)
 	}
 	if (pevents & POLLIN) {
 		if (readfromchild(p) == -1)
-			return;
-	}
-	if (p->ipp && p->state != 2) {
-		if (scanlflf(p) == -1)
 			return;
 	}
 	if (p->state == 2 && p->pstart < p->ipp)
