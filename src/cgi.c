@@ -110,7 +110,7 @@ static int add_argv(const char *a, const char *b, int decode, struct cgi_paramet
 	if (a == 0)
 		cp->cgi_argv[cp->cgi_argc] = 0;
 	else {
-		s = b ? b - a : strlen(a);
+		s = b ? (size_t) (b - a) : strlen(a);
 		tmp = malloc(s + 1);
 		if (tmp == 0) {
 			cp->cgi_argv[cp->cgi_argc] = 0;
