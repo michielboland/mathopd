@@ -563,6 +563,10 @@ static void copychunk(struct pipe_params *p)
 	char chunkbuf[16];
 	size_t chunkheaderlen;
 
+	if (p->nocontent) {
+		p->pstart = p->ipp = 0;
+		return;
+	}
 	room = p->osize - p->otop;
 	bytestocopy = p->ipp - p->pstart;
 	if (bytestocopy > room)
