@@ -386,7 +386,6 @@ extern int maxconnections;
 extern time_t startuptime;
 extern time_t current_time;
 extern struct pollfd *pollfds;
-extern int available_connections;
 extern unsigned long nrequests;
 extern struct connection *connection_array;
 extern void set_connection_state(struct connection *, enum connection_state);
