@@ -1015,10 +1015,10 @@ int prepare_reply(struct request *r)
 		b += sprintf(b, "<title>%s</title>\n", r->status_line);
 		switch (r->status) {
 		case 302:
-			b += sprintf(b, "This document has moved to URL " "<a href=\"%s\">%s</a>.\n", r->location, r->location);
+			b += sprintf(b, "This document has moved to URL <a href=\"%s\">%s</a>.\n", r->location, r->location);
 			break;
 		case 401:
-			b += sprintf(b, "You need proper authorization to " "use this resource.\n");
+			b += sprintf(b, "You need proper authorization to use this resource.\n");
 			break;
 		case 400:
 		case 405:
