@@ -160,7 +160,7 @@ static const char e_help[] =		"unknown error (help)";
 static const char e_inval[] =		"illegal quantity";
 static const char e_keyword[] =		"unknown keyword";
 static const char e_memory[] =		"out of memory";
-static const char e_illegalport[] =	"Illegal port number";
+static const char e_illegalport[] =	"illegal port number";
 static const char e_noinput[] =		"no input";
 
 static const char t_close[] =		"unexpected closing brace";
