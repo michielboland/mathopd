@@ -10,22 +10,21 @@
 
 int buf_size = DEFAULT_BUF_SIZE;
 int input_buf_size = INPUT_BUF_SIZE;
-int log_level = L_WARNING;
 int num_connections = DEFAULT_NUM_CONNECTIONS;
 int timeout = DEFAULT_TIMEOUT;
-static char *null;
-char **exports = &null;
 
 char *pid_filename;
 char *log_filename;
 char *error_filename;
 char *agent_filename;
+char *child_filename;
 
 char *admin;
 char *coredir;
 int keepalive;
 struct connection *connections;
 struct server *servers;
+struct simple_list *exports;
 
 char *user_name;
 uid_t user_id;
@@ -35,71 +34,75 @@ gid_t group_id;
 struct pollfd *pollfds;
 #endif
 
-static char *err;
+static const char *err;
 static char *fqdn;
 static char tokbuf[STRLEN];
-static int lastline;
 static int line = 1;
 static int num_servers = 0;
 static struct control *controls;
 
-static char *c_access =			"Access";
-static char *c_address =		"Address";
-static char *c_admin =			"Admin";
-static char *c_agent =			"AgentLog";
-static char *c_alias =			"Alias";
-static char *c_allow =			"Allow";
-static char *c_buf_size =		"BufSize";
-static char *c_control =		"Control";
-static char *c_deny =			"Deny";
-static char *c_directory =		"Directory";
-static char *c_error =			"ErrorLog";
-static char *c_exact =			"Exact";
-static char *c_export =			"Export";
-static char *c_group =			"Group";
-static char *c_index_names =		"IndexNames";
-static char *c_keep_alive =		"KeepAlive";
-static char *c_log =			"Log";
-static char *c_log_level =		"LogLevel";
-static char *c_name =			"Name";
-static char *c_num_connections =	"NumConnections";
-static char *c_pid =			"PIDFile";
-static char *c_port =			"Port";
-static char *c_redirect =		"Redirect";
-static char *c_server =			"Server";
-static char *c_specials =		"Specials";
-static char *c_symlinks_ok =		"SymlinksOK";
-static char *c_timeout =		"Timeout";
-static char *c_types =			"Types";
-static char *c_user =			"User";
+static STRING(c_access) =		"Access";
+static STRING(c_address) =		"Address";
+static STRING(c_admin) =		"Admin";
+static STRING(c_agent) =		"AgentLog";
+static STRING(c_alias) =		"Alias";
+static STRING(c_allow) =		"Allow";
+static STRING(c_buf_size) =		"BufSize";
+static STRING(c_child_log) =		"ChildLog";
+static STRING(c_control) =		"Control";
+static STRING(c_core_directory) =	"CoreDirectory";
+static STRING(c_default_name) =		"DefaultName";
+static STRING(c_deny) =			"Deny";
+static STRING(c_error) =		"ErrorLog";
+static STRING(c_exact) =		"Exact";
+static STRING(c_export) =		"Export";
+static STRING(c_group) =		"Group";
+static STRING(c_host) =			"Host";
+static STRING(c_index_names) =		"IndexNames";
+static STRING(c_keep_alive) =		"KeepAlive";
+static STRING(c_location) =		"Location";
+static STRING(c_log) =			"Log";
+static STRING(c_loglevel) =		"LogLevel";
+static STRING(c_name) =			"Name";
+static STRING(c_num_connections) =	"NumConnections";
+static STRING(c_off) =			"Off";
+static STRING(c_on) =			"On";
+static STRING(c_pid) =			"PIDFile";
+static STRING(c_port) =			"Port";
+static STRING(c_server) =		"Server";
+static STRING(c_specials) =		"Specials";
+static STRING(c_symlinks) =		"Symlinks";
+static STRING(c_timeout) =		"Timeout";
+static STRING(c_types) =		"Types";
+static STRING(c_virtual) =		"Virtual";
+static STRING(c_user) =			"User";
 
-static char *e_addr_set =		"address already set";
-static char *e_array =			"too many elements in array";
-static char *e_bad_addr =		"bad address";
-static char *e_bad_alias =		"alias without matching location";
-static char *e_bad_group =		"bad group name";
-static char *e_bad_user =		"bad user name";
-static char *e_help =			"unknown error (help)";
-static char *e_inval =			"illegal quantity";
-static char *e_keyword =		"unknown keyword";
-static char *e_memory =			"out of memory";
-static char *e_unknown_host =		"no hostname specified";
+static STRING(e_addr_set) =		"address already set";
+static STRING(e_bad_addr) =		"bad address";
+static STRING(e_bad_alias) =		"alias without matching location";
+static STRING(e_bad_group) =		"bad group name";
+static STRING(e_bad_user) =		"bad user name";
+static STRING(e_help) =			"unknown error (help)";
+static STRING(e_inval) =		"illegal quantity";
+static STRING(e_keyword) =		"unknown keyword";
+static STRING(e_memory) =		"out of memory";
+static STRING(e_no_servers) =		"no servers";
+static STRING(e_unknown_host) =		"no default hostname";
 
-static char *t_close =			"unexpected closing brace";
-static char *t_eof =			"unexpected end of file";
-static char *t_open =			"unexpected opening brace";
-static char *t_string =			"unexpected string";
-static char *t_too_long =		"token too long";
-static char *t_word =			"unexpected word";
+static STRING(t_close) =		"unexpected closing brace";
+static STRING(t_eof) =			"unexpected end of file";
+static STRING(t_open) =			"unexpected opening brace";
+static STRING(t_string) =		"unexpected string";
+static STRING(t_too_long) =		"token too long";
+static STRING(t_word) =			"unexpected word";
 
-static char *gettoken(void)
+static const char *gettoken(void)
 {
 	int c;
 	char w;
 	int i = 0;
 	char state = 1;
 
-	lastline = line;
 	err = e_help;
 	do {
 		w = 0;
@@ -211,20 +214,32 @@ char *strdup(const char *s)
 #define NOTCLOSE() gettoken() != t_close
 #define NOTEOF() gettoken() != t_eof
 
-static char *config_string(char **a)
+static const char *config_string(char **a)
 {
 	GETSTRING();
 	COPY(*a, tokbuf);
 	return 0;
 }
 
-static char *config_int(int *i)
+static const char *config_int(int *i)
 {
 	GETWORD();
 	return ((*i = atoi(tokbuf)) < 1) ? e_inval : 0;
 }
 
-static char *config_user(uid_t *u)
+static const char *config_flag(int *i)
+{
+	GETWORD();
+	if (strceq(tokbuf, c_off))
+		*i = 0;
+	else if (strceq(tokbuf, c_on))
+		*i = 1;
+	else
+		return e_keyword;
+	return 0;
+}
+	
+static const char *config_user(uid_t *u)
 {
 	struct passwd *pwent;
 
@@ -234,7 +249,7 @@ static char *config_user(uid_t *u)
 	return *u ? 0 : e_bad_user;
 }
 
-static char *config_group(gid_t *g)
+static const char *config_group(gid_t *g)
 {
 	struct group *grent;
 
@@ -243,7 +258,7 @@ static char *config_group(gid_t *g)
 	return *g ? 0 : e_bad_group;
 }
 
-static char *config_address(char **a, struct in_addr *b)
+static const char *config_address(char **a, struct in_addr *b)
 {
 	if (*a)
 		return e_addr_set;
@@ -254,7 +269,7 @@ static char *config_address(char **a, struct in_addr *b)
 	return 0;
 }
 
-static char *config_name(char **a, struct in_addr *b)
+static const char *config_name(char **a, struct in_addr *b)
 {
 	struct hostent *h;
 
@@ -268,31 +283,22 @@ static char *config_name(char **a, struct in_addr *b)
 	return 0;
 }
 
-static char *config_array(char ***a)
+static const char *config_list(struct simple_list **ls)
 {
-	static char *b[MAX_ARRAY+1];
-	char **c;
-	int i;
-	int j;
+	struct simple_list *l;
 
 	GETOPEN();
-	i = 0;
 	while (NOTCLOSE()) {
 		REQSTRING();
-		if (i >= MAX_ARRAY)
-			return e_array;
-		COPY(b[i++], tokbuf);
+		MAKE(l, struct simple_list);
+		COPY(l->name, tokbuf);
+		l->next = *ls;
+		*ls = l;
 	}
-	b[i++] = 0;
-	if ((c = (char **) malloc(i * sizeof (char *))) == 0)
-		return e_memory;
-	for (j = 0; j < i; j++)
-		c[j] = b[j];
-	*a = c;
 	return 0;
 }
 
-static char *config_mime(struct mime **ms, int type)
+static const char *config_mime(struct mime **ms, int type)
 {
 	struct mime *m;
 	char *name;
@@ -329,7 +335,7 @@ static char *config_mime(struct mime **ms, int type)
 	return 0;
 }
 
-static char *config_access(struct access **ls)
+static const char *config_access(struct access **ls)
 {
 	struct access *l;
 
@@ -362,7 +368,7 @@ static char *config_access(struct access **ls)
 	}
 	return 0;
 }
-
+	
 static void chopslash(char *s)
 {
 	char *t;
@@ -372,89 +378,123 @@ static void chopslash(char *s)
 		*t = '\0';
 }
 
-static char *config_control(struct control **as)
+static const char *config_control(struct control **as)
 {
-	char *t = 0;
-	struct control *a;
-	struct control *b;
+	const char *t = 0;
+	struct control *a, *b;
+	struct simple_list *l;
 
 	b = *as;
-	while (b && b->directory)
+	while (b && b->locations)
 		b = b->next;
 	MAKE(a, struct control);
-	a->directory = 0;
+	a->locations = 0;
 	a->alias = 0;
-	a->symlinksok = 0;
-	a->redirectno = 0;
 	if (b) {
 		a->index_names = b->index_names;
-		a->redirects = b->redirects;
 		a->accesses = b->accesses;
 		a->mimes = b->mimes;
-		a->log_level = b->log_level;
+		a->symlinksok = b->symlinksok;
+		a->loglevel = b->loglevel;
 	}
 	else {
-		a->index_names = &null;
-		a->redirects = &null;
+		a->index_names = 0;
 		a->accesses = 0;
 		a->mimes = 0;
-		a->log_level = 2;
+		a->symlinksok = 0;
+		a->loglevel = 0;
 	}
 	a->next = *as;
 	*as = a;
 	GETOPEN();
 	while (NOTCLOSE()) {
 		REQWORD();
-		if (strceq(tokbuf, c_directory)) {
+		if (strceq(tokbuf, c_location)) {
+			MAKE(l, struct simple_list);
 			GETSTRING();
 			chopslash(tokbuf);
-			COPY(a->directory, tokbuf);
+			COPY(l->name, tokbuf);
+			if (a->locations) {
+				l->next = a->locations->next;
+				a->locations->next = l;
+			} else {
+				l->next = l;
+				a->locations = l;
+			}
 		}
 		else if (strceq(tokbuf, c_alias)) {
 			GETSTRING();
 			chopslash(tokbuf);
 			COPY(a->alias, tokbuf);
 		}
-		else if (strceq(tokbuf, c_symlinks_ok))
-			a->symlinksok = 1;
+		else if (strceq(tokbuf, c_symlinks))
+			t = config_flag(&a->symlinksok);
+		else if (strceq(tokbuf, c_loglevel))
+			t = config_int(&a->loglevel);
 		else if (strceq(tokbuf, c_index_names))
-			t = config_array(&a->index_names);
-		else if (strceq(tokbuf, c_redirect))
-			t = config_array(&a->redirects);
+			t = config_list(&a->index_names);
 		else if (strceq(tokbuf, c_access))
 			t = config_access(&a->accesses);
 		else if (strceq(tokbuf, c_types))
 			t = config_mime(&a->mimes, M_TYPE);
 		else if (strceq(tokbuf, c_specials))
 			t = config_mime(&a->mimes, M_SPECIAL);
-		else if (strceq(tokbuf, c_log_level))
-			t = config_int(&a->log_level);
 		else
 			t = e_keyword;
 		if (t)
 			return t;
 	}
-	if (a->alias && (a->directory == 0))
+	if (a->alias && (a->locations == 0))
 		return e_bad_alias;
 	return 0;
 }
 
-static char *config_server(struct server **ss)
+static const char *config_virtual(struct virtual **vs, struct server *parent,
+				  int trivial)
 {
-	char *t = 0;
+	const char *t = 0;
+	struct virtual *v;
+
+	MAKE(v, struct virtual);
+	v->host = 0;
+	v->parent = parent;
+	v->controls = parent->controls;
+	v->nrequests = 0;
+	v->next = *vs;
+	*vs = v;
+	if (trivial)
+		return 0;
+	GETOPEN();
+	while (NOTCLOSE()) {
+		REQWORD();
+		if (strceq(tokbuf, c_host))
+			t = config_string(&v->host);
+		else if (strceq(tokbuf, c_control))
+			t = config_control(&v->controls);
+		else
+			t = e_keyword;
+		if (t)
+			return t;
+	}
+	return 0;
+}
+
+static const char *config_server(struct server **ss)
+{
+	const char *t = 0;
 	struct server *s;
+	struct virtual *v;
 
 	MAKE(s, struct server);
 	num_servers++;
 	s->port = 0;
 	s->addr.s_addr = htonl(INADDR_ANY);
 	s->name = 0;
-	s->fullname = 0;
+	s->children = 0;
 	s->controls = controls;
 	s->next = *ss;
 	s->naccepts = 0;
 	s->nhandled = 0;
-	s->nrequests = 0;
 	*ss = s;
 	GETOPEN();
 	while (NOTCLOSE()) {
@@ -465,6 +505,8 @@ static char *config_server(struct server **ss)
 			t = config_name(&s->name, &s->addr);
 		else if (strceq(tokbuf, c_address))
 			t = config_address(&s->name, &s->addr);
+		else if (strceq(tokbuf, c_virtual))
+			t = config_virtual(&s->children, s, 0);
 		else if (strceq(tokbuf, c_control))
 			t = config_control(&s->controls);
 		else
@@ -472,37 +514,59 @@ static char *config_server(struct server **ss)
 		if (t)
 			return t;
 	}
-	if (s->port == 0)
-		s->port = DEFAULT_PORT;
-	if (s->name == 0) {
-		if (fqdn == 0)
-			return e_unknown_host;
-		s->name = fqdn;
+	v = s->children;
+	while (v) {
+		if (v->host == 0)
+			break;
+		v = v->next;
 	}
-	if (s->port == DEFAULT_PORT)
-		s->fullname = s->name;
-	else {
-		char buf[80];
+	return (v == 0) ? config_virtual(&s->children, s, 1) : 0;
+}
 
-		sprintf(buf, "%s:%d", s->name, s->port);
-		COPY(s->fullname, buf);
+static const char *fill_servernames(void)
+{
+	struct server *s = servers;
+	struct virtual *v;
+	char buf[256];
+	char *name;
+
+	if (s == 0)
+		return e_no_servers;
+	while (s) {
+		if (s->port == 0)
+			s->port = DEFAULT_PORT;
+		if (s->name == 0) {
+			if (fqdn == 0)
+				return e_unknown_host;
+			s->name = fqdn;
+		}
+		v = s->children;
+		while (v) {
+			name = v->host ? v->host : s->name;
+			if (s->port == DEFAULT_PORT)
+				v->fullname = name;
+			else {
+				sprintf(buf, "%.80s:%d", name, s->port);
+				COPY(v->fullname, buf);
+			}
+			v = v->next;
+		}
+		s = s->next;
 	}
 	return 0;
 }
 
-static char *config_main(void)
+static const char *config_main(void)
 {
-	char *t = 0;
+	const char *t = 0;
 
 	while (NOTEOF()) {
 		REQWORD();
 		if (strceq(tokbuf, c_keep_alive))
 			keepalive = 1;
-		else if (strceq(tokbuf, c_log_level))
-			t = config_int(&log_level);
-		else if (strceq(tokbuf, c_directory))
+		else if (strceq(tokbuf, c_core_directory))
 			t = config_string(&coredir);
-		else if (strceq(tokbuf, c_name))
+		else if (strceq(tokbuf, c_default_name))
 			t = config_string(&fqdn);
 		else if (strceq(tokbuf, c_admin))
 			t = config_string(&admin);
@@ -524,8 +588,10 @@ static char *config_main(void)
 			t = config_string(&error_filename);
 		else if (strceq(tokbuf, c_agent))
 			t = config_string(&agent_filename);
+		else if (strceq(tokbuf, c_child_log))
+			t = config_string(&child_filename);
 		else if (strceq(tokbuf, c_export))
-			t = config_array(&exports);
+			t = config_list(&exports);
 		else if (strceq(tokbuf, c_control))
 			t = config_control(&controls);
 		else if (strceq(tokbuf, c_server))
@@ -558,7 +624,7 @@ static struct pool *new_pool(size_t s)
 
 void config(void)
 {
-	char *s;
+	const char *s;
 	int n;
 	struct connection *cn;
 
@@ -569,8 +635,12 @@ void config(void)
 		    "An error occurred at token `%s' around line %d:\n"
 		    "*** %s ***",
 		    tokbuf,
-		    lastline,
+		    line,
 		    s);
+
+	s = fill_servernames();
+	if (s)
+		die(0, "%s", s);
 
 #ifdef POLL
 	pollfds = (struct pollfd *) malloc((num_connections + num_servers)
