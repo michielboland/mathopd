@@ -303,7 +303,8 @@ static const char *config_string(struct configuration *p, char **a)
 
 	if ((t = gettoken(p)) != t_string && t != t_word)
 		return t;
-	if ((*a = strdup(p->tokbuf)) == 0) return e_memory;
+	if ((*a = strdup(p->tokbuf)) == 0)
+		return e_memory;
 	return 0;
 }
 
@@ -360,8 +361,10 @@ static const char *config_list(struct configuration *p, struct simple_list **ls)
 	while ((t = gettoken(p)) != t_close) {
 		if (t != t_string && t != t_word)
 			return t;
-		if ((l = malloc(sizeof *l)) == 0) return e_memory;
-		if ((l->name = strdup(p->tokbuf)) == 0) return e_memory;
+		if ((l = malloc(sizeof *l)) == 0)
+			return e_memory;
+		if ((l->name = strdup(p->tokbuf)) == 0)
+			return e_memory;
 		l->next = *ls;
 		*ls = l;
 	}
@@ -435,13 +438,15 @@ static const char *config_mime(struct configuration *p, struct mime **ms, int cl
 	while ((t = gettoken(p)) != t_close) {
 		if (t != t_string && t != t_word)
 			return t;
-		if ((name = strdup(p->tokbuf)) == 0) return e_memory;
+		if ((name = strdup(p->tokbuf)) == 0)
+			return e_memory;
 		if ((t = gettoken(p)) != t_open)
 			return t;
 		while ((t = gettoken(p)) != t_close) {
 			if (t != t_string && t != t_word)
 				return t;
-			if ((m = malloc(sizeof *m)) == 0) return e_memory;
+			if ((m = malloc(sizeof *m)) == 0)
+				return e_memory;
 			m->class = class;
 			m->name = name;
 			if (!strcasecmp(p->tokbuf, c_all))
@@ -450,7 +455,8 @@ static const char *config_mime(struct configuration *p, struct mime **ms, int cl
 				s = p->tokbuf;
 				while (*s == '.')
 					++s;
-				if ((m->ext = strdup(s)) == 0) return e_memory;
+				if ((m->ext = strdup(s)) == 0)
+					return e_memory;
 			}
 			m->next = *ms;
 			*ms = m;
@@ -511,7 +517,8 @@ static const char *config_acccl(struct configuration *p, struct access **ls, int
 	while ((t = gettoken(p)) != t_close) {
 		if (t != t_word)
 			return t;
-		if ((l = malloc(sizeof *l)) == 0) return e_memory;
+		if ((l = malloc(sizeof *l)) == 0)
+			return e_memory;
 		l->next = *ls;
 		*ls = l;
 		if (accltype == ALLOWDENY) {
@@ -570,7 +577,8 @@ static const char *config_owners(struct configuration *p, struct file_owner **op
 	while ((t = gettoken(p)) != t_close) {
 		if (t != t_word)
 			return t;
-		if ((o = malloc(sizeof *o)) == 0) return e_memory;
+		if ((o = malloc(sizeof *o)) == 0)
+			return e_memory;
 		o->next = *op;
 		*op = o;
 		if (!strcasecmp(p->tokbuf, c_user)) {
@@ -615,7 +623,8 @@ static const char *config_control(struct configuration *p, struct control **as)
 	b = *as;
 	while (b && b->locations)
 		b = b->next;
-	if ((a = malloc(sizeof *a)) == 0) return e_memory;
+	if ((a = malloc(sizeof *a)) == 0)
+		return e_memory;
 	a->locations = 0;
 	a->alias = 0;
 	a->clients = 0;
@@ -665,11 +674,13 @@ static const char *config_control(struct configuration *p, struct control **as)
 		if (t != t_word)
 			return t;
 		if (!strcasecmp(p->tokbuf, c_location)) {
-			if ((l = malloc(sizeof *l)) == 0) return e_memory;
+			if ((l = malloc(sizeof *l)) == 0)
+				return e_memory;
 			if ((t = gettoken(p)) != t_string && t != t_word)
 				return t;
 			chopslash(p->tokbuf);
-			if ((l->name = strdup(p->tokbuf)) == 0) return e_memory;
+			if ((l->name = strdup(p->tokbuf)) == 0)
+				return e_memory;
 			if (a->locations) {
 				l->next = a->locations->next;
 				a->locations->next = l;
@@ -682,7 +693,8 @@ static const char *config_control(struct configuration *p, struct control **as)
 			if ((t = gettoken(p)) != t_string && t != t_word)
 				return t;
 			chopslash(p->tokbuf);
-			if ((a->alias = strdup(p->tokbuf)) == 0) return e_memory;
+			if ((a->alias = strdup(p->tokbuf)) == 0)
+				return e_memory;
 			continue;
 		} else if (!strcasecmp(p->tokbuf, c_path_args))
 			t = config_flag(p, &a->path_args_ok);
@@ -740,11 +752,13 @@ static const char *config_vhost(struct virtual **vs, struct vserver *s, const ch
 {
 	struct virtual *v;
 
-	if ((v = malloc(sizeof *v)) == 0) return e_memory;
+	if ((v = malloc(sizeof *v)) == 0)
+		return e_memory;
 	if (host == 0)
 		v->host = 0;
 	else {
-		if ((v->host = strdup(host)) == 0) return e_memory;
+		if ((v->host = strdup(host)) == 0)
+			return e_memory;
 	}
 	v->fullname = 0;
 	v->parent = s->server;
@@ -764,7 +778,8 @@ static const char *config_virtual(struct configuration *p, struct vserver **vs, 
 	int nameless;
 	const char *t;
 
-	if ((v = malloc(sizeof *v)) == 0) return e_memory;
+	if ((v = malloc(sizeof *v)) == 0)
+		return e_memory;
 	v->server = parent;
 	v->controls = parent->controls;
 	nameless = 1;
@@ -798,7 +813,8 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	struct server *s;
 	const char *t;
 
-	if ((s = malloc(sizeof *s)) == 0) return e_memory;
+	if ((s = malloc(sizeof *s)) == 0)
+		return e_memory;
 	num_servers++;
 	s->port = 80;
 	s->addr.s_addr = 0;
@@ -850,7 +866,8 @@ static const char *fill_servernames(void)
 				s->s_fullname = s->s_name;
 			else {
 				sprintf(buf, "%.200s:%lu", s->s_name, s->port);
-				if ((s->s_fullname = strdup(buf)) == 0) return e_memory;
+				if ((s->s_fullname = strdup(buf)) == 0)
+					return e_memory;
 			}
 		}
 		v = s->children;
@@ -862,7 +879,8 @@ static const char *fill_servernames(void)
 					v->fullname = name;
 				else {
 					sprintf(buf, "%.200s:%lu", name, s->port);
-					if ((v->fullname = strdup(buf)) == 0) return e_memory;
+					if ((v->fullname = strdup(buf)) == 0)
+						return e_memory;
 				}
 			}
 			v = v->next;
@@ -1017,8 +1035,10 @@ const char *config(const char *config_filename)
 		return e_memory;
 #endif
 	for (n = 0; n < tuning.num_connections; n++) {
-		if ((cn = malloc(sizeof *cn)) == 0) return e_memory;
-		if ((cn->r = malloc(sizeof *cn->r)) == 0) return e_memory;
+		if ((cn = malloc(sizeof *cn)) == 0)
+			return e_memory;
+		if ((cn->r = malloc(sizeof *cn->r)) == 0)
+			return e_memory;
 		if ((cn->input = new_pool(tuning.input_buf_size)) == 0)
 			return e_memory;
 		if ((cn->output = new_pool(tuning.buf_size)) == 0)
