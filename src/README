@@ -10,4 +10,9 @@ We are currently at 1.3b8. Changes to the last beta:
 	Multiple "Host" keywords can now be used inside
 	Virtual blocks.
 
+	Logging now takes place after the transfer, instead
+	of before. This allows us to keep more accurate track
+	of actual data transferred. Two extra columns are added:
+	bytes read and bytes written.
+
 Michiel Boland <boland@diva.nl>
