@@ -149,6 +149,7 @@ static void init_connection(struct connection *cn)
 	cn->nread = 0;
 	cn->nwritten = 0;
 	cn->left = 0;
+	cn->havefile = 0;
 	gettimeofday(&cn->itv, 0);
 }
 
@@ -332,7 +333,7 @@ static int fill_connection(struct connection *cn)
 static void end_response(struct connection *cn)
 {
 #if defined LINUX_SENDFILE || defined FREEBSD_SENDFILE
-	if (cn->rfd != -1)
+	if (cn->havefile)
 		if (set_nopush(cn->fd, 0) == -1) {
 			if (debug)
 				lerror("set_nopush");
@@ -440,6 +441,7 @@ static int begin_response(struct connection *cn)
 		cn->left = 0;
 		return 0;
 	}
+	cn->havefile = 1;
 	cn->left = cn->r->content_length;
 #if defined LINUX_SENDFILE || defined FREEBSD_SENDFILE
 	if (set_nopush(cn->fd, 1) == -1) {
