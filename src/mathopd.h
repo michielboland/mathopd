@@ -83,7 +83,8 @@
 enum {
 	ALLOW,
 	DENY,
-	APPLY
+	APPLY,
+	NOAPPLY
 };
 
 enum {
