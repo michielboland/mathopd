@@ -76,8 +76,8 @@ int unescape_url(const char *from, char *to)
 			if (!isxdigit(x2))
 				return -1;
 			*to++ = (hexdigit(x1) << 4) + hexdigit(x2);
-		}
-		else *to++ = c;
+		} else
+			*to++ = c;
 	}
 	*to = 0;
 	return 0;
@@ -96,8 +96,8 @@ int unescape_url_n(const char *from, char *to, size_t n)
 			if (!isxdigit(x2))
 				return -1;
 			*to++ = (hexdigit(x1) << 4) + hexdigit(x2);
-		}
-		else *to++ = c;
+		} else
+			*to++ = c;
 	}
 	*to = 0;
 	return 0;

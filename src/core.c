@@ -556,8 +556,7 @@ void httpd_main(void)
 			if (first) {
 				first = 0;
 				log_d("*** %s starting", server_version);
-			}
-			else
+			} else
 				log_d("logs reopened");
 		}
 		if (gotsigusr1) {

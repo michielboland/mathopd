@@ -221,8 +221,7 @@ int main(int argc, char *argv[])
 			      DEFAULT_FILEMODE);
 		if (pid_fd == -1)
 			die("open", "Cannot open PID file");
-	}
-	else
+	} else
 		pid_fd = -1;
 	dup2(null_fd, 0);
 	dup2(null_fd, 1);
