@@ -311,11 +311,21 @@ static int get_mime(struct request *r, const char *s)
 	return -1;
 }
 
+static void close_rfd(struct request *r)
+{
+	if (r->cn->rfd == -1)
+		return;
+	if (debug)
+		log_d("close_rfd: %d", r->cn->rfd);
+	close(r->cn->rfd);
+	r->cn->rfd = -1;
+}
+
 static int get_path_info(struct request *r)
 {
 	char *p, *pa, *end, *cp, *start, *cds;
 	struct stat *s;
-	int rv, first;
+	int fd, rv, first;
 	size_t m;
 
 	m = r->location_length;
@@ -334,10 +344,21 @@ static int get_path_info(struct request *r)
 	while (cp >= start) {
 		if (cp != end)
 			*cp = 0;
-		rv = stat(p, s);
+		fd = open(p, O_RDONLY | O_NONBLOCK);
+		if (fd != -1) {
+			fcntl(fd, F_SETFD, FD_CLOEXEC);
+			rv = fstat(fd, s);
+			if (rv == -1) {
+				lerror("fstat");
+				close(fd);
+				return -1;
+			}
+			close_rfd(r);
+			r->cn->rfd = fd;
+		}
  		if (debug)
- 			log_d("get_path_info: stat(\"%s\") = %d", p, rv);
-		if (rv != -1) {
+ 			log_d("get_path_info: open(\"%s\") = %d", p, fd);
+		if (fd != -1) {
 			if (r->curdir[0] == 0) {
 				first = 1;
 				strcpy(r->curdir, p);
@@ -345,7 +366,7 @@ static int get_path_info(struct request *r)
 		}
 		if (cp != end)
 			*cp = '/';
-		if (rv != -1) {
+		if (fd != -1) {
 			strcpy(pa, cp);
 			if (S_ISDIR(s->st_mode))
 				*cp++ = '/';
@@ -532,9 +553,8 @@ static int satisfy_range(struct request *r)
 
 static int process_fd(struct request *r)
 {
-	int fd;
-
 	if (r->path_args[0] && r->c->path_args_ok == 0 && (r->path_args[1] || r->isindex == 0)) {
+		close_rfd(r);
 		if (debug)
 			log_d("process_fd: path_args is not empty");
 		r->error_file = r->c->error_404_file;
@@ -542,33 +562,11 @@ static int process_fd(struct request *r)
 		return 1;
 	}
 	if (r->method == M_POST) {
+		close_rfd(r);
 		if (debug)
 			log_d("POST to file rejected");
 		r->status = 405;
 		return 0;
-	}
-	fd = open(r->path_translated, O_RDONLY | O_NONBLOCK);
-	if (debug)
-		log_d("process_fd: %d %s", fd, r->path_translated);
-	if (fd == -1) {
-		log_d("cannot open %s", r->path_translated);
-		lerror("open");
-		r->error_file = r->c->error_404_file;
-		r->status = 404;
-		return 1;
-	}
-	if (fstat(fd, &r->finfo) == -1) {
-		lerror("fstat");
-		close(fd);
-		r->status = 500;
-		return 0;
-	}
-	if (!S_ISREG(r->finfo.st_mode)) {
-		log_d("process_fd: non-regular file %s", r->path_translated);
-		close(fd);
-		r->error_file = r->c->error_404_file;
-		r->status = 404;
-		return 1;
 	}
 	r->content_length = r->finfo.st_size;
 	r->cn->file_offset = 0;
@@ -582,7 +580,7 @@ static int process_fd(struct request *r)
 			}
 		}
 		if (r->last_modified <= r->ims) {
-			close(fd);
+			close_rfd(r);
 			r->num_content = -1;
 			if (debug)
 				log_d("file not modified (%d <= %d)", r->last_modified, r->ims);
@@ -590,7 +588,7 @@ static int process_fd(struct request *r)
 			return 0;
 		}
 		if (r->ius && r->last_modified > r->ius) {
-			close(fd);
+			close_rfd(r);
 			if (debug)
 				log_d("file modified (%d > %d)", r->last_modified, r->ius);
 			r->status = 412;
@@ -600,17 +598,15 @@ static int process_fd(struct request *r)
 			r->status = 200;
 		else {
 			if (satisfy_range(r) == -1) {
-				close(fd);
+				close_rfd(r);
 				if (debug)
 					log_d("satisfy_range failed");
 				r->status = 416;
 				return 0;
 			}
 			if (r->range) {
-				if (r->range_floor) {
-					lseek(fd, r->range_floor, SEEK_SET);
+				if (r->range_floor)
 					r->cn->file_offset = r->range_floor;
-				}
 				r->content_length = r->range_ceiling - r->range_floor + 1;
 				if (debug)
 					log_d("returning partial content");
@@ -622,11 +618,8 @@ static int process_fd(struct request *r)
 			}
 		}
 	}
-	if (r->method == M_GET) {
-		fcntl(fd, F_SETFD, FD_CLOEXEC);
-		r->cn->rfd = fd;
-	} else
-		close(fd);
+	if (r->method != M_GET)
+		close_rfd(r);
 	return 0;
 }
 
@@ -823,6 +816,7 @@ static int process_path_translated(struct request *r)
 		return 1;
 	}
 	if (S_ISDIR(r->finfo.st_mode)) {
+		close_rfd(r);
 		if (r->status)
 			return 0;
 		if (r->path_args[0] != '/')
@@ -846,6 +840,7 @@ static int process_path_translated(struct request *r)
 		}
 	}
 	if (r->path_args[0] && r->c->path_info_ok == 0 && r->isindex == 0) {
+		close_rfd(r);
 		if (debug)
 			log_d("nonempty path_args while PathInfo is off");
 		r->error_file = r->c->error_404_file;
@@ -853,17 +848,21 @@ static int process_path_translated(struct request *r)
 		return 1;
 	}
 	if (!S_ISREG(r->finfo.st_mode)) {
+		close_rfd(r);
 		log_d("%s is not a regular file", r->path_translated);
 		r->error_file = r->c->error_404_file;
 		r->status = 404;
 		return 1;
 	}
 	if (get_mime(r, r->path_translated) == -1) {
+		close_rfd(r);
 		log_d("get_mime failed for %s", r->path_translated);
 		r->error_file = r->c->error_404_file;
 		r->status = 404;
 		return 1;
 	}
+	if (r->class != CLASS_FILE)
+		close_rfd(r);
 	switch (r->class) {
 	case CLASS_FILE:
 		return process_fd(r);
