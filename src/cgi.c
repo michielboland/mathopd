@@ -258,36 +258,62 @@ static int init_cgi_env(struct request *r)
 	return 0;
 }
 
-static int set_uids(uid_t uid, gid_t gid)
+static int become_user(const char *name)
 {
 	int rv;
+	struct passwd *pw;
+	uid_t u;
 
-	if (uid < 100) {
-		log_d("refusing to set uid to %d", uid);
-		return -1;
+	if (name == 0) {
+		u = geteuid();
+		if (debug)
+			log_d("become_user: geteuid() = %d", u);
+		if (u == 0) {
+			log_d("cannot run scripts as superuser");
+			return -1;
+		}
+	} else {
+		pw = getpwnam(name);
+		if (pw == 0) {
+			log_d("%s: no such user", name);
+			return -1;
+		}
+		u = pw->pw_uid;
+		if (u == 0) {
+			log_d("%s: invalid user", name);
+			return -1;
+		}
+		rv = setuid(0);
+		if (debug)
+			log_d("become_user: setuid(0) = %d", rv);
+		if (rv == -1) {
+			lerror("setuid");
+			return -1;
+		}
+		rv = initgroups(name, pw->pw_gid);
+		if (debug)
+			log_d("become_user: initgroups(\"%s\", %d) = %d", name, pw->pw_gid, rv);
+		if (rv == -1) {
+			lerror("initgroups");
+			return -1;
+		}
+		rv = setgid(pw->pw_gid);
+		if (debug)
+			log_d("become_user: setgid(%d) = %d", pw->pw_gid, rv);
+		if (rv == -1) {
+			lerror("setgid");
+			return -1;
+		}
 	}
-	rv = setgroups(1, &gid);
+	rv = setuid(u);
 	if (debug)
-		log_d("set_uids: setgroups(1, [%d]) = %d", gid, rv);
-	if (rv == -1) {
-		lerror("setgroups");
-		return -1;
-	}
-	rv = setgid(gid);
-	if (debug)
-		log_d("set_uids: setgid(%d) = %d", gid, rv);
-	if (rv == -1) {
-		lerror("setgid");
-		return -1;
-	}
-	rv = setuid(uid);
-	if (debug)
-		log_d("set_uids: setuid(%d) = %d", uid, rv);
+		log_d("become_user: setuid(%d) = %d", u, rv);
 	if (rv == -1) {
 		lerror("setuid");
 		return -1;
 	}
-	log_d("set_uids: uid set to %d, gid set to %d", uid, gid);
+	if (name)
+		log_d("now running as user %s (%d)", name, u);
 	return 0;
 }
 
@@ -295,10 +321,12 @@ static int exec_cgi(struct request *r)
 {
 	if (init_cgi_env(r) == -1)
 		return cgi_error(r, 500, "could not initialize CGI environment");
-	setuid(getuid());
+	if (become_user(r->c->script_user) == -1) {
+		return cgi_error(r, 403, "cannot set uids");
+	}
 	if (geteuid() == 0) {
-		if (set_uids(r->finfo.st_uid, r->finfo.st_gid) == -1)
-			return cgi_error(r, 403, "cannot set uids");
+		log_d("cannot run scripts as root");
+		return cgi_error(r, 403, "security check failed");
 	}
 	log_d("executing %s", cgi_argv[0]);
 	if (execve(cgi_argv[0], (char **) cgi_argv, cgi_envp) == -1) {
