@@ -595,7 +595,8 @@ static void cleanup_connections(void)
 
 static void reap_children(void)
 {
-	int errno_save, status, pid;
+	pid_t pid;
+	int errno_save, status, exitstatus, termsig;
 
 	errno_save = errno;
 	while (1) {
@@ -604,11 +605,13 @@ static void reap_children(void)
 			break;
 		if (WIFEXITED(status)) {
 			++numchildren;
-			if (debug)
-				log_d("child process %d exited with status %d", pid, WEXITSTATUS(status));
+			exitstatus = WEXITSTATUS(status);
+			if (exitstatus || debug)
+				log_d("child process %d exited with status %d", pid, exitstatus);
 		} else if (WIFSIGNALED(status)) {
 			++numchildren;
-			log_d("child process %d killed by signal %d", pid, WTERMSIG(status));
+			termsig = WTERMSIG(status);
+			log_d("child process %d killed by signal %d", pid, termsig);
 		} else
 			log_d("child process %d stopped!?", pid);
 	}
