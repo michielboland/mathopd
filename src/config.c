@@ -183,7 +183,6 @@ static int default_log_column[] = {
 	ML_BYTES_WRITTEN
 };
 
-#define COPY(x, y) if (((x) = strdup(y)) == 0) return e_memory
 
 #ifdef NEED_INET_ATON
 int inet_aton(const char *cp, struct in_addr *pin)
@@ -304,7 +303,7 @@ static const char *config_string(struct configuration *p, char **a)
 
 	if ((t = gettoken(p)) != t_string && t != t_word)
 		return t;
-	COPY(*a, p->tokbuf);
+	if ((*a = strdup(p->tokbuf)) == 0) return e_memory;
 	return 0;
 }
 
@@ -362,7 +361,7 @@ static const char *config_list(struct configuration *p, struct simple_list **ls)
 		if (t != t_string && t != t_word)
 			return t;
 		if ((l = malloc(sizeof *l)) == 0) return e_memory;
-		COPY(l->name, p->tokbuf);
+		if ((l->name = strdup(p->tokbuf)) == 0) return e_memory;
 		l->next = *ls;
 		*ls = l;
 	}
@@ -436,7 +435,7 @@ static const char *config_mime(struct configuration *p, struct mime **ms, int cl
 	while ((t = gettoken(p)) != t_close) {
 		if (t != t_string && t != t_word)
 			return t;
-		COPY(name, p->tokbuf);
+		if ((name = strdup(p->tokbuf)) == 0) return e_memory;
 		if ((t = gettoken(p)) != t_open)
 			return t;
 		while ((t = gettoken(p)) != t_close) {
@@ -451,7 +450,7 @@ static const char *config_mime(struct configuration *p, struct mime **ms, int cl
 				s = p->tokbuf;
 				while (*s == '.')
 					++s;
-				COPY(m->ext, s);
+				if ((m->ext = strdup(s)) == 0) return e_memory;
 			}
 			m->next = *ms;
 			*ms = m;
@@ -670,7 +669,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 			if ((t = gettoken(p)) != t_string && t != t_word)
 				return t;
 			chopslash(p->tokbuf);
-			COPY(l->name, p->tokbuf);
+			if ((l->name = strdup(p->tokbuf)) == 0) return e_memory;
 			if (a->locations) {
 				l->next = a->locations->next;
 				a->locations->next = l;
@@ -683,7 +682,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 			if ((t = gettoken(p)) != t_string && t != t_word)
 				return t;
 			chopslash(p->tokbuf);
-			COPY(a->alias, p->tokbuf);
+			if ((a->alias = strdup(p->tokbuf)) == 0) return e_memory;
 			continue;
 		} else if (!strcasecmp(p->tokbuf, c_path_args))
 			t = config_flag(p, &a->path_args_ok);
@@ -745,7 +744,7 @@ static const char *config_vhost(struct virtual **vs, struct vserver *s, const ch
 	if (host == 0)
 		v->host = 0;
 	else {
-		COPY(v->host, host);
+		if ((v->host = strdup(host)) == 0) return e_memory;
 	}
 	v->fullname = 0;
 	v->parent = s->server;
@@ -851,7 +850,7 @@ static const char *fill_servernames(void)
 				s->s_fullname = s->s_name;
 			else {
 				sprintf(buf, "%.200s:%lu", s->s_name, s->port);
-				COPY(s->s_fullname, buf);
+				if ((s->s_fullname = strdup(buf)) == 0) return e_memory;
 			}
 		}
 		v = s->children;
@@ -863,7 +862,7 @@ static const char *fill_servernames(void)
 					v->fullname = name;
 				else {
 					sprintf(buf, "%.200s:%lu", name, s->port);
-					COPY(v->fullname, buf);
+					if ((v->fullname = strdup(buf)) == 0) return e_memory;
 				}
 			}
 			v = v->next;
