@@ -184,6 +184,8 @@ void close_connection(struct connection *cn)
 		log_request(cn->r);
 	}
 	--stats.nconnections;
+	if (debug)
+		log_d("close_connection: %d", cn->fd);
 	close(cn->fd);
 	if (cn->rfd != -1) {
 		close(cn->rfd);
