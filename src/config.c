@@ -14,15 +14,13 @@ struct server *servers;
 struct simple_list *exports;
 
 char *user_name;
-uid_t user_id;
-gid_t group_id;
 
 #ifdef POLL
 struct pollfd *pollfds;
 #endif
 
 static const char *err;
-static char *fqdn;
+static char *fqdn = "0";
 static char tokbuf[STRLEN];
 static int line = 1;
 static int num_servers = 0;
@@ -49,7 +47,6 @@ static const char c_error_404_file[] =	"Error404File";
 static const char c_exact[] =		"Exact";
 static const char c_export[] =		"Export";
 static const char c_external[] =	"External";
-static const char c_group[] =		"Group";
 static const char c_host[] =		"Host";
 static const char c_index_names[] =	"IndexNames";
 static const char c_location[] =	"Location";
@@ -79,8 +76,6 @@ static const char c_userfile[] =	"UserFile";
 static const char e_addr_set[] =	"address already set";
 static const char e_bad_addr[] =	"bad address";
 static const char e_bad_alias[] =	"alias without matching location";
-static const char e_bad_group[] =	"bad group name";
-static const char e_bad_user[] =	"bad user name";
 static const char e_help[] =		"unknown error (help)";
 static const char e_inval[] =		"illegal quantity";
 static const char e_keyword[] =		"unknown keyword";
@@ -239,25 +234,6 @@ static const char *config_flag(int *i)
 		return e_keyword;
 	return 0;
 }
-	
-static const char *config_user(uid_t *u)
-{
-	struct passwd *pwent;
-
-	GETSTRING();
-	COPY(user_name, tokbuf);
-	*u = ((pwent = getpwnam(tokbuf)) == 0) ? 0 : pwent->pw_uid;
-	return *u ? 0 : e_bad_user;
-}
-
-static const char *config_group(gid_t *g)
-{
-	struct group *grent;
-
-	GETSTRING();
-	*g = ((grent = getgrnam(tokbuf)) == 0) ? 0 : grent->gr_gid;
-	return *g ? 0 : e_bad_group;
-}
 
 static const char *config_address(char **a, struct in_addr *b)
 {
@@ -278,7 +254,8 @@ static const char *config_name(char **a, struct in_addr *b)
 		return e_addr_set;
 	GETSTRING();
 	COPY(*a, tokbuf);
-	if ((h = gethostbyname(tokbuf)) == 0)
+	h = gethostbyname(tokbuf);
+	if (h == 0 || h->h_addrtype != AF_INET)
 		return e_unknown_host;
 	b->s_addr = *(unsigned long *) h->h_addr;
 	return 0;
@@ -578,7 +555,7 @@ static const char *fill_servernames(void)
 		s->name = fqdn;
 		v = s->children;
 		while (v) {
-			name = v->host ? v->host : (s->name ? s->name : "0");
+			name = v->host ? v->host : s->name;
 			if (s->port == DEFAULT_PORT)
 				v->fullname = name;
 			else {
@@ -630,9 +607,7 @@ static const char *config_main(void)
 		else if (!strcasecmp(tokbuf, c_umask))
 			t = config_int(&fcm);
 		else if (!strcasecmp(tokbuf, c_user))
-			t = config_user(&user_id);
-		else if (!strcasecmp(tokbuf, c_group))
-			t = config_group(&group_id);
+			t = config_string(&user_name);
 		else if (!strcasecmp(tokbuf, c_pid))
 			t = config_string(&pid_filename);
 		else if (!strcasecmp(tokbuf, c_log))
