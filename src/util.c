@@ -46,7 +46,7 @@ static const char hex[] = "0123456789abcdef";
 
 void escape_url(const char *from, char *to)
 {
-	register char c;
+	char c;
 
 	while ((c = *from++) != 0) {
 		switch (c) {
@@ -69,7 +69,7 @@ void escape_url(const char *from, char *to)
 
 int unescape_url(const char *from, char *to)
 {
-	register char c, x1, x2;
+	char c, x1, x2;
 
 	while ((c = *from++) != 0) {
 		if (c == '%') {
@@ -89,7 +89,7 @@ int unescape_url(const char *from, char *to)
 
 int unescape_url_n(const char *from, char *to, size_t n)
 {
-	register char c, x1, x2;
+	char c, x1, x2;
 
 	while (n-- && (c = *from++) != 0) {
 		if (c == '%') {

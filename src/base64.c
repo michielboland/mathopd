@@ -73,7 +73,7 @@ static const char rcsid[] = "$Id$";
 
 static int base64decode(const char *encoded, char *decoded)
 {
-	register char c, t1, t2, u1, u2, u3;
+	char c, t1, t2, u1, u2, u3;
 
 	while (1) {
 		c = *encoded++;
@@ -132,7 +132,7 @@ static int pwok(const char *good, const char *guess, int do_crypt)
 static int f_webuserok(const char *authorization, FILE *fp, char *username, int len, int do_crypt)
 {
 	char buf[128], tmp[128], *p, *q;
-	register int c, bp, skipline;
+	int c, bp, skipline;
 
 	if (strlen(authorization) >= sizeof tmp) {
 		log_d("authorization string too long");

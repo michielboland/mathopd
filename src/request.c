@@ -62,11 +62,11 @@ static time_t timerfc(char *s)
 	};
 	unsigned sec, min, hour, day, mon, year;
 	char month[3];
-	register char c;
-	register unsigned n;
-	register char flag;
-	register char state;
-	register char isctime;
+	char c;
+	unsigned n;
+	char flag;
+	char state;
+	char isctime;
 	enum { D_START, D_END, D_MON, D_DAY, D_YEAR, D_HOUR, D_MIN, D_SEC };
 
 	sec = 60;
@@ -200,9 +200,9 @@ static char *rfctime(time_t t, char *buf)
 
 static char *getline(struct pool *p)
 {
-	register char *s;
+	char *s;
 	char *olds, *sp, *end;
-	register int f;
+	int f;
 
 	end = p->end;
 	s = p->start;
@@ -401,9 +401,9 @@ static int get_path_info(struct request *r)
 
 static int check_path(struct request *r)
 {
-	register char *p;
-	register char c;
-	register enum {
+	char *p;
+	char c;
+	enum {
 		s_normal,
 		s_slash,
 		s_slashdot,

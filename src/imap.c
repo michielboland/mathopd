@@ -95,7 +95,7 @@ static int pointinpoly(point t, point a[], int n)
 
 static int fgetline(char *s, int n, FILE *stream)
 {
-	register int c;
+	int c;
 
 	do {
 		if ((c = getc(stream)) == EOF)

@@ -262,9 +262,9 @@ static void write_connection(struct connection *cn)
 static void read_connection(struct connection *cn)
 {
 	int i, nr, fd;
-	register char c;
+	char c;
 	struct pool *p;
-	register char state;
+	char state;
 
 	p = cn->input;
 	state = p->state;
