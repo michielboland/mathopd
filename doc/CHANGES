@@ -1,4 +1,4 @@
-Changes between Mathopd 1.4 and Mathopd 1.5b1
+Changes between Mathopd 1.4 and Mathopd 1.5b3
 
 cgi.c:
 
@@ -11,6 +11,10 @@ config.c:
 	block. It determines the maximum amount of headers that
 	are passed to child programs using HTTP_ variables.
 
+	The `ExtraHeaders' keyword has been added to the Control
+	block. It allows one to pass user-defined headers (like
+	"Cache-Control" etc.) to the client.
+
 core.c:
 
 	If connections are active, call poll() with a timeout
@@ -21,10 +25,22 @@ mathopd.h:
 
 	Added: request_header structure, nheaders and headers
 	members to request structure; num_headers to tuning.
+	Added extra_headers to control.
+	Added range_s, if_range_s, if_range, range, range_floor,
+	range_ceiling, range_suffix, range_total to request.
 
 	Removed: cookie from request structure.
+
 
 request.c:
 
 	Store all headers in the r->headers array (up to a maximum
 	number, determined by NumHeaders.)
+
+	Print extra headers, if defined by the ExtraHeaders keyword.
+
+	Add satisfy_range(). In process_fd(), seek to the correct
+	file offset if "Range" header is present in the request. Return
+	200, 206 or 416 status based on range headers. Deal with "If-Range"
+	headers. Added process_range_header(). Ignore (and log) multiple
+	Range headers and requests for multiple ranges.
