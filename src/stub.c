@@ -335,7 +335,7 @@ static int readfromclient(struct connection *p)
 		log_d("readfromclient: bytestoread is zero!");
 		return 0;
 	}
-	r = recv(p->fd, p->client_input.end, bytestoread, 0);
+	r = read(p->fd, p->client_input.end, bytestoread);
 	if (debug)
 		log_d("readfromclient: %d %d %d %d", p->fd, p->client_input.end - p->client_input.floor, bytestoread, r);
 	switch (r) {
@@ -377,7 +377,7 @@ static int readfromchild(struct connection *p)
 		log_d("readfromchild: bytestoread is zero!");
 		return 0;
 	}
-	r = recv(p->rfd, p->script_input.end, bytestoread, 0);
+	r = read(p->rfd, p->script_input.end, bytestoread);
 	if (debug)
 		log_d("readfromchild: %d %d %d %d", p->rfd, p->script_input.end - p->script_input.floor, bytestoread, r);
 	switch (r) {
@@ -424,7 +424,7 @@ static int writetoclient(struct connection *p)
 		log_d("writetoclient: bytestowrite is zero!");
 		return 0;
 	}
-	r = send(p->fd, p->output.start, bytestowrite, 0);
+	r = write(p->fd, p->output.start, bytestowrite);
 	if (debug)
 		log_d("writetoclient: %d %d %d %d", p->fd, p->output.start - p->output.floor, bytestowrite, r);
 	switch (r) {
@@ -461,7 +461,7 @@ static int writetochild(struct connection *p)
 		log_d("writetochild: bytestowrite is zero!");
 		return 0;
 	}
-	r = send(p->rfd, p->client_input.start, bytestowrite, 0);
+	r = write(p->rfd, p->client_input.start, bytestowrite);
 	if (debug)
 		log_d("writetochild: %d %d %d %d", p->rfd, p->client_input.start - p->client_input.floor, bytestowrite, r);
 	switch (r) {

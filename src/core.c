@@ -352,14 +352,14 @@ static void write_connection(struct connection *cn)
 			}
 		}
 		cn->t = current_time;
-		m = send(cn->fd, p->start, n, 0);
+		m = write(cn->fd, p->start, n);
 		if (debug)
 			log_d("write_connection: %d %d %d %d", cn->fd, p->start - p->floor, n, m);
 		if (m == -1) {
 			switch (errno) {
 			default:
-				log_d("error sending to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
-				lerror("send");
+				log_d("error writing to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
+				lerror("write");
 			case ECONNRESET:
 			case EPIPE:
 				close_connection(cn);
@@ -392,14 +392,14 @@ static int read_connection(struct connection *cn)
 		cn->header_input.end -= offset;
 		bytestoread = cn->header_input.ceiling - cn->header_input.end;
 	}
-	nr = recv(cn->fd, cn->header_input.end, bytestoread, 0);
+	nr = read(cn->fd, cn->header_input.end, bytestoread);
 	if (debug)
 		log_d("read_connection: %d %d %d %d", cn->fd, cn->header_input.end - cn->header_input.floor, bytestoread, nr);
 	if (nr == -1) {
 		switch (errno) {
 		default:
-			log_d("error peeking from %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
-			lerror("recv");
+			log_d("error reading from %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
+			lerror("read");
 		case ECONNRESET:
 		case EPIPE:
 			close_connection(cn);
