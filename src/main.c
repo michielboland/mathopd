@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999 Michiel Boland.
  *
  *   Redistribution and use in source and binary forms, with or
  *   without modification, are permitted provided that the following
@@ -36,7 +36,7 @@
 
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.2";
+const char server_version[] = "Mathopd/1.2 (Patchlevel 6)";
 
 volatile int gotsigterm;
 volatile int gotsighup;
@@ -48,6 +48,7 @@ int numchildren;
 time_t startuptime;
 int debug;
 int fcm;
+int stayroot;
 int my_pid;
 
 static char *progname;
@@ -78,12 +79,6 @@ static void startup_server(struct server *s)
 	rv = setsockopt(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &onoff, sizeof onoff);
 	if (rv == -1)
 		die("setsockopt", "cannot set re-use flag");
-	rv = setsockopt(s->fd, SOL_SOCKET, SO_SNDBUF, (char *) &tuning.buf_size, sizeof tuning.buf_size);
-	if (rv == -1)
-		die("setsockopt", "cannot set send buffer size");
-	rv = setsockopt(s->fd, SOL_SOCKET, SO_RCVBUF, (char *) &tuning.input_buf_size, sizeof tuning.input_buf_size);
-	if (rv == -1)
-		die("setsockopt", "cannot set receive buffer size");
 	fcntl(s->fd, F_SETFD, FD_CLOEXEC);
 	fcntl(s->fd, F_SETFL, O_NONBLOCK);
 	memset((char *) &sa, 0, sizeof sa);
@@ -184,6 +179,7 @@ int main(int argc, char *argv[])
 		if (chdir("/") == -1)
 			die("chdir", 0);
 	}
+	setuid(geteuid());
 	if (geteuid() == 0) {
 		if (user_name == 0)
 			die(0, "No user specified.");
@@ -194,14 +190,25 @@ int main(int argc, char *argv[])
 			die("initgroups", 0);
 		if (setgid(pwd->pw_gid) == -1)
 			die("setgid", 0);
-		if (setuid(pwd->pw_uid) == -1)
-			die("setuid", 0);
+		if (stayroot) {
+			if (seteuid(pwd->pw_uid) == -1)
+				die("seteuid", 0);
+		} else {
+			if (setuid(pwd->pw_uid) == -1)
+				die("setuid", 0);
+		}
 	}
+	if (getrlimit(RLIMIT_CORE, &rl) == -1)
+		die("getrlimit", 0);
 	if (coredir) {
+		rl.rlim_cur = rl.rlim_max;
 		if (chdir(coredir) == -1)
 			die("chdir", 0);
-	} else
+	} else {
+		rl.rlim_cur = 0;
 		chdir("/");
+	}
+	setrlimit(RLIMIT_CORE, &rl);
 	umask(fcm);
 	if (pid_filename) {
 		pid_fd = open(pid_filename, O_WRONLY | O_CREAT,

@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999 Michiel Boland.
  *
  *   Redistribution and use in source and binary forms, with or
  *   without modification, are permitted provided that the following
@@ -131,6 +131,13 @@ static void accept_connection(struct server *s)
 				lerror("accept");
 			break;
 		}
+#ifndef POLL
+		if (fd >= FD_SETSIZE) {
+			log_d("accept_connection: accepted fd %d is greater than FD_SETSIZE (%d)", fd, FD_SETSIZE);
+			close(fd);
+			break;
+		}
+#endif
 		s->naccepts++;
 		rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
 		if (debug)
@@ -447,7 +454,7 @@ static void reap_children(void)
 
 static void init_log_d(char *name, int *fdp)
 {
-	int fd;
+	int fd, nfd;
 	char converted_name[PATHLEN], *n;
 	struct tm *tp;
 
@@ -456,17 +463,21 @@ static void init_log_d(char *name, int *fdp)
 		if (strchr(name, '%')) {
 			tp = localtime(&current_time);
 			if (tp) {
-				strftime(converted_name, PATHLEN - 1, name, tp);
-				n = converted_name;
+				if (strftime(converted_name, PATHLEN - 1, name, tp))
+					n = converted_name;
 			}
 		}
 		fd = *fdp;
+		nfd = open(n, O_WRONLY | O_CREAT | O_APPEND, DEFAULT_FILEMODE);
+		if (nfd == -1) {
+			if (fd == -1)
+				gotsigusr2 = 1;
+			return;
+		}
+		fcntl(nfd, F_SETFD, FD_CLOEXEC);
 		if (fd != -1)
 			close(fd);
-		fd = open(n, O_WRONLY | O_CREAT | O_APPEND, DEFAULT_FILEMODE);
-		if (fd != -1)
-			fcntl(fd, F_SETFD, FD_CLOEXEC);
-		*fdp = fd;
+		*fdp = nfd;
 	}
 }
 
@@ -518,12 +529,14 @@ void log_trans(const char *fmt, ...)
 void lerror(const char *s)
 {
 	int saved_errno;
+	char *errmsg;
 
 	saved_errno = errno;
+	errmsg = strerror(errno);
 	if (s && *s)
-		log_d("%s: %s", s, strerror(saved_errno));
+		log_d("%.80s: %.80s", s, errmsg ? errmsg : "???");
 	else
-		log_d("%s", strerror(saved_errno));
+		log_d("%.80s", errmsg ? errmsg : "???");
 	switch (saved_errno) {
 	case ENFILE:
 		log_d("oh no!!!");
@@ -702,6 +715,7 @@ void httpd_main(void)
 							else if (r) {
 								log_d("dropping %s: unexpected event %hd", cn->ip, r);
 								cn->action = HC_CLOSING;
+							}
 						}
 #else
 						if (FD_ISSET(cn->fd, &rfds))

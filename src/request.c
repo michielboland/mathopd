@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999 Michiel Boland.
  *
  *   Redistribution and use in source and binary forms, with or
  *   without modification, are permitted provided that the following
@@ -85,7 +85,7 @@ static time_t timerfc(char *s)
 	day = 32;
 	year = 1969;
 	isctime = 0;
-	month[0] = '\0';
+	month[0] = 0;
 	state = D_START;
 	n = 0;
 	flag = 1;
@@ -222,9 +222,9 @@ static char *getline(struct pool *p)
 		case '\n':
 			if (s == end || (*s != ' ' && *s != '\t')) {
 				if (f)
-					*sp = '\0';
+					*sp = 0;
 				else
-					s[-1] = '\0';
+					s[-1] = 0;
 				p->start = s;
 				return olds;
 			}
@@ -262,6 +262,7 @@ static int output_headers(struct pool *p, struct request *r)
 {
 	long cl;
 	char tmp_outbuf[2048], gbuf[40], *b;
+	int port;
 
 	if (r->cn->assbackwards) {
 		log_d("old-style connection from %s", r->cn->ip);
@@ -288,8 +289,16 @@ static int output_headers(struct pool *p, struct request *r)
 		if (r->last_modified)
 			b += sprintf(b, "Last-Modified: %s\r\n", rfctime(r->last_modified, gbuf));
 	}
-	if (r->location)
-		b += sprintf(b, "Location: %.512s\r\n", r->location);
+	if (r->location) {
+		if (r->location[0] == '/') {
+			port = r->cn->s->port;
+			if (port == DEFAULT_PORT)
+				b += sprintf(b, "Location: http://%s%.512s\r\n", r->servername, r->location);
+			else
+				b += sprintf(b, "Location: http://%s:%d%.512s\r\n", r->servername, port, r->location);
+		} else
+			b += sprintf(b, "Location: %.512s\r\n", r->location);
+	}
 	if (r->cn->keepalive) {
 		if (r->protocol_minor == 0)
 			b += sprintf(b, "Connection: Keep-Alive\r\n");
@@ -306,7 +315,7 @@ static char *dirmatch(char *s, char *t)
 	n = strlen(t);
 	if (n == 0)
 		return s;
-	return !strncmp(s, t, n) && (s[n] == '/' || s[n] == '\0' || s[n-1] == '~') ? s + n : 0;
+	return !strncmp(s, t, n) && (s[n] == '/' || s[n] == 0 || s[n-1] == '~') ? s + n : 0;
 }
 
 static int evaluate_access(unsigned long ip, struct access *a)
@@ -361,13 +370,13 @@ static int get_path_info(struct request *r)
 	p = r->path_translated;
 	end = p + strlen(p);
 	pa = r->path_args;
-	*pa = '\0';
+	*pa = 0;
 	cp = end;
 	while (cp > p && cp[-1] == '/')
 		--cp;
 	while (cp > p) {
 		if (cp != end)
-			*cp = '\0';
+			*cp = 0;
 		rv = stat(p, s);
 		if (debug) {
 			if (rv == -1)
@@ -381,7 +390,7 @@ static int get_path_info(struct request *r)
 			strcpy(pa, cp);
 			if (S_ISDIR(s->st_mode))
 				*cp++ = '/';
-			*cp = '\0';
+			*cp = 0;
 			return 0;
 		}
 		while (--cp > p && *cp != '/')
@@ -399,7 +408,7 @@ static int check_path(struct request *r)
 		return -1;
 	while (1)
 		switch (*p++) {
-		case '\0':
+		case 0:
 			return 0;
 		case '/':
 			switch (*p) {
@@ -427,7 +436,7 @@ static int check_symlinks(struct request *r)
 	flag = 1;
 	while (--s > t) {
 		if (*s == '/') {
-			*s = '\0';
+			*s = 0;
 			flag = 1;
 		} else if (flag) {
 			flag = 0;
@@ -456,10 +465,10 @@ static int makedir(struct request *r)
 	char *buf, *e;
 
 	buf = r->newloc;
-	construct_url(buf, r->url, r);
+	strcpy(buf, r->url);
 	e = buf + strlen(buf);
 	*e++ = '/';
-	*e = '\0';
+	*e = 0;
 	r->location = buf;
 	return 302;
 }
@@ -484,7 +493,7 @@ static int append_indexes(struct request *r)
 		i = i->next;
 	}
 	if (i == 0) {
-		*q = '\0';
+		*q = 0;
 		r->error_file = r->c->error_404_file;
 		return 404;
 	}
@@ -602,48 +611,43 @@ static int hostmatch(const char *s, const char *t)
 		if (toupper(c) != toupper(d))
 			return 0;
 	}
-	switch (c) {
-	case '\0':
-	case ':':
-	case '.':
-		switch (d) {
-		case '\0':
-		case '.':
-			return 1;
-		}
-	default:
-		return 0;
-	}
+	return (c == 0 || c == ':') && d == '\0';
 }
 
 static int find_vs(struct request *r)
 {
-	struct virtual *v, *gv;
+	struct virtual *v;
+	char *tmp;
 
-	gv = 0;
 	v = r->cn->s->children;
-	while (v) {
-		if (v->host == 0)
-			gv = v;
-		else if (r->host && hostmatch(r->host, v->host))
-			break;
-		v = v->next;
-	}
-	if (v == 0) {
-		v = gv;
-		if (v == 0)
+	if (r->host) {
+		while (v) {
+			if (v->host && hostmatch(r->host, v->host))
+				break;
+			v = v->next;
+		}
+		if (v == 0) {
+			log_d("No such virtual server: %.50s", r->host);
+			return 1;
+		}
+		tmp = v->host;
+	} else {
+		while (v) {
+			if (v->host == 0)
+				break;
+			v = v->next;
+		}
+		tmp = r->cn->s->s_name;
+		if (tmp == 0)
 			return -1;
+		if (v == 0) {
+			log_d("No old-style server at %s", tmp);
+			return 1;
+		}
 	}
-	r->vs = v;
 	v->nrequests++;
-	if (v->host)
-		r->servername = v->host;
-	else if (v->parent->s_name)
-		r->servername = v->parent->s_name;
-	if (r->host && v->host == 0) {
-		log_d("No such virtual server: %.50s", r->host);
-		return 1;
-	}
+	r->vs = v;
+	r->servername = tmp;
 	return 0;
 }
 
@@ -661,7 +665,7 @@ static int check_realm(struct request *r)
 	a += 5;
 	while (isspace(*a))
 		++a;
-	if (webuserok(a, r->c->userfile, r->user, sizeof r->user - 1))
+	if (webuserok(a, r->c->userfile, r->user, sizeof r->user))
 		return 0;
 	return -1;
 }
@@ -681,6 +685,11 @@ static int process_path(struct request *r)
 	if ((r->c = faketoreal(r->path, r->path_translated, r, 1)) == 0) {
 		r->error = se_alias;
 		return 500;
+	}
+	if (r->c->locations == 0) {
+		log_d("raah... no locations found");
+		r->error_file = r->c->error_404_file;
+		return 404;
 	}
 	if (r->path_translated[0] == 0) {
 		r->error = se_alias;
@@ -707,11 +716,6 @@ static int process_path(struct request *r)
 	if (get_path_info(r) == -1) {
 		r->error = se_get_path_info;
 		return 500;
-	}
-	if (r->c->locations == 0) {
-		log_d("raah... no locations found");
-		r->error_file = r->c->error_404_file;
-		return 404;
 	}
 	if (S_ISDIR(r->finfo.st_mode)) {
 		if (r->path_args[0] != '/')
@@ -785,12 +789,12 @@ static int get_url(char *p, struct request *r)
 	s = strchr(p, '?');
 	if (s) {
 		r->args = s+1;
-		*s = '\0';
+		*s = 0;
 	}
 	s = strchr(p, ';');
 	if (s) {
 		r->params = s + 1;
-		*s = '\0';
+		*s = 0;
 	}
 	if (unescape_url(r->url, r->path) == -1) {
 		log_d("badly encoded url from %s", r->cn->ip);
@@ -811,7 +815,7 @@ static int get_version(char *p, struct request *r)
 		log_d("illegal HTTP version (%.32s) from %s", p, r->cn->ip);
 		return -1;
 	}
-	*s++ = '\0';
+	*s++ = 0;
 	x = atoi(p);
 	y = atoi(s);
 	if (x != 1 || y > 1) {
@@ -837,9 +841,9 @@ static int process_headers(struct request *r)
 	r->host = 0;
 	r->in_content_type = 0;
 	r->in_content_length = 0;
-	r->path[0] = '\0';
-	r->path_translated[0] = '\0';
-	r->path_args[0] = '\0';
+	r->path[0] = 0;
+	r->path_translated[0] = 0;
+	r->path_args[0] = 0;
 	r->num_content = -1;
 	r->class = 0;
 	r->content_length = -1;
@@ -859,7 +863,7 @@ static int process_headers(struct request *r)
 	r->isindex = 0;
 	r->c = 0;
 	r->error_file = 0;
-	r->user[0] = '\0';
+	r->user[0] = 0;
 	r->servername = 0;
 	if ((l = getline(r->cn->input)) == 0) {
 		r->error = br_empty; /* can this happen? */
@@ -893,10 +897,10 @@ static int process_headers(struct request *r)
 		while ((l = getline(r->cn->input)) != 0) {
 			if ((s = strchr(l, ':')) == 0)
 				continue;
-			*s++ = '\0';
+			*s++ = 0;
 			while (isspace(*s))
 				++s;
-			if (*s == '\0')
+			if (*s == 0)
 				continue;
 			if (!strcasecmp(l, "User-agent"))
 				r->user_agent = s;
@@ -1050,9 +1054,9 @@ static void log_request(struct request *r)
 	struct connection *cn;
 	long cl;
 
-	if (r->path[0] == '\0') {
+	if (r->path[0] == 0) {
 		r->path[0] = '?';
-		r->path[1] = '\0';
+		r->path[1] = 0;
 	}
 	cl = r->num_content;
 	if (cl >= 0)
@@ -1115,15 +1119,4 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 			strcat(y, s);
 	}
 	return c;
-}
-
-void construct_url(char *d, char *s, struct request *r)
-{
-	int port;
-
-	port = r->cn->s->port;
-	if (port == DEFAULT_PORT)
-		sprintf(d, "http://%s%s", r->servername, s);
-	else
-		sprintf(d, "http://%s:%d%s", r->servername, port, s);
 }

@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999 Michiel Boland.
  *
  *   Redistribution and use in source and binary forms, with or
  *   without modification, are permitted provided that the following
@@ -38,15 +38,16 @@
 
 int process_redirect(struct request *r)
 {
-	char buf[STRLEN], buf2[PATHLEN];
-	char *b, *c;
+	char buf[STRLEN];
+	char *c;
 	FILE *fp;
 
 	if (r->method != M_GET && r->method != M_HEAD) {
 		r->error = "invalid method for redirect";
 		return 405;
 	}
-	if ((fp = fopen(r->path_translated, "r")) == 0) {
+	fp = fopen(r->path_translated, "r");
+	if (fp == 0) {
 		lerror("fopen");
 		r->error = "cannot open redirect file";
 		return 500;
@@ -55,17 +56,12 @@ int process_redirect(struct request *r)
 	fclose(fp);
 	c = strchr(buf, '\n');
 	if (c)
-		*c = '\0';
+		*c = 0;
 	else {
 		r->error = "redirect url too long";
 		return 500;
 	}
-	if (*buf == '/') {
-		construct_url(buf2, buf, r);
-		b = buf2;
-	} else
-		b = buf;
-	escape_url(b, r->newloc);
+	escape_url(buf, r->newloc);
 	r->location = r->newloc;
 	return 302;
 }

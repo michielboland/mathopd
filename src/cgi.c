@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999 Michiel Boland.
  *
  *   Redistribution and use in source and binary forms, with or
  *   without modification, are permitted provided that the following
@@ -113,7 +113,7 @@ static int make_cgi_envp(struct request *r)
 	faketoreal(r->path_args, path_translated, r, 0);
 	i = strlen(r->path) - strlen(r->path_args);
 	if (i >= 0)
-		r->path[i] = '\0';
+		r->path[i] = 0;
 	cgi_envc = 0;
 	cgi_envp = 0;
 	sprintf(t, "%d", r->cn->s->port);
@@ -197,12 +197,12 @@ static int init_cgi_env(struct request *r)
 
 	p = r->path_translated;
 	b = strrchr(p, '/');
-	if (b == '\0')
+	if (b == 0)
 		return -1;
-	*b = '\0';
+	*b = 0;
 	rv = chdir(p);
 	if (debug)
-		log_d("chdir(\"%s\") = %d", p, rv);
+		log_d("init_cgi_env: chdir(\"%s\") = %d", p, rv);
 	*b = '/';
 	if (rv == -1)
 		return -1;
@@ -213,10 +213,48 @@ static int init_cgi_env(struct request *r)
 	return 0;
 }
 
+static int set_uids(uid_t uid, gid_t gid)
+{
+	int rv;
+
+	if (uid < 100) {
+		log_d("refusing to set uid to %d", uid);
+		return -1;
+	}
+	rv = setgroups(1, &gid);
+	if (debug)
+		log_d("set_uids: setgroups(1, [%d]) = %d", gid, rv);
+	if (rv == -1) {
+		lerror("setgroups");
+		return -1;
+	}
+	rv = setgid(gid);
+	if (debug)
+		log_d("set_uids: setgid(%d) = %d", gid, rv);
+	if (rv == -1) {
+		lerror("setgid");
+		return -1;
+	}
+	rv = setuid(uid);
+	if (debug)
+		log_d("set_uids: setuid(%d) = %d", uid, rv);
+	if (rv == -1) {
+		lerror("setuid");
+		return -1;
+	}
+	log_d("set_uids: uid set to %d, gid set to %d", uid, gid);
+	return 0;
+}
+
 static int exec_cgi(struct request *r)
 {
 	if (init_cgi_env(r) == -1)
 		return cgi_error(r, 500, "could not initialize CGI environment");
+	setuid(getuid());
+	if (geteuid() == 0) {
+		if (set_uids(r->finfo.st_uid, r->finfo.st_gid) == -1)
+			return cgi_error(r, 403, "cannot set uids");
+	}
 	log_d("executing %s", cgi_argv[0]);
 	if (execve(cgi_argv[0], (char **) cgi_argv, cgi_envp) == -1) {
 		log_d("could not execute %s", cgi_argv[0]);

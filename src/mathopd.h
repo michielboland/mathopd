@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999 Michiel Boland.
  *
  *   Redistribution and use in source and binary forms, with or
  *   without modification, are permitted provided that the following
@@ -264,6 +264,7 @@ extern int numchildren;
 extern time_t startuptime;
 extern int debug;
 extern int fcm;
+extern int stayroot;
 extern int my_pid;
 extern void die(const char *, const char *, ...);
 extern int fork_request(struct request *, int (*)(struct request *));
@@ -305,7 +306,6 @@ extern void httpd_main(void);
 extern int prepare_reply(struct request *);
 extern int process_request(struct request *);
 extern struct control *faketoreal(char *, char *, struct request *, int);
-extern void construct_url(char *, char *, struct request *);
 
 /* imap */
 

@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999 Michiel Boland.
  *
  *   Redistribution and use in source and binary forms, with or
  *   without modification, are permitted provided that the following
@@ -99,46 +99,36 @@ static int fgetline(char *s, int n, FILE *stream)
 			*s++ = (char) c;
 		}
 	} while (c != '\n');
-	s[-1] = '\0';
+	s[-1] = 0;
 	return 0;
 }
 
-int process_imap(struct request *r)
+static int f_process_imap(struct request *r, FILE *fp)
 {
-	char input[STRLEN], default_url[STRLEN], tmp[PATHLEN];
+	char input[STRLEN], default_url[STRLEN];
 	point testpoint, pointarray[MAXVERTS];
 	long dist, mindist;
 	int k, line, sawpoint, text;
-	char *s, *t, *u, *v, *w, *url;
+	char *t, *u, *v, *w, *url;
 	const char *status;
-	FILE *fp;
 	static const char comma[] = ", ()\t\r\n";
 
-	if (r->method == M_HEAD)
-		return 204;
-	else if (r->method != M_GET) {
-		r->error = "invalid method for imagemap";
-		return 405;
-	}
-	s = r->path_translated;
 	testpoint.x = 0;
 	testpoint.y = 0;
 	text = 1;
-	if (r->args && (t = strchr(r->args, ',')) != 0) {
-		*t++ = '\0';
-		testpoint.x = atol(r->args);
-		testpoint.y = atol(t);
-		if (testpoint.x || testpoint.y)
-			text = 0;
-	}
-	if ((fp = fopen(s, "r")) == 0) {
-		lerror("fopen");
-		r->error = "cannot open map file";
-		return 500;
+	if (r->args) {
+		t = strchr(r->args, ',');
+		if (t) {
+			*t++ = 0;
+			testpoint.x = atol(r->args);
+			testpoint.y = atol(t);
+			if (testpoint.x || testpoint.y)
+				text = 0;
+		}
 	}
 	line = 0;
 	sawpoint = 0;
-	*default_url = '\0';
+	*default_url = 0;
 	mindist = 0;
 	status = 0;
 	url = 0;
@@ -146,10 +136,10 @@ int process_imap(struct request *r)
 		++line;
 		k = 0;
 		t = strtok(input, comma);
-		if (t == 0 || *t == '\0' || *t == '#')
+		if (t == 0 || *t == 0 || *t == '#')
 			continue;
 		u = strtok(0, comma);
-		if (u == 0 || *u == '\0') {
+		if (u == 0 || *u == 0) {
 			status = "Missing URL";
 			break;
 		}
@@ -231,20 +221,37 @@ int process_imap(struct request *r)
 			break;
 		}
 	}
-	fclose(fp);
 	if (status) {
 		r->error = status;
-		log_d("imagemap: %s on line %d of %s", status, line, s);
+		log_d("imagemap: %s on line %d of %s", status, line, r->path_translated);
 		return 500;
 	}
 	if (url) {
-		if (*url == '/')
-			construct_url(tmp, url, r);
-		else
-			strcpy(tmp, url);
-		escape_url(tmp, r->newloc);
+		escape_url(url, r->newloc);
 		r->location = r->newloc;
 		return 302;
 	}
 	return 204;
+}
+
+int process_imap(struct request *r)
+{
+	FILE *fp;
+	int retval;
+
+	if (r->method == M_HEAD)
+		return 204;
+	else if (r->method != M_GET) {
+		r->error = "invalid method for imagemap";
+		return 405;
+	}
+	fp = fopen(r->path_translated, "r");
+	if (fp == 0) {
+		lerror("fopen");
+		r->error = "cannot open map file";
+		return 500;
+	}
+	retval = f_process_imap(r, fp);
+	fclose(fp);
+	return retval;
 }

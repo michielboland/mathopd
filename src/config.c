@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999 Michiel Boland.
  *
  *   Redistribution and use in source and binary forms, with or
  *   without modification, are permitted provided that the following
@@ -81,7 +81,6 @@ static const char c_error[] =		"ErrorLog";
 static const char c_error_401_file[] =	"Error401File";
 static const char c_error_403_file[] =	"Error403File";
 static const char c_error_404_file[] =	"Error404File";
-static const char c_exact[] =		"Exact";
 static const char c_export[] =		"Export";
 static const char c_external[] =	"External";
 static const char c_host[] =		"Host";
@@ -100,6 +99,7 @@ static const char c_refresh[] =		"Refresh";
 static const char c_root_directory[] =	"RootDirectory";
 static const char c_server[] =		"Server";
 static const char c_specials[] =	"Specials";
+static const char c_stayroot[] =	"StayRoot";
 static const char c_symlinks[] =	"Symlinks";
 static const char c_timeout[] =		"Timeout";
 static const char c_tuning[] =		"Tuning";
@@ -113,6 +113,7 @@ static const char e_addr_set[] =	"address already set";
 static const char e_bad_addr[] =	"bad address";
 static const char e_bad_alias[] =	"alias without matching location";
 static const char e_bad_mask[] =	"mask does not match address";
+static const char e_bad_network[] =	"bad network";
 static const char e_help[] =		"unknown error (help)";
 static const char e_inval[] =		"illegal quantity";
 static const char e_keyword[] =		"unknown keyword";
@@ -136,6 +137,19 @@ static const char t_word[] =		"unexpected word";
 #define REQSTRING() if (err != t_string && err != t_word) return err
 #define NOTCLOSE() gettoken() != t_close
 #define NOTEOF() gettoken() != t_eof
+
+#ifdef NEED_INET_ATON
+int inet_aton(const char *cp, struct in_addr *pin)
+{
+	unsigned long ia;
+
+	ia = inet_addr(cp);
+	if (ia == (unsigned long) -1)
+		return 0;
+	pin->s_addr = ia;
+	return 1;
+}
+#endif
 
 static const char *gettoken(void)
 {
@@ -233,7 +247,7 @@ static const char *gettoken(void)
 			}
 		}
 	} while (state);
-	tokbuf[i] = '\0';
+	tokbuf[i] = 0;
 	return err;
 }
 
@@ -367,41 +381,21 @@ static const char *config_access(struct access **ls)
 			return e_keyword;
 		GETWORD();
 		sl = strchr(tokbuf, '/');
-		if (sl == 0) {
-			static int nwarn;
-			if (nwarn == 0) {
-				nwarn = 1;
-				fprintf(stderr, "warning: deprecated network notation used in config file\n");
-			}
-		}
-		if (!strcasecmp(tokbuf, c_all))
-			l->mask = l->addr = 0;
-		else {
-			if (sl == 0) {
-				if (!strcasecmp(tokbuf, c_exact))
-					l->mask = 0xffffffff;
-				else {
-					if (inet_aton(tokbuf, &ia) == 0)
-						return e_bad_addr;
-					l->mask = ia.s_addr;
-				}
-				GETWORD();
-			} else {
-				*sl++ = 0;
-				sz = strtoul(sl, &e, 0);
-				if ((e && *e) || sz > 32)
-					return e_inval;
-				if (sz == 0)
-					l->mask = 0;
-				else
-					l->mask = htonl(0xffffffff ^ ((1 << (32 - sz)) - 1));
-			}
-			if (inet_aton(tokbuf, &ia) == 0)
-				return e_bad_addr;
-			l->addr = ia.s_addr;
-			if ((l->mask | l->addr) != l->mask)
-				return e_bad_mask;
-		}
+		if (sl == 0)
+			return e_bad_network;
+		*sl++ = 0;
+		sz = strtoul(sl, &e, 0);
+		if ((e && *e) || sz > 32)
+			return e_inval;
+		if (sz == 0)
+			l->mask = 0;
+		else
+			l->mask = htonl(0xffffffff ^ ((1 << (32 - sz)) - 1));
+		if (inet_aton(tokbuf, &ia) == 0)
+			return e_bad_addr;
+		l->addr = ia.s_addr;
+		if ((l->mask | l->addr) != l->mask)
+			return e_bad_mask;
 	}
 	return 0;
 }
@@ -412,7 +406,7 @@ static void chopslash(char *s)
 
 	t = s + strlen(s);
 	while (--t >= s && *t == '/')
-		*t = '\0';
+		*t = 0;
 }
 
 static const char *config_control(struct control **as)
@@ -519,7 +513,7 @@ static const char *config_control(struct control **as)
 	return 0;
 }
 
-static const char *config_virtual(struct virtual **vs, struct server *parent, int trivial)
+static const char *config_virtual(struct virtual **vs, struct server *parent)
 {
 	const char *t = 0;
 	struct virtual *v;
@@ -533,8 +527,6 @@ static const char *config_virtual(struct virtual **vs, struct server *parent, in
 	v->nwritten = 0;
 	v->next = *vs;
 	*vs = v;
-	if (trivial)
-		return 0;
 	GETOPEN();
 	while (NOTCLOSE()) {
 		REQWORD();
@@ -554,7 +546,6 @@ static const char *config_server(struct server **ss)
 {
 	const char *t = 0;
 	struct server *s;
-	struct virtual *v;
 
 	ALLOC(s);
 	num_servers++;
@@ -577,7 +568,7 @@ static const char *config_server(struct server **ss)
 		else if (!strcasecmp(tokbuf, c_address))
 			t = config_address(&s->s_name, &s->addr);
 		else if (!strcasecmp(tokbuf, c_virtual))
-			t = config_virtual(&s->children, s, 0);
+			t = config_virtual(&s->children, s);
 		else if (!strcasecmp(tokbuf, c_control))
 			t = config_control(&s->controls);
 		else
@@ -585,13 +576,7 @@ static const char *config_server(struct server **ss)
 		if (t)
 			return t;
 	}
-	v = s->children;
-	while (v) {
-		if (v->host == 0)
-			break;
-		v = v->next;
-	}
-	return (v == 0) ? config_virtual(&s->children, s, 1) : 0;
+	return 0;
 }
 
 static const char *fill_servernames(void)
@@ -663,6 +648,8 @@ static const char *config_main(void)
 			t = config_string(&fqdn);
 		else if (!strcasecmp(tokbuf, c_umask))
 			t = config_int(&fcm);
+		else if (!strcasecmp(tokbuf, c_stayroot))
+			t = config_flag(&stayroot);
 		else if (!strcasecmp(tokbuf, c_user))
 			t = config_string(&user_name);
 		else if (!strcasecmp(tokbuf, c_pid))
@@ -719,6 +706,7 @@ static const char *config2(void)
 	tuning.timeout = DEFAULT_TIMEOUT;
 	tuning.accept_multi = 1;
 	fcm = DEFAULT_UMASK;
+	stayroot = 0;
 	line = 1;
 	s = config_main();
 	if (s) {
@@ -740,7 +728,7 @@ static const char *config2(void)
 			return e_memory;
 		if ((cn->output = new_pool(tuning.buf_size)) == 0)
 			return e_memory;
-		cn->ip[15] = '\0';
+		cn->ip[15] = 0;
 		cn->r->cn = cn;
 		cn->next = connections;
 		cn->state = HC_FREE;

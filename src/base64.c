@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999 Michiel Boland.
  *
  *   Redistribution and use in source and binary forms, with or
  *   without modification, are permitted provided that the following
@@ -101,43 +101,37 @@ static int base64decode(const unsigned char *encoded, unsigned char *decoded)
 	}
 }
 
-static int base64compare(const unsigned char *encoded, const unsigned char *decoded)
-{
-	char tmp[256];
-
-	if (strlen(encoded) >= sizeof tmp)
-		return -1;
-	if (base64decode(encoded, tmp) == -1)
-		return -1;
-	return strcmp(tmp, decoded);
-}
-
 static int f_webuserok(const char *authorization, FILE *fp, char *username, int len)
 {
-	char buf[256], *p;
+	char buf[128], tmp[128], *p;
 	register int c, bp, skipline;
 
+	if (strlen(authorization) >= sizeof tmp)
+		return 0;
+	if (base64decode(authorization, tmp) == -1)
+		return 0;
 	bp = 0;
 	skipline = 0;
 	while ((c = getc(fp)) != EOF) {
 		if (c == '\n') {
 			if (skipline == 0) {
 				buf[bp] = 0;
-				if (base64compare(authorization, buf) == 0) {
-					if (username) {
+				if (strcmp(tmp, buf) == 0) {
+					if (username && len) {
 						p = strchr(buf, ':');
 						if (p)
 							*p = 0;
-						strncpy(username, buf, len);
+						if (buf + len - 1 > p)
+							strcpy(username, buf);
+						else
+							return 0;
 					}
 					return 1;
 				}
 			}
 			bp = 0;
 			skipline = 0;
-			continue;
-		}
-		if (skipline == 0) {
+		} else if (skipline == 0) {
 			buf[bp++] = c;
 			if (bp == sizeof buf)
 				skipline = 1;
@@ -152,8 +146,10 @@ int webuserok(const char *authorization, const char *userfilename, char *usernam
 	int retval;
 
 	f = fopen(userfilename, "r");
-	if (f == 0)
+	if (f == 0) {
+		log_d("cannot open userfile %s", userfilename);
 		return 0;
+	}
 	retval = f_webuserok(authorization, f, username, len);
 	fclose(f);
 	return retval;

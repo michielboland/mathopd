@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999 Michiel Boland.
  *
  *   Redistribution and use in source and binary forms, with or
  *   without modification, are permitted provided that the following
@@ -44,7 +44,7 @@ void escape_url(const char *from, char *to)
 {
 	register char c;
 
-	while ((c = *from++) != '\0') {
+	while ((c = *from++) != 0) {
 		switch (c) {
 		case '%':
 		case ' ':
@@ -67,7 +67,7 @@ int unescape_url(const char *from, char *to)
 {
 	register char c, x1, x2;
 
-	while ((c = *from++) != '\0') {
+	while ((c = *from++) != 0) {
 		if (c == '%') {
 			x1 = *from++;
 			if (!isxdigit(x1))
@@ -79,7 +79,7 @@ int unescape_url(const char *from, char *to)
 		}
 		else *to++ = c;
 	}
-	*to = '\0';
+	*to = 0;
 	return 0;
 }
 
@@ -87,7 +87,7 @@ int unescape_url_n(const char *from, char *to, size_t n)
 {
 	register char c, x1, x2;
 
-	while (n-- && (c = *from++) != '\0') {
+	while (n-- && (c = *from++) != 0) {
 		if (c == '%') {
 			x1 = *from++;
 			if (!isxdigit(x1))
@@ -99,6 +99,6 @@ int unescape_url_n(const char *from, char *to, size_t n)
 		}
 		else *to++ = c;
 	}
-	*to = '\0';
+	*to = 0;
 	return 0;
 }
