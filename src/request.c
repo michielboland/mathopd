@@ -69,8 +69,6 @@ static time_t timerfc(char *s)
 	char isctime;
 	enum { D_START, D_END, D_MON, D_DAY, D_YEAR, D_HOUR, D_MIN, D_SEC };
 
-	if (debug)
-		log_d("D timerfc");
 	sec = 60;
 	min = 60;
 	hour = 24;
@@ -88,13 +86,16 @@ static time_t timerfc(char *s)
 			if (c == ' ') {
 				state = D_MON;
 				isctime = 1;
-			} else if (c == ',') state = D_DAY;
+			} else if (c == ',')
+				state = D_DAY;
 			break;
 		case D_MON:
 			if (isalpha(c)) {
-				if (n < 3) month[n++] = c;
+				if (n < 3)
+					month[n++] = c;
 			} else {
-				if (n < 3) return -1;
+				if (n < 3)
+					return -1;
 				n = 0;
 				state = isctime ? D_DAY : D_YEAR;
 			}
