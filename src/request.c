@@ -447,8 +447,6 @@ static int check_path(struct request *r)
 			break;
 		}
 	} while (c);
-	if (debug)
-		log_d("check_path: path=%s state=%d", r->path, s);
 	return s == s_forbidden ? -1 : 0;
 }
 
