@@ -40,8 +40,6 @@ log.c:
 
 main.c:
 
-	The 'forked' variable is now local.
-
 	Do not allow 'forked' requests when there is no ChildLog.
 
 	Allow ChildLogs that can be %-expanded, just like the other
