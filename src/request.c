@@ -1020,6 +1020,22 @@ static void parse_connection_header(struct request *r, const char *s)
 	}
 }
 
+static int parse_expect_header(struct request *r, const char *s)
+{
+	size_t l;
+
+	while (1) {
+		s = header_list_next(s, &l);
+		if (l == 0)
+			break;
+		if (l != 12 || strncasecmp(s, "100-continue", l))
+			return -1;
+		r->send_continue = 1;
+		s += l;
+	}
+	return 0;
+}
+
 static int process_headers(struct request *r)
 {
 	char *l, *u, *s;
@@ -1100,6 +1116,14 @@ static int process_headers(struct request *r)
 			r->if_range_s = s;
 		else if (!strcasecmp(l, "Transfer-Encoding"))
 			r->in_transfer_encoding = s;
+		else if (!strcasecmp(l, "Expect")) {
+			if (parse_expect_header(r, s) == -1) {
+				if (debug)
+					log_d("parse_expect_header failed for \"%s\"", s);
+				r->status = 417;
+				return 0;
+			}
+		}
 	}
 	r->nheaders = n;
 	s = r->method_s;
@@ -1457,6 +1481,7 @@ void init_request(struct request *r)
 	r->in_transfer_encoding = 0;
 	r->in_mblen = 0;
 	r->curdir[0] = 0;
+	r->send_continue = 0;
 }
 
 int process_request(struct request *r)
