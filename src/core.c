@@ -54,11 +54,6 @@ static void init_pool(struct pool *p)
 
 static void reinit_connection(struct connection *cn, int action)
 {
-	if (debug)
-		log(L_DEBUG, "reinit: [%s].%hu, action=%d",
-				inet_ntoa(cn->peer.sin_addr),
-				ntohs(cn->peer.sin_port),
-				action);
 	if (cn->rfd != -1) {
 		close(cn->rfd);
 		cn->rfd = -1;
@@ -72,14 +67,12 @@ static void reinit_connection(struct connection *cn, int action)
 
 static void close_connection(struct connection *cn)
 {
-	if (debug)
-		log(L_DEBUG, "close: [%s].%hu",
-				inet_ntoa(cn->peer.sin_addr),
-				ntohs(cn->peer.sin_port));
 	--nconnections;
 	close(cn->fd);
-	if (cn->rfd != -1)
+	if (cn->rfd != -1) {
 		close(cn->rfd);
+		cn->rfd = -1;
+	}
 	cn->state = HC_FREE;
 }
 
@@ -138,9 +131,7 @@ static void accept_connection(struct server *s)
 			cn = cw;
 		}
 		if (cn == 0) {
-			log(L_ERROR, "connection [%s].%hu dropped",
-				inet_ntoa(sa.sin_addr),
-				ntohs(sa.sin_port));
+			log(L_ERROR, "connection to %s dropped", inet_ntoa(sa.sin_addr));
 			close(fd);
 		} else {
 			s->nhandled++;
@@ -179,8 +170,7 @@ static int fill_connection(struct connection *cn)
 		if (m == -1)
 			lerror("read");
 		else
-			log(L_ERROR, "premature end of file %s",
-			    cn->r->path_translated);
+			log(L_ERROR, "premature end of file %s", cn->r->path_translated);
 		return -1;
 	}
 	p->end += n;
@@ -189,9 +179,10 @@ static int fill_connection(struct connection *cn)
 
 static void write_connection(struct connection *cn)
 {
-	struct pool *p = cn->output;
+	struct pool *p;
 	int m, n;
 
+	p = cn->output;
 	do {
 		n = p->end - p->start;
 		if (n == 0) {
@@ -205,11 +196,8 @@ static void write_connection(struct connection *cn)
 				return;
 			}
 		}
-
 		cn->t = current_time;
-
 		m = send(cn->fd, p->start, n, 0);
-		log(L_DEBUG, "send(%d) = %d", n, m);
 		if (m == -1) {
 			switch (errno) {
 			default:
@@ -231,11 +219,11 @@ static void read_connection(struct connection *cn)
 {
 	int i, nr, fd;
 	register char c;
-	struct pool *p = cn->input;
-	register char state = p->state;
+	struct pool *p;
+	register char state;
 
-	log(L_DEBUG, "read_connection: starting");
-
+	p = cn->input;
+	state = p->state;
 	cn->action = HC_READING;
 	fd = cn->fd;
 	i = p->ceiling - p->end;
@@ -257,16 +245,13 @@ static void read_connection(struct connection *cn)
 		}
 	}
 	if (nr == 0) {
-		log(L_DEBUG, "read_connection: eof received");
 		cn->action = HC_CLOSING;
 		return;
 	}
 	i = 0;
-
 	while (i < nr && state < 8) {
 		c = p->end[i++];
 		switch (state) {
-
 		case 0:
 			switch (c) {
 			case ' ':
@@ -279,7 +264,6 @@ static void read_connection(struct connection *cn)
 				break;
 			}
 			break;
-
 		case 1:
 			switch (c) {
 			default:
@@ -293,7 +277,6 @@ static void read_connection(struct connection *cn)
 				break;
 			}
 			break;
-
 		case 2:
 			switch (c) {
 			case ' ':
@@ -306,7 +289,6 @@ static void read_connection(struct connection *cn)
 				break;
 			}
 			break;
-
 		case 3:
 			switch (c) {
 			default:
@@ -321,7 +303,6 @@ static void read_connection(struct connection *cn)
 				break;
 			}
 			break;
-
 		case 4:
 			switch (c) {
 			case '\r':
@@ -332,7 +313,6 @@ static void read_connection(struct connection *cn)
 				break;
 			}
 			break;
-
 		case 5:
 			switch (c) {
 			default:
@@ -344,7 +324,6 @@ static void read_connection(struct connection *cn)
 				break;
 			}
 			break;
-
 		case 6:
 			switch (c) {
 			case '\r':
@@ -358,7 +337,6 @@ static void read_connection(struct connection *cn)
 				break;
 			}
 			break;
-
 		case 7:
 			switch (c) {
 			default:
@@ -372,7 +350,6 @@ static void read_connection(struct connection *cn)
 			break;
 		}
 	}
-
 	nr = recv(fd, p->end, i, 0);
 	if (nr != i) {
 		if (nr == -1)
@@ -389,8 +366,7 @@ static void read_connection(struct connection *cn)
 	p->end += i;
 	p->state = state;
 	if (state == 8) {
-		if (process_request(cn->r) == -1
-		    || fill_connection(cn) == -1)
+		if (process_request(cn->r) == -1 || fill_connection(cn) == -1)
 			cn->action = HC_CLOSING;
 		else {
 			cn->action = HC_WRITING;
@@ -402,12 +378,16 @@ static void read_connection(struct connection *cn)
 
 static void cleanup_connections(void)
 {
-	struct connection *cn = connections;
+	struct connection *cn;
 
+	cn = connections;
 	while (cn) {
 		if (cn->state == HC_ACTIVE) {
-			if (cn->action == HC_CLOSING
-			    || current_time - cn->t >= tuning.timeout)
+			if (current_time - cn->t >= tuning.timeout) {
+				log(L_ERROR, "timeout to %s", cn->ip);
+				cn->action = HC_CLOSING;
+			}
+			if (cn->action == HC_CLOSING)
 				close_connection(cn);
 		}
 		cn = cn->next;
@@ -416,6 +396,7 @@ static void cleanup_connections(void)
 
 static void init_log(char *name, int *fdp)
 {
+	int fd;
 	char converted_name[PATHLEN], *n;
 	struct tm *tp;
 
@@ -428,12 +409,13 @@ static void init_log(char *name, int *fdp)
 				n = converted_name;
 			}
 		}
-		if (*fdp != -1)
-			close(*fdp);
-		*fdp = open(n, O_WRONLY | O_CREAT | O_APPEND,
-			    DEFAULT_FILEMODE);
-		if (*fdp != -1)
-			fcntl(*fdp, F_SETFD, FD_CLOEXEC);
+		fd = *fdp;
+		if (fd != -1)
+			close(fd);
+		fd = open(n, O_WRONLY | O_CREAT | O_APPEND, DEFAULT_FILEMODE);
+		if (fd != -1)
+			fcntl(fd, F_SETFD, FD_CLOEXEC);
+		*fdp = fd;
 	}
 }
 
@@ -443,12 +425,10 @@ static void init_logs(void)
 	init_log(error_filename, &error_file);
 }
 
-
 void log(int type, const char *fmt, ...)
 {
 	va_list args;
 	char log_line[2*PATHLEN];
-	char *s = log_line;
 	int l, fd, saved_errno;
 
 	switch (type) {
@@ -461,33 +441,22 @@ void log(int type, const char *fmt, ...)
 	default:
 		fd = error_file;
 	}
-
 	if (fd == -1)
 		return;
-
 	saved_errno = errno;
-
 	va_start(args, fmt);
-#ifdef BROKEN_SPRINTF
-	vsprintf(log_line, fmt, args);
-	l = strlen(log_line);
-#else
 	l = vsprintf(log_line, fmt, args);
-#endif
 	va_end(args);
-
-	s = log_line + l;
-	*s++ = '\n';
-	*s = '\0';
-
+	log_line[l] = '\n';
 	write(fd, log_line, l + 1);
 	errno = saved_errno;
 }
 
 void lerror(const char *s)
 {
-	int saved_errno = errno;
+	int saved_errno;
 
+	saved_errno = errno;
 	if (s && *s)
 		log(L_ERROR, "%s: %s", s, strerror(saved_errno));
 	else
@@ -504,8 +473,8 @@ void httpd_main(void)
 {
 	struct server *s;
 	struct connection *cn;
-	int first = 1;
-	int error = 0;
+	int first;
+	int error;
 	int rv;
 #ifdef POLL
 	int n;
@@ -515,39 +484,33 @@ void httpd_main(void)
 	int m;
 #endif
 
+	first = 1;
+	error = 0;
 	while (gotsigterm == 0) {
-
-		log(L_DEBUG, "top of loop");
-
 		if (gotsighup) {
 			gotsighup = 0;
 			init_logs();
 			if (first) {
 				first = 0;
-				log(L_LOG, "*** %s (pid %d) ***",
-				    server_version, my_pid);
+				log(L_LOG, "*** %s (pid %d) ***", server_version, my_pid);
 			}
 			else
 				log(L_LOG, "logs reopened");
 		}
-
 		if (gotsigusr1) {
 			gotsigusr1 = 0;
 			nuke_connections();
 			log(L_LOG, "connections closed");
 		}
-
 		if (gotsigusr2) {
 			gotsigusr2 = 0;
 			nuke_servers();
 			log(L_LOG, "servers closed");
 		}
-
 		if (gotsigwinch) {
 			gotsigwinch = 0;
 			dump();
 		}
-
 #ifdef POLL
 		n = 0;
 #else
@@ -570,9 +533,7 @@ void httpd_main(void)
 			}
 			s = s->next;
 		}
-
 		cn = connections;
-
 		while (cn) {
 			if (cn->state == HC_ACTIVE) {
 				switch (cn->action) {
@@ -607,26 +568,21 @@ void httpd_main(void)
 			cn = cn->next;
 		}
 #ifdef POLL
-		if (n == 0)
+		if (n == 0) {
+			log(L_ERROR, "no more sockets to poll from");
+			break;
+		}
 #else
-		if (m == -1)
-#endif
-		{
+		if (m == -1) {
 			log(L_ERROR, "no more sockets to select from");
 			break;
 		}
+#endif
 #ifdef POLL
-		log(L_DEBUG, "polling...");
 		rv = poll(pollfds, n, INFTIM);
 #else
-		log(L_DEBUG, "selecting...");
-#ifdef HPUX
-		rv = select(m + 1, (int *) &rfds, (int *) &wfds, 0, 0);
-#else
 		rv = select(m + 1, &rfds, &wfds, 0, 0);
-#endif /* HPUX */
-#endif /* POLL */
-		log(L_DEBUG, "...done");
+#endif
 		time(&current_time);
 		if (rv == -1) {
 			if (errno != EINTR) {
@@ -640,11 +596,9 @@ void httpd_main(void)
 					break;
 				}
 			}
-		}
-		else {
+		} else {
 			error = 0;
 			if (rv) {
-
 				s = servers;
 				while (s) {
 					if (s->fd != -1) {
@@ -657,7 +611,6 @@ void httpd_main(void)
 					}
 					s = s->next;
 				}
-
 				cn = connections;
 				while (cn) {
 					if (cn->state == HC_ACTIVE) {
@@ -668,7 +621,8 @@ void httpd_main(void)
 								read_connection(cn);
 							else if (r & POLLOUT)
 								write_connection(cn);
-							else if (r)
+							else if (r) {
+								log(L_ERROR, "dropping %s: unexpected event %hd", cn->ip, r);
 								cn->action = HC_CLOSING;
 						}
 #else
@@ -681,7 +635,6 @@ void httpd_main(void)
 					cn = cn->next;
 				}
 			}
-			log(L_DEBUG, "cleaning up");
 			cleanup_connections();
 		}
 	}
