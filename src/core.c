@@ -633,28 +633,6 @@ static int run_servers(void)
 	return 0;
 }
 
-void log_socket_error(int fd, const char *s)
-{
-	int e, errno_save;
-	socklen_t l;
-
-	errno_save = errno;
-	l = sizeof e;
-	if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &e, &l) != -1) {
-		errno = e;
-		lerror(s);
-	}
-	errno = errno_save;
-}
-
-static void log_connection_error(struct connection *cn)
-{
-	char buf[80];
-
-	sprintf(buf, "error on connection to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
-	log_socket_error(cn->fd, buf);
-}
-
 static void run_rconnection(struct connection *cn)
 {
 	int n;
@@ -664,8 +642,7 @@ static void run_rconnection(struct connection *cn)
 	if (n == -1)
 		return;
 	r = pollfds[n].revents;
-	if (r & POLLERR) {
-		log_connection_error(cn);
+	if (r & (POLLERR | POLLHUP)) {
 		close_connection(cn);
 		return;
 	}
@@ -688,8 +665,7 @@ static void run_wconnection(struct connection *cn)
 	if (n == -1)
 		return;
 	r = pollfds[n].revents;
-	if (r & POLLERR) {
-		log_connection_error(cn);
+	if (r & (POLLERR | POLLHUP)) {
 		close_connection(cn);
 		return;
 	}

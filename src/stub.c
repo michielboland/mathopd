@@ -610,13 +610,11 @@ void pipe_run(struct connection *p)
 
 	cevents = p->pollno != -1 ? pollfds[p->pollno].revents : 0;
 	pevents = p->rpollno != -1 ? pollfds[p->rpollno].revents : 0;
-	if (cevents & POLLERR) {
-		log_socket_error(p->fd, "pipe_run: error on client socket");
+	if (cevents & (POLLERR | POLLHUP)) {
 		close_connection(p);
 		return;
 	}
-	if (pevents & POLLERR) {
-		log_socket_error(p->rfd, "pipe_run: error on child socket");
+	if (pevents & (POLLERR | POLLHUP)) {
 		close_connection(p);
 		return;
 	}
