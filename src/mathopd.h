@@ -274,6 +274,7 @@ extern STRING(server_version);
 extern volatile int gotsigterm;
 extern volatile int gotsighup;
 extern volatile int gotsigusr1;
+extern volatile int gotsigusr2;
 extern volatile int numchildren;
 extern time_t startuptime;
 extern int debug;
