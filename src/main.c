@@ -297,10 +297,6 @@ int fork_request(struct request *r, int (*f)(struct request *))
 	int p[2], efd;
 	pid_t pid;
 
-	if (r->c->child_filename == 0) {
-		log_d("ChildLog must be set");
-		return 500;
-	}
 	if (r->cn->assbackwards) {
 		log_d("fork_request: no HTTP/0.9 allowed here");
 		return 500;
@@ -325,15 +321,17 @@ int fork_request(struct request *r, int (*f)(struct request *))
 	switch (pid) {
 	case 0:
 		my_pid = getpid();
-		efd = open_log(r->c->child_filename);
-		if (efd == -1)
-			_exit(EX_UNAVAILABLE);
 		close(p[0]);
 		dup2(p[1], 0);
 		dup2(p[1], 1);
-		dup2(efd, 2);
 		close(p[1]);
-		close(efd);
+		if (r->c->child_filename) {
+			efd = open_log(r->c->child_filename);
+			if (efd == -1)
+				_exit(EX_UNAVAILABLE);
+			dup2(efd, 2);
+			close(efd);
+		}
 		_exit(f(r));
 		break;
 	case -1:
