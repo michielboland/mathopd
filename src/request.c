@@ -541,18 +541,10 @@ static int process_special(struct request *r)
 
 	ct = r->content_type;
 	r->num_content = -1;
-#ifdef CGI_MAGIC_TYPE
 	if (strceq(ct, CGI_MAGIC_TYPE))
 		return process_cgi(r);
-#endif
-#ifdef IMAP_MAGIC_TYPE
 	if (strceq(ct, IMAP_MAGIC_TYPE))
 		return process_imap(r);
-#endif
-#ifdef DUMP_MAGIC_TYPE
-	if (strceq(ct, DUMP_MAGIC_TYPE))
-		return process_dump(r);
-#endif
 	r->error = se_no_specialty;
 	return 500;
 }
