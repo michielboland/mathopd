@@ -515,7 +515,7 @@ static int process_fd(struct request *r)
 			} else if (o->type == FO_GROUP) {
 				if (debug)
 					log_d("st_gid=%d group=%d", r->finfo.st_gid, o->group);
-				if (r->finfo.st_gid == o->group);
+				if (r->finfo.st_gid == o->group)
 					break;
 			} else if (o->type == FO_WORLD)
 				break;
