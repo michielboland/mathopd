@@ -38,63 +38,56 @@ static const char rcsid[] = "$Id$";
 
 #include "mathopd.h"
 
-static int dump_children(int fd, struct virtual *v)
+static void dump_children(FILE *f, struct virtual *v)
 {
-	int l;
-	char buf[256];
-
 	while (v) {
-		l = sprintf(buf, "VHB %.200s %lu %lu\n", v->fullname, v->nrequests, v->nwritten);
-		if (write(fd, buf, l) == -1) {
-			lerror("write");
-			return -1;
-		}
+		fprintf(f, "VHB %.200s %lu %lu\n", v->fullname, v->nrequests, v->nwritten);
 		v = v->next;
 	}
-	return 0;
 }
 
-static int dump_servers(int fd, struct server *s)
+static void dump_servers(FILE *f, struct server *s)
 {
-	int l;
-	char buf[200];
-
 	while (s) {
-		l = sprintf(buf, "SAH %s:%d %lu %lu\n", inet_ntoa(s->addr), s->port, s->naccepts, s->nhandled);
-		if (write(fd, buf, l) == -1) {
-			lerror("write");
-			return -1;
-		}
-		if (dump_children(fd, s->children) == -1)
-			return -1;
+		fprintf(f, "SAH %s:%lu %lu %lu\n", inet_ntoa(s->addr), s->port, s->naccepts, s->nhandled);
+		dump_children(f, s->children);
 		s = s->next;
 	}
-	return 0;
+}
+
+static void fdump(FILE *f)
+{
+	fprintf(f, "*** Start of dump\n");
+	fprintf(f, "SCM %lu %lu %d\n", startuptime, current_time, maxconnections);
+	maxconnections = nconnections;
+	dump_servers(f, servers);
+	fprintf(f, "*** End of dump\n");
 }
 
 static int dump(int fd)
 {
-	int l;
-	char buf[80];
+	FILE *f;
+	int fd2;
 
-	l = sprintf(buf, "*** Start of dump\n");
-	if (write(fd, buf, l) == -1) {
-		lerror("write");
+	fd2 = dup(fd);
+	if (fd2 == -1) {
+		log_d("dump: failed to duplicate file descriptor %d", fd);
+		lerror("dup");
 		return -1;
 	}
-	l = sprintf(buf, "SCM %lu %lu %d\n", startuptime, current_time, maxconnections);
-	if (write(fd, buf, l) == -1) {
-		lerror("write");
+	f = fdopen(fd2, "a+");
+	if (f == 0) {
+		log_d("dump: failed to associate stream with descriptor %d", fd2);
+		close(fd2);
 		return -1;
 	}
-	maxconnections = nconnections;
-	if (dump_servers(fd, servers) == -1)
-		return -1;
-	l = sprintf(buf, "*** End of dump\n");
-	if (write(fd, buf, l) == -1) {
-		lerror("write");
+	fdump(f);
+	if (fclose(f) == EOF) {
+		lerror("fclose");
+		close(fd2);
 		return -1;
 	}
+	close(fd2);
 	return 0;
 }
 
