@@ -121,6 +121,7 @@ static const char e_inval[] =		"illegal quantity";
 static const char e_keyword[] =		"unknown keyword";
 static const char e_memory[] =		"out of memory";
 static const char e_nodefault[] =	"DefaultName not set";
+static const char e_illegalport[] =	"Illegal port number";
 static const char e_unknown_host[] =	"unknown host";
 
 static const char t_close[] =		"unexpected closing brace";
@@ -278,10 +279,18 @@ static const char *config_string(char **a)
 static const char *config_int(int *i)
 {
 	char *e;
+	unsigned long u;
+	int j;
 
 	GETWORD();
-	*i = (int) strtol(tokbuf, &e, 0);
-	return e && *e ? e_inval : 0;
+	u = strtoul(tokbuf, &e, 0);
+	if (*e || e == tokbuf)
+		return e_inval;
+	j = u;
+	if (j < 0 || j != u)
+		return e_inval;
+	*i = j;
+	return 0;
 }
 
 static const char *config_flag(int *i)
@@ -412,7 +421,7 @@ static const char *config_acccl(struct access **ls, int t)
 			return e_bad_network;
 		*sl++ = 0;
 		sz = strtoul(sl, &e, 0);
-		if ((e && *e) || sz > 32)
+		if (*e || e == sl || sz > 32)
 			return e_inval;
 		if (sz == 0)
 			l->mask = 0;
@@ -595,7 +604,7 @@ static const char *config_server(struct server **ss)
 
 	ALLOC(s);
 	num_servers++;
-	s->port = 0;
+	s->port = DEFAULT_PORT;
 	s->addr.s_addr = 0;
 	s->s_name = 0;
 	s->children = 0;
@@ -622,6 +631,8 @@ static const char *config_server(struct server **ss)
 		if (t)
 			return t;
 	}
+	if (s->port == 0 || s->port > 0xffff)
+		return e_illegalport;
 	return 0;
 }
 
@@ -634,8 +645,6 @@ static const char *fill_servernames(void)
 
 	s = servers;
 	while (s) {
-		if (s->port == 0)
-			s->port = DEFAULT_PORT;
 		if (s->s_name == 0) {
 			if (fqdn == 0)
 				return e_nodefault;
