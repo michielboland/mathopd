@@ -229,7 +229,7 @@ void log_d(const char *fmt, ...)
 	l = sprintf(log_line, "%.24s [%d] ", ti, my_pid);
 	m = sizeof log_line - l - 1;
 	n = vsnprintf(log_line + l, m, fmt, ap);
-	l += n < m ? n : m;
+	l += n < m ? n : m - 1;
 	log_line[l++] = '\n';
 	write(error_file, log_line, l);
 	if (am_daemon == 0 && forked == 0)
