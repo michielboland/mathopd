@@ -268,6 +268,8 @@ struct connection {
 	int keepalive;
 	int action;
 	struct connection *next;
+	unsigned long nread;
+	unsigned long nwritten;
 };
 
 struct tuning {
