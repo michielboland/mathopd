@@ -82,13 +82,10 @@ enum {
 	M_POST
 };
 
-enum {
+enum connection_state {
+	HC_UNATTACHED,
 	HC_FREE,
-	HC_ACTIVE,
-	HC_FORKED
-};
-
-enum {
+	HC_FORKED,
 	HC_READING,
 	HC_WRITING,
 	HC_WAITING,
@@ -273,8 +270,10 @@ struct request {
 };
 
 struct connection {
+	struct connection *next;
+	struct connection *prev;
+	enum connection_state connection_state;
 	struct request *r;
-	int state;
 	struct server *s;
 	int fd;
 	int rfd;
@@ -284,8 +283,6 @@ struct connection {
 	struct pool *input;
 	struct pool *output;
 	int keepalive;
-	int action;
-	struct connection *next;
 	int pollno;
 	unsigned long nread;
 	unsigned long nwritten;
@@ -293,6 +290,11 @@ struct connection {
 	int logged;
 	struct timeval itv;
 	pid_t pid;
+};
+
+struct connection_list {
+	struct connection *head;
+	struct connection *tail;
 };
 
 struct pipe_params {
@@ -361,7 +363,6 @@ extern char *log_filename;
 extern char *error_filename;
 extern char *rootdir;
 extern char *coredir;
-extern struct connection *connections;
 extern struct server *servers;
 extern uid_t server_uid;
 extern gid_t server_gid;
@@ -369,6 +370,7 @@ extern int log_columns;
 extern int *log_column;
 extern int log_gmt;
 extern const char *config(const char *);
+extern int init_buffers(void);
 
 /* core */
 
@@ -379,9 +381,12 @@ extern time_t current_time;
 extern struct pollfd *pollfds;
 extern int available_connections;
 extern unsigned long nrequests;
+extern struct connection *connection_array;
+extern void set_connection_state(struct connection *, enum connection_state);
 extern void log_socket_error(int, const char *);
 extern void httpd_main(void);
 extern int init_pollfds(size_t);
+extern int init_connections(size_t);
 
 /* request */
 
