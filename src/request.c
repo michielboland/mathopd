@@ -911,6 +911,55 @@ static int parse_range_header(struct request *r, const char *s)
 	return 0;
 }
 
+static int parse_http_version(struct request *r)
+{
+	const char *v;
+	char *e;
+	unsigned long ma, mi;
+
+	v = r->version;
+	if (v == 0)
+		return -1;
+	if (strncmp(v, "HTTP", 4))
+		return -1;
+	v += 4;
+	while (*v == ' ')
+		++v;
+	if (*v != '/')
+		return -1;
+	do
+		++v;
+	while (*v == ' ');
+	if (*v == '-')
+		return -1;
+	ma = strtoul(v, &e, 10);
+	if (e == v)
+		return -1;
+	v = e;
+	while (*v == ' ')
+		++v;
+	if (*v != '.')
+		return -1;
+	do
+		++v;
+	while (*v == ' ');
+	if (*v == '-')
+		return -1;
+	mi = strtoul(v, &e, 10);
+	if (e == v)
+		return -1;
+	v = e;
+	while (*v == ' ')
+		++v;
+	if (*v)
+		return -1;
+	if (ma == 0 || ma > INT_MAX || mi > INT_MAX)
+		return -1;
+	r->protocol_major = ma;
+	r->protocol_minor = mi;
+	return 0;
+}
+
 static int process_headers(struct request *r)
 {
 	char *l, *u, *s;
@@ -929,15 +978,20 @@ static int process_headers(struct request *r)
 		return -1;
 	r->method_s = l;
 	*u++ = 0;
-	s = strrchr(u, ' ');
-	if (s == 0) {
-		if (r->cn->assbackwards == 0) {
-			log_d("version == 0 !?");
+	if (r->cn->assbackwards)
+		r->protocol_minor = 9;
+	else {
+		s = strrchr(u, 'H');
+		if (s == 0 || s == u || s[-1] != ' ') {
+			log_d("no HTTP-Version in Request-Line");
 			return -1;
 		}
-	} else {
-		r->version = s + 1;
-		*s = 0;
+		r->version = s;
+		s[-1] = 0;
+		if (parse_http_version(r) == -1) {
+			r->cn->keepalive = 0;
+			return 400;
+		}
 	}
 	r->url = u;
 	s = strchr(u, '?');
@@ -1019,25 +1073,9 @@ static int process_headers(struct request *r)
 	}
 	if (unescape_url(s, r->path) == -1)
 		return 400;
-	if (r->cn->assbackwards) {
-		r->protocol_major = 0;
-		r->protocol_minor = 9;
-	} else {
-		s = r->version;
-		if (strncmp(s, "HTTP/1.", 7))
-			return 400;
-		r->protocol_major = 1;
-		switch (s[7]) {
-		case '0':
-			r->protocol_minor = 0;
-			break;
-		case '1':
-			r->protocol_minor = 1;
-			break;
-		default:
-			log_d("%s: unsupported version \"%s\"", inet_ntoa(r->cn->peer.sin_addr), s);
+	if (r->protocol_major > 1 || r->protocol_minor > 1) {
+		log_d("%s: unsupported version HTTP/%d.%d", inet_ntoa(r->cn->peer.sin_addr), r->protocol_major, r->protocol_minor);
 			return 505;
-		}
 	}
 	if (r->in_transfer_encoding) {
 		if (strcasecmp(r->in_transfer_encoding, "chunked")) {
