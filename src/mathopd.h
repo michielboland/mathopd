@@ -333,13 +333,12 @@ extern volatile sig_atomic_t gotsigusr2;
 extern volatile sig_atomic_t gotsigchld;
 extern volatile sig_atomic_t gotsigquit;
 extern int numchildren;
-extern time_t startuptime;
 extern int debug;
 extern unsigned long fcm;
 extern int stayroot;
 extern int my_pid;
-extern int fork_request(struct request *, int (*)(struct request *));
 extern int am_daemon;
+extern int fork_request(struct request *, int (*)(struct request *));
 
 /* config */
 
@@ -347,39 +346,33 @@ extern struct tuning tuning;
 extern char *pid_filename;
 extern char *log_filename;
 extern char *error_filename;
-extern char *agent_filename;
-
-extern char *admin;
 extern char *rootdir;
 extern char *coredir;
 extern struct connection *connections;
 extern struct server *servers;
 extern char *user_name;
-extern const char *config(const char *);
-
 extern int log_columns;
 extern int *log_column;
 extern int log_gmt;
+extern const char *config(const char *);
 
 /* core */
 
-extern struct pollfd *pollfds;
 extern int nconnections;
 extern int maxconnections;
+extern time_t startuptime;
 extern time_t current_time;
-
+extern struct pollfd *pollfds;
 extern void log_socket_error(int, const char *);
-extern void log_d(const char *, ...);
-extern void lerror(const char *);
 extern void httpd_main(void);
 extern int init_pollfds(size_t);
 
 /* request */
 
 extern char *rfctime(time_t, char *);
+extern struct control *faketoreal(char *, char *, struct request *, int, int);
 extern void init_request(struct request *);
 extern int process_request(struct request *);
-extern struct control *faketoreal(char *, char *, struct request *, int, int);
 extern int cgi_error(struct request *);
 
 /* imap */
@@ -412,17 +405,19 @@ extern void sanitize_host(char *);
 
 extern int init_log_buffer(size_t);
 extern void log_request(struct request *);
-extern int init_logs(void);
 extern int open_log(const char *);
+extern int init_logs(void);
+extern void log_d(const char *, ...);
+extern void lerror(const char *);
 
 /* stub */
 
 extern struct pipe_params *children;
-extern int setup_child_pollfds(int);
 extern int init_children(size_t);
 extern void init_child(struct pipe_params *, struct request *, int);
+extern int setup_child_pollfds(int);
+extern void close_children(void);
 extern int run_children(void);
 extern void cleanup_children(void);
-extern void close_children(void);
 
 #endif
