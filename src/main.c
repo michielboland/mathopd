@@ -8,7 +8,7 @@
 
 #include "mathopd.h"
 
-STRING(server_version) = "Mathopd/1.1b23";
+STRING(server_version) = "Mathopd/1.1b24";
 
 volatile int gotsigterm;
 volatile int gotsighup;
