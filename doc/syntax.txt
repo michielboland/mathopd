@@ -28,7 +28,7 @@ control-item:
 	"PathArgs" flag
 	"IndexNames" string-block 
 	"Access" access-block 
-	"Clients" access-block 
+	"Clients" client-block 
 	"Types" type-block 
 	"Specials" type-block
 	"External" type-block
@@ -65,6 +65,8 @@ virtual-item:
 access-item:
 	"Allow" network
 	"Deny" network
+
+client-item:
 	"Apply" network
 	"NoApply" network
 
