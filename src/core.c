@@ -46,18 +46,6 @@ time_t current_time;
 static int log_file = -1;
 static int error_file = -1;
 
-#ifdef NEED_STRERROR
-const char *strerror(int err)
-{
-	extern int sys_nerr;
-	extern char *sys_errlist[];
-
-	return (err < 0 || err >= sys_nerr)
-		? "Unknown error"
-		: sys_errlist[err];
-}
-#endif
-
 static void init_pool(struct pool *p)
 {
 	p->start = p->end = p->floor;
