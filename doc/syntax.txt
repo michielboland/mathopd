@@ -54,6 +54,7 @@ tuning-item:
 	"InputBufSize" integer
 	"NumConnections" integer
 	"AcceptMulti" flag
+	"NumHeaders" integer
 
 control-item:
 	"Location" string

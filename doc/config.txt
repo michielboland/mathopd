@@ -549,6 +549,16 @@ Desc:    The NumConnections parameter is the #1 tunable for Mathopd. It
          the higher you set this tunable, the more memory the server
          will use.
 
+Keyword: NumHeaders
+Where:   Tuning
+Type:    Integer
+Default: 100
+Desc:    Mathopd keeps track of the HTTP headers that are sent by a client
+         to pass on to child processes. Since each of these headers must
+         be stored somewhere, a fixed amount of memory is set aside for
+         these. The number of HTTP headers that are actualle stored is
+         determined by the value of NumHeaders.
+
 Keyword: PIDFile
 Where:   Global
 Type:    String
