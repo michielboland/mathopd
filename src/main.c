@@ -50,6 +50,7 @@ int debug;
 int fcm;
 int stayroot;
 int my_pid;
+int am_daemon;
 
 static char *progname;
 static int forked;
@@ -140,7 +141,7 @@ static void sigquit(int sig)
 
 int main(int argc, char *argv[])
 {
-	int c, i, n, am_daemon, version, pid_fd, null_fd;
+	int c, i, n, version, pid_fd, null_fd;
 	struct server *s;
 	char buf[10];
 	struct rlimit rl;
