@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 2000, 2001, 2003 Michiel Boland.
+ *   Copyright 1996 - 2005 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -35,7 +35,7 @@
 
 /* As */
 
-static const char rcsid[] = "$Id: dump.c,v 1.64 2005/03/22 18:37:49 boland Exp $";
+static const char rcsid[] = "$Id: dump.c,v 1.60.2.1 2005/03/22 18:42:43 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>
