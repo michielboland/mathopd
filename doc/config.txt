@@ -160,6 +160,26 @@ Where:   LogFormat
 Keyword: Control
 Where:   Global, Server, Virtual
 Type:    Block
+Desc:    The 'Control' keyword starts a so-called control block. As the name
+         suggests, it controls the behaviour of the server. In fact the
+         keyword itself does not do very much; the directives inside the
+         control block do all the work.
+
+         Unless the block contains an Alias directive, settings that are
+         specified inside a control block are inherited by all next blocks
+         that are on an equal or lower level.
+
+         Control blocks can appear at three different levels. Control bocks
+         that appear at the 'top' level in the configuration file are called
+         global control blocks. Next, one can put control blocks inside
+         Server blocks. The settings defined there are local to that specific
+         server. And finally one can have control blocks inside Virtual
+         blocks. These blocks are on the lowest level.
+
+         Usually a configuration file is made up of one very large global
+         control block, followed by a bunch of Virtual servers that each
+         contain a small control block, mostly containing just an Alias and
+         a Location directive.
 
 Keyword: CoreDirectory
 Where:   Global
