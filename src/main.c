@@ -36,7 +36,7 @@
 
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.3b6";
+const char server_version[] = "Mathopd/1.3b7";
 
 volatile int gotsigterm;
 volatile int gotsighup;
@@ -58,13 +58,13 @@ static int forked;
 static const char su_fork[] = "could not fork";
 static const char devnull[] = "/dev/null";
 
-static int mysignal(int sig, void(*f)(int), int flags)
+static int mysignal(int sig, void(*f)(int))
 {
 	struct sigaction act;
 
 	act.sa_handler = f;
 	sigemptyset(&act.sa_mask);
-	act.sa_flags = flags;
+	act.sa_flags = 0;
 	return sigaction(sig, &act, 0);
 }
 
@@ -234,15 +234,15 @@ int main(int argc, char *argv[])
 		if (fork())
 			_exit(0);
 	}
-	mysignal(SIGCHLD, sigchld, SA_NOCLDSTOP);
-	mysignal(SIGHUP,  sighup, 0);
-	mysignal(SIGTERM, sigterm, 0);
-	mysignal(SIGINT,  sigterm, 0);
-	mysignal(SIGQUIT, sigquit, 0);
-	mysignal(SIGUSR1, sigusr1, 0);
-	mysignal(SIGUSR2, sigusr2, 0);
-	mysignal(SIGWINCH, sigwinch, 0);
-	mysignal(SIGPIPE, SIG_IGN, 0);
+	mysignal(SIGCHLD, sigchld);
+	mysignal(SIGHUP,  sighup);
+	mysignal(SIGTERM, sigterm);
+	mysignal(SIGINT,  sigterm);
+	mysignal(SIGQUIT, sigquit);
+	mysignal(SIGUSR1, sigusr1);
+	mysignal(SIGUSR2, sigusr2);
+	mysignal(SIGWINCH, sigwinch);
+	mysignal(SIGPIPE, SIG_IGN);
 	my_pid = getpid();
 	if (pid_fd != -1) {
 		ftruncate(pid_fd, 0);
@@ -295,7 +295,7 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		if (debug)
 			log_d("fork_request: child process created");
 		forked = 1;
-		mysignal(SIGPIPE, SIG_DFL, 0);
+		mysignal(SIGPIPE, SIG_DFL);
 		fd = r->cn->fd;
 		child_filename = r->c->child_filename;
 		if (child_filename == 0)
