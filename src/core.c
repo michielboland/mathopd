@@ -885,8 +885,14 @@ void httpd_main(void)
 
 int init_pollfds(size_t n)
 {
-	pollfds = realloc(pollfds, n * sizeof *pollfds);
-	return pollfds == 0 ? -1 : 0;
+	if (n == 0)
+		return 0;
+	pollfds = malloc(n * sizeof *pollfds);
+	if (pollfds == 0) {
+		log_d("init_pollfds: out of memory");
+		return -1;
+	}
+	return 0;
 }
 
 int new_pool(struct pool *p, size_t s)
@@ -894,8 +900,10 @@ int new_pool(struct pool *p, size_t s)
 	char *t;
 
 	t = malloc(s);
-	if (t == 0)
+	if (t == 0) {
+		log_d("new_pool: out of memory");
 		return -1;
+	}
 	p->floor = p->start = p->middle = p->end = t;
 	p->ceiling = t + s;
 	return 0;
@@ -907,16 +915,22 @@ int init_connections(size_t n)
 	struct connection *cn;
 
 	connection_array = malloc(n * sizeof *connection_array);
-	if (connection_array == 0)
+	if (connection_array == 0) {
+		log_d("init_connections: out of memory");
 		return -1;
+	}
 	for (i = 0; i < n; i++) {
 		cn = connection_array + i;
-		if ((cn->r = malloc(sizeof *cn->r)) == 0)
+		if ((cn->r = malloc(sizeof *cn->r)) == 0) {
+			log_d("init_connections: out of memory");
 			return -1;
+		}
 		if (tuning.num_headers == 0)
 			cn->r->headers = 0;
-		else if ((cn->r->headers = malloc(tuning.num_headers * sizeof *cn->r->headers)) == 0)
-				return -1;
+		else if ((cn->r->headers = malloc(tuning.num_headers * sizeof *cn->r->headers)) == 0) {
+			log_d("init_connections: out of memory");
+			return -1;
+		}
 		if (new_pool(&cn->header_input, tuning.input_buf_size) == -1)
 			return -1;
 		if (new_pool(&cn->output, tuning.buf_size) == -1)

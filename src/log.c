@@ -60,13 +60,14 @@ static size_t log_buffer_size;
 
 int init_log_buffer(size_t size)
 {
-	char *b;
-
-	b = realloc(log_buffer, size);
-	if (b == 0)
-		return -1;
-	log_buffer = b;
 	log_buffer_size = size;
+	if (size == 0)
+		return 0;
+	log_buffer = malloc(size);
+	if (log_buffer == 0) {
+		log_d("init_log_buffer: out of memory");
+		return -1;
+	}
 	return 0;
 }
 

@@ -60,10 +60,12 @@ static struct cgi_header *cgi_headers;
 
 int init_cgi_headers(void)
 {
-	if (tuning.num_headers) {
-		cgi_headers = malloc(tuning.num_headers * sizeof *cgi_headers);
-		if (cgi_headers == 0)
-			return -1;
+	if (tuning.num_headers == 0)
+		return 0;
+	cgi_headers = malloc(tuning.num_headers * sizeof *cgi_headers);
+	if (cgi_headers == 0) {
+		log_d("init_cgi_headers: out of memory");
+		return -1;
 	}
 	return 0;
 }
