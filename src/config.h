@@ -1,2 +1,0 @@
-#undef HAVE_INET_ATON
-#undef HAVE_CRYPT_H
