@@ -676,7 +676,6 @@ static int check_realm(struct request *r)
 
 struct control *faketoreal(char *x, char *y, struct request *r, int update)
 {
-	unsigned long ip;
 	struct control *c;
 	char *s;
 
@@ -684,13 +683,12 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 		log_d("virtualhost not initialized!");
 		return 0;
 	}
-	ip = r->cn->peer.sin_addr.s_addr;
 	s = 0;
 	c = r->vs->controls;
 	while (c) {
 		if (c->locations && c->alias) {
 			s = c->exact_match ? exactmatch(x, c->alias) : dirmatch(x, c->alias);
-			if (s && (c->clients == 0 || evaluate_access(ip, c->clients) == APPLY))
+			if (s && (c->clients == 0 || evaluate_access(r->cn->peer.sin_addr.s_addr, c->clients) == APPLY))
 				break;
 		}
 		c = c->next;
