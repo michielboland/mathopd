@@ -394,9 +394,11 @@ static void cleanup_connections(void)
 	cn = connections;
 	while (cn) {
 		if (cn->state == HC_ACTIVE) {
-			if (current_time - cn->t >= tuning.timeout) {
-				log_d("timeout to %s", cn->ip);
-				cn->action = HC_CLOSING;
+			if (cn->action != HC_CLOSING) {
+				if (current_time - cn->t >= tuning.timeout) {
+					log_d("timeout to %s", cn->ip);
+					cn->action = HC_CLOSING;
+				}
 			}
 			if (cn->action == HC_CLOSING)
 				close_connection(cn);
