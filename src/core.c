@@ -95,7 +95,13 @@ static void accept_connection(struct server *s)
 	struct connection *cn, *cw;
 
 	lsa = sizeof sa;
-	while ((fd = accept(s->fd, (struct sockaddr *) &sa, &lsa)) != -1) {
+	do {
+		fd = accept(s->fd, (struct sockaddr *) &sa, &lsa);
+		if (fd == -1) {
+			if (errno != EAGAIN)
+				lerror("accept");
+			break;
+		}
 		s->naccepts++;
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		fcntl(fd, F_SETFL, O_NONBLOCK);
@@ -119,9 +125,7 @@ static void accept_connection(struct server *s)
 			    inet_ntoa(sa.sin_addr));
 			close(fd);
 		}
-	}
-	if (errno != EAGAIN)
-		lerror("accept");
+	} while (tuning.accept_multi);
 }
 
 static int fill_connection(struct connection *cn)
@@ -372,7 +376,7 @@ static void cleanup_connections(void)
 	while (cn) {
 		if (cn->state == HC_ACTIVE) {
 			if (cn->action == HC_CLOSING
-			    || current_time - cn->t >= timeout)
+			    || current_time - cn->t >= tuning.timeout)
 				close_connection(cn);
 		}
 		cn = cn->next;
@@ -495,7 +499,7 @@ static void do_connections(struct connection *cn, fd_set *r, fd_set *w)
 					cn->action = HC_CLOSING;
 			}
 #else
-			if (FD_ISSET(cn->fd, r))
+			else if (FD_ISSET(cn->fd, r))
 				read_connection(cn);
 			else if (FD_ISSET(cn->fd, w))
 				write_connection(cn);
