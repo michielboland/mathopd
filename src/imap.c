@@ -221,7 +221,8 @@ static int f_process_imap(struct request *r, FILE *fp)
 		}
 	}
 	if (status) {
-		log_d("imagemap: %s on line %d of %s", status, line, r->path_translated);
+		log_d("imagemap: error on line %d of %s", line, r->path_translated);
+		log_d("imagemap: %s", status);
 		return 500;
 	}
 	if (url) {
