@@ -479,29 +479,32 @@ static int writetochild(struct connection *p)
 static int scanlflf(struct connection *p)
 {
 	char c;
+	int state;
 
-	while (p->script_input.start < p->script_input.end && p->pipe_params.state != 2) {
+	state = p->pipe_params.state;
+	while (p->script_input.start < p->script_input.end && state != 2) {
 		c = *p->script_input.start++;
-		switch (p->pipe_params.state) {
+		switch (state) {
 		case 0:
 			if (c == '\n')
-				p->pipe_params.state = 1;
+				state = 1;
 			break;
 		case 1:
 			switch (c) {
 			case '\r':
 				break;
 			case '\n':
-				p->pipe_params.state = 2;
+				state = 2;
 				break;
 			default:
-				p->pipe_params.state = 0;
+				state = 0;
 				break;
 			}
 			break;
 		}
 	}
-	if (p->pipe_params.state == 2) {
+	p->pipe_params.state = state;
+	if (state == 2) {
 		if (convert_cgi_headers(p, &p->r->status) == -1) {
 			cgi_error(p->r);
 			return -1;
