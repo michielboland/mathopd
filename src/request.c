@@ -195,7 +195,7 @@ static char *rfctime(time_t t, char *buf)
 	tp = gmtime(&t);
 	if (tp == 0) {
 		log_d("gmtime failed!?!?!?");
-		sprintf(buf, "?");
+		strcpy(buf, "?");
 		return buf;
 	}
 	strftime(buf, 31, "%a, %d %b %Y %H:%M:%S GMT", tp);
