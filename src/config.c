@@ -51,10 +51,6 @@ struct simple_list *exports;
 
 char *user_name;
 
-#ifdef POLL
-struct pollfd *pollfds;
-#endif
-
 static const char *err;
 static char *fqdn;
 static char tokbuf[STRLEN];
@@ -721,11 +717,6 @@ static const char *config2(void)
 	s = fill_servernames();
 	if (s)
 		return s;
-#ifdef POLL
-	pollfds = malloc((tuning.num_connections + num_servers) * sizeof *pollfds);
-	if (pollfds == 0)
-		return e_memory;
-#endif
 	for (n = 0; n < tuning.num_connections; n++) {
 		ALLOC(cn);
 		ALLOC(cn->r);

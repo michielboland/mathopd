@@ -63,11 +63,6 @@
 #include <grp.h>
 #include <sys/resource.h>
 
-#ifdef POLL
-#include <stropts.h>
-#include <poll.h>
-#endif
-
 #ifdef HAVE_CRYPT_H
 #include <crypt.h>
 #endif
@@ -180,9 +175,6 @@ struct server {
 	struct virtual *children;
 	struct control *controls;
 	struct server *next;
-#ifdef POLL
-	int pollno;
-#endif
 	unsigned long naccepts;
 	unsigned long nhandled;
 };
@@ -243,9 +235,6 @@ struct connection {
 	int keepalive;
 	int action;
 	struct connection *next;
-#ifdef POLL
-	int pollno;
-#endif
 };
 
 struct tuning {
@@ -290,9 +279,6 @@ extern char *coredir;
 extern struct connection *connections;
 extern struct server *servers;
 extern char *user_name;
-#ifdef POLL
-extern struct pollfd *pollfds;
-#endif
 extern void config(void);
 
 /* core */
