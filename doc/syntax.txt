@@ -42,10 +42,10 @@ configuration-item:
 	"PIDFile" string
 	"Log" string
 	"ErrorLog" string
-	"Tuning" tuning-block 
-	"Control" control-block 
-	"Server" server-block 
-	"LogFormat" logformat-block 
+	"Tuning" tuning-block
+	"Control" control-block
+	"Server" server-block
+	"LogFormat" logformat-block
 	"LogGMT" flag
 
 tuning-item:
@@ -59,10 +59,10 @@ control-item:
 	"Location" string
 	"Alias" string
 	"PathArgs" flag
-	"IndexNames" string-block 
-	"Access" access-block 
-	"Clients" client-block 
-	"Types" type-block 
+	"IndexNames" string-block
+	"Access" access-block
+	"Clients" client-block
+	"Types" type-block
 	"Specials" type-block
 	"External" type-block
 	"Admin" string

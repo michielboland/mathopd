@@ -133,7 +133,7 @@ Keyword: ChildLog
 Where:   Control
 Type:    String
 Desc:    If a child process, such as a CGI script, writes a message to its
-         standard error file descriptor (fd 2) it will end up in the file 
+         standard error file descriptor (fd 2) it will end up in the file
          designated by the ChildLog keyword. If no ChildLog is specified,
          error output is mixed with any other output from scripts.
 
@@ -306,7 +306,7 @@ Desc:    The ExactMatch causes an Alias to be used only if it matches the
              }
              # other virtual servers ...
            }
-         
+
          Now if someone requests http://www.another.example/, the alias
          will match exactly, so the control block at the bottom will be
          in effect. On the other hand, if a request is made for, say,
@@ -734,7 +734,7 @@ Desc:    Connections that are idle for too long are aborted by Mathopd.
          Idle in this case meaning `receiving or transmitting no data.'
          It is possible to increase or decrease the timeout by adding
          a Timeout keyword. The unit of the timeout value is seconds.
-         
+
 Keyword: Tuning
 Where:   Global
 Type:    Block
