@@ -36,6 +36,8 @@
 
 #include "mathopd.h"
 
+static const char fb_no_identity[] = "no user set to run script";
+
 static char **cgi_envp;
 static char **cgi_argv;
 static int cgi_envc;
@@ -339,5 +341,10 @@ static int exec_cgi(struct request *r)
 
 int process_cgi(struct request *r)
 {
+	if (r->c->script_user == 0) {
+		r->error = fb_no_identity;
+		r->error_file = r->c->error_403_file;
+		return 403;
+	}
 	return fork_request(r, exec_cgi);
 }
