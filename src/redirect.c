@@ -41,11 +41,10 @@
 
 int process_redirect(struct request *r)
 {
-	char buf[STRLEN];
-	char *location, *c;
+	char buf[STRLEN], buf2[PATHLEN];
+	char *b, *c;
 	FILE *fp;
 
-	location = r->path_args;
 	if (r->method != M_GET && r->method != M_HEAD) {
 		r->error = "invalid method for redirect";
 		return 405;
@@ -64,11 +63,12 @@ int process_redirect(struct request *r)
 		r->error = "redirect url too long";
 		return 500;
 	}
-	if (*buf == '/')
-		construct_url(location, buf, r);
-	else
-		strcpy(location, buf);
-	escape_url(location);
-	r->location = location;
+	if (*buf == '/') {
+		construct_url(buf2, buf, r);
+		b = buf2;
+	} else
+		b = buf;
+	escape_url(b, r->path_args);
+	r->location = r->path_args;
 	return 302;
 }
