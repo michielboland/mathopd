@@ -711,16 +711,16 @@ static int process_path(struct request *r)
 	}
 	if (!S_ISREG(r->finfo.st_mode)) {
 		log_d("%s is not a regular file", r->path_translated);
-		r->error_file = r->c->error_403_file;
-		return 403;
+		r->error_file = r->c->error_404_file;
+		return 404;
 	}
 	if (check_symlinks(r) == -1) {
-		r->error_file = r->c->error_403_file;
-		return 403;
+		r->error_file = r->c->error_404_file;
+		return 404;
 	}
 	if (get_mime(r, r->path_translated) == -1) {
-		r->error_file = r->c->error_403_file;
-		return 403;
+		r->error_file = r->c->error_404_file;
+		return 404;
 	}
 	switch (r->class) {
 	case CLASS_FILE:
