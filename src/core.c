@@ -381,10 +381,21 @@ static void cleanup_connections(void)
 
 static void init_log(char *name, int *fdp)
 {
+	char converted_name[PATHLEN], *n;
+	struct tm *tp;
+
 	if (name) {
+		n = name;
+		if (strchr(name, '%')) {
+			tp = localtime(&current_time);
+			if (tp) {
+				strftime(converted_name, PATHLEN - 1, name, tp);
+				n = converted_name;
+			}
+		}
 		if (*fdp != -1)
 			close(*fdp);
-		*fdp = open(name, O_WRONLY | O_CREAT | O_APPEND,
+		*fdp = open(n, O_WRONLY | O_CREAT | O_APPEND,
 			    DEFAULT_FILEMODE);
 		if (*fdp != -1)
 			fcntl(*fdp, F_SETFD, FD_CLOEXEC);
