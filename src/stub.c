@@ -75,6 +75,7 @@ struct pipe_params {
 	int timeout;
 	size_t imax;
 	int chunkit;
+	int nocontent;
 };
 
 struct cgi_header {
@@ -235,9 +236,13 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 		len += 17;
 	} else {
 		s = atoi(headers[status].value);
-		if (s < 100 || s > 999) {
+		if (s < 200 || s > 599) {
 			log_d("convert_cgi_headers: illegal header line \"%.*s\"", headers[status].len, headers[status].name);
 			return -1;
+		}
+		if (s == 204 || s == 304) {
+			pp->nocontent = 1;
+			pp->chunkit = 0;
 		}
 		tmpvaluelen = headers[status].len - (headers[status].value - headers[status].name);
 		if (len + tmpvaluelen + 11 > pp->osize) {
@@ -353,8 +358,6 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		if (stub_reap() == -1)
 			return 1;
 	}
-	if (debug)
-		log_d("starting poll, fd0=%d,  e0=%d, fd1=%d,  e1=%d", pollfds[0].fd, pollfds[0].events, pollfds[1].fd, pollfds[1].events);
 	n = poll(pollfds, 2, p->timeout);
 	current_time = time(0);
 	if (gotsigchld) {
@@ -368,8 +371,6 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		lerror("poll");
 		return 1;
 	}
-	if (debug)
-		log_d("poll done,     fd0=%d, re0=%d, fd1=%d, re1=%d, n=%d", pollfds[0].fd, pollfds[0].revents, pollfds[1].fd, pollfds[1].revents, n);
 	if (n == 0) {
 		log_d("pipe_run: timeout");
 		return 1;
@@ -487,34 +488,36 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		}
 	}
 	if (p->state == 2 && p->pstart < p->ipp) {
-		room = p->osize - p->otop;
-		bytestocopy = p->ipp - p->pstart;
-		if (bytestocopy > room)
-			bytestocopy = room;
-		if (bytestocopy && p->chunkit) {
-			chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
-			if (debug)
-				log_d("chunkit; bytestocopy=%d, chunkheaderlen=%d", bytestocopy, chunkheaderlen);
-			if (chunkheaderlen >= bytestocopy)
-				bytestocopy = 0;
-			else {
-				if (bytestocopy + chunkheaderlen > room) {
-					bytestocopy -= chunkheaderlen;
-					chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
+		if (p->nocontent)
+			p->pstart = p->ipp = 0;
+		else {
+			room = p->osize - p->otop;
+			bytestocopy = p->ipp - p->pstart;
+			if (bytestocopy > room)
+				bytestocopy = room;
+			if (bytestocopy && p->chunkit) {
+				chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
+				if (chunkheaderlen >= bytestocopy)
+					bytestocopy = 0;
+				else {
+					if (bytestocopy + chunkheaderlen > room) {
+						bytestocopy -= chunkheaderlen;
+						chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
+					}
+					memcpy(p->obuf + p->otop, chunkbuf, chunkheaderlen);
+					p->otop += chunkheaderlen;
 				}
-				memcpy(p->obuf + p->otop, chunkbuf, chunkheaderlen);
-				p->otop += chunkheaderlen;
+			}
+			if (bytestocopy) {
+				memcpy(p->obuf + p->otop, p->pbuf + p->pstart, bytestocopy);
+				p->otop += bytestocopy;
+				p->pstart += bytestocopy;
+				if (p->pstart == p->ipp)
+					p->pstart = p->ipp = 0;
 			}
 		}
-		if (bytestocopy) {
-			memcpy(p->obuf + p->otop, p->pbuf + p->pstart, bytestocopy);
-			p->otop += bytestocopy;
-			p->pstart += bytestocopy;
-			if (p->pstart == p->ipp)
-				p->pstart = p->ipp = 0;
-		}
 	}
-	if (p->pstate == 2) {
+	if (p->pstate == 2 && p->chunkit && p->nocontent == 0) {
 		if (p->osize - p->otop >= 5) {
 			memcpy(p->obuf + p->otop, "0\r\n\r\n", 5);
 			p->otop += 5;
@@ -552,6 +555,7 @@ static int pipe_loop(int fd, struct request *r, int timeout)
 	timeout *= 1000;
 	p.timeout = timeout;
 	p.chunkit = r->protocol_minor > 0;
+	p.nocontent = r->method == M_HEAD;
 	if (r->method == M_POST) {
 		p.istate = 1;
 		p.imax = r->in_mblen;
