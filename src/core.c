@@ -81,7 +81,7 @@ static void init_connection(struct connection *cn)
 	init_pool(cn->output);
 	init_request(cn->r);
 	cn->assbackwards = 1;
-	cn->keepalive = 1;
+	cn->keepalive = 0;
 	cn->nread = 0;
 	cn->nwritten = 0;
 	cn->left = 0;
@@ -342,6 +342,7 @@ static void read_connection(struct connection *cn)
 			switch (c) {
 			default:
 				cn->assbackwards = 0;
+				cn->keepalive = 1;
 				state = 4;
 			case ' ':
 			case '\t':
