@@ -151,6 +151,7 @@ static const char c_time_taken[] =		"TimeTaken";
 static const char c_tuning[] =			"Tuning";
 static const char c_types[] =			"Types";
 static const char c_virtual[] =			"Virtual";
+static const char c_wait[] =			"Wait";
 static const char c_umask[] =			"Umask";
 static const char c_uri[] =			"Uri";
 static const char c_user[] =			"User";
@@ -909,6 +910,8 @@ static const char *config_tuning(struct configuration *p, struct tuning *tp)
 			t = config_int(p, &tp->script_buf_size);
 		else if (!strcasecmp(p->tokbuf, c_clobber))
 			t = config_flag(p, &tp->clobber);
+		else if (!strcasecmp(p->tokbuf, c_wait))
+			t = config_int(p, &tp->wait_timeout);
 		else
 			t = e_keyword;
 		if (t)
@@ -1005,6 +1008,7 @@ const char *config(const char *config_filename)
 	tuning.script_timeout = DEFAULT_SCRIPT_TIMEOUT;
 	tuning.script_buf_size = DEFAULT_SCRIPT_BUF_SIZE;
 	tuning.clobber = 1;
+	tuning.wait_timeout = DEFAULT_WAIT_TIMEOUT;
 	fcm = DEFAULT_UMASK;
 	stayroot = 0;
 	log_columns = 0;

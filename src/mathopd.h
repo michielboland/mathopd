@@ -58,6 +58,7 @@
 #define DEFAULT_SCRIPT_TIMEOUT 60
 #define DEFAULT_SCRIPT_BUF_SIZE 4096
 #define DEFAULT_BACKLOG 128
+#define DEFAULT_WAIT_TIMEOUT 60
 
 #define STRLEN 400
 #define PATHLEN (2 * STRLEN)
@@ -320,6 +321,7 @@ struct tuning {
 	unsigned long script_timeout;
 	unsigned long script_buf_size;
 	int clobber;
+	unsigned long wait_timeout;
 };
 
 struct statistics {

@@ -761,7 +761,7 @@ static void timeout_connections(struct connection *c, time_t t, const char *what
 
 static void cleanup_connections(void)
 {
-	timeout_connections(waiting_connections.head, tuning.timeout, debug ? "wait" : 0);
+	timeout_connections(waiting_connections.head, tuning.wait_timeout, debug ? "wait" : 0);
 	timeout_connections(reading_connections.head, tuning.timeout, "read");
 	timeout_connections(writing_connections.head, tuning.timeout, "write");
 	timeout_connections(forked_connections.head, tuning.script_timeout, "script");
