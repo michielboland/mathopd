@@ -248,19 +248,21 @@ Keyword: Error401File
 Where:   Control
 Type:    String
 Desc:    The contents of this file will be displayed whenever a '401' (not
-         authorized) error occurs.
+         authorized) error occurs. The file may be a CGI script or an
+         external command. If CGI scripts are used, the script is responsible
+         for sending the proper status code.
 
 Keyword: Error403File
 Where:   Control
 Type:    String
          The contents of this file will be displayed whenever a '403'
-         (forbidden) error occurs.
+         (forbidden) error occurs. For more information, see Error401File.
 
 Keyword: Error404File
 Where:   Control
 Type:    String
          The contents of this file will be displayed whenever a '404' (not
-         found) error occurs.
+         found) error occurs. For more information, see Error401File.
 
 Keyword: ErrorLog
 Where:   Global

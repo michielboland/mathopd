@@ -196,8 +196,10 @@ request.c:
 	path_info_ok is not set, return an error immediately.
 
 	If the AutoIndexCommand is set for a control block, execute that
-	command as a CGI script if the request is for a directory and there
-	is no index, as specified by IndexNames.
+	command if the request is for a directory and there is no index,
+	as specified by IndexNames. (The command may be a CGI script or
+	an External; it may even be a plain file, but that is probably
+	not very useful.)
 
 	The parsing of the Request-Line has changed. Rather than assuming
 	that the last word of that line contains the HTTP version, scan
@@ -210,6 +212,8 @@ request.c:
 	support HTTP/0.9 requests, in the sense that such requests are
 	treated as an error. There are no HTTP/0.9 browsers left so this
 	should not be a problem.
+
+	The files specified by Error401File etc. can now be CGI scripts.
 
 stub.c:
 
