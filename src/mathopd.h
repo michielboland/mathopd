@@ -168,6 +168,8 @@ struct control {
 	struct access *clients;
 	char *admin;
 	int refresh;
+	char *realm;
+	char *error_401_file;
 };
 
 struct virtual {
@@ -325,6 +327,12 @@ extern int process_cgi(struct request *);
 /* dump */
 
 extern void dump(void);
+
+/* base64 */
+
+extern void base64initialize(void);
+extern int base64decode(const unsigned char *, unsigned char *);
+extern int base64compare(const unsigned char *, const unsigned char *);
 
 #ifdef NEED_STRERROR
 extern const char *strerror(int);
