@@ -466,7 +466,7 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 	return 0;
 }
 
-static int pipe_loop(int fd, struct connection *cn, int timeout)
+static int pipe_loop(int fd, struct request *r, int timeout)
 {
 	char ibuf[PLBUFSIZE];
 	char obuf[PLBUFSIZE];
@@ -489,13 +489,13 @@ static int pipe_loop(int fd, struct connection *cn, int timeout)
 	p.pstate = 1;
 	p.pstart = 0;
 	p.state = 0;
-	p.ifd = cn->fd;
-	p.ofd = cn->fd;
+	p.ifd = r->cn->fd;
+	p.ofd = r->cn->fd;
 	p.fd = fd;
 	timeout *= 1000;
 	p.timeout = timeout;
 	do
-		rv = pipe_run(&p, cn);
+		rv = pipe_run(&p, r->cn);
 	while (rv == 0);
 	return rv;
 }
@@ -533,7 +533,7 @@ int cgi_stub(struct request *r, int (*f)(struct request *))
 				log_d("cgi_stub: child process %d created", pid);
 			close(p[1]);
 			fcntl(p[0], F_SETFL, O_NONBLOCK);
-			rv = pipe_loop(p[0], r->cn, 3600);
+			rv = pipe_loop(p[0], r, 3600);
 			break;
 		}
 	}
