@@ -40,6 +40,8 @@ static const char rcsid[] = "$Id$";
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "mathopd.h"
 
 #define MAXVERTS 100
@@ -246,16 +248,23 @@ static int f_process_imap(struct request *r, FILE *fp)
 int process_imap(struct request *r)
 {
 	FILE *fp;
+	int fd;
 	int retval;
 
 	if (r->method == M_HEAD)
 		return 204;
 	else if (r->method != M_GET)
 		return 405;
-	fp = fopen(r->path_translated, "r");
-	if (fp == 0) {
+	fd = open(r->path_translated, O_RDONLY | O_NONBLOCK);
+	if (fd == -1) {
 		log_d("cannot open map file %s", r->path_translated);
-		lerror("fopen");
+		lerror("open");
+		return 500;
+	}
+	fp = fdopen(fd, "r");
+	if (fp == 0) {
+		log_d("process_imap: fdopen failed");
+		close(fd);
 		return 500;
 	}
 	retval = f_process_imap(r, fp);

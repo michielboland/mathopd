@@ -44,6 +44,7 @@ static const char rcsid[] = "$Id$";
 #else
 #include <unistd.h>
 #endif
+#include <fcntl.h>
 #include "mathopd.h"
 
 #define B64(x) ( \
@@ -181,11 +182,18 @@ static int f_webuserok(const char *authorization, FILE *fp, char *username, int 
 int webuserok(const char *authorization, const char *userfilename, char *username, int len, int do_crypt)
 {
 	FILE *f;
+	int fd;
 	int retval;
 
-	f = fopen(userfilename, "r");
-	if (f == 0) {
+	fd = open(userfilename, O_RDONLY | O_NONBLOCK);
+	if (fd == -1) {
 		log_d("cannot open userfile %s", userfilename);
+		return 0;
+	}
+	f = fdopen(fd, "r");
+	if (f == 0) {
+		log_d("webuserok: fdopen failed");
+		close(fd);
 		return 0;
 	}
 	retval = f_webuserok(authorization, f, username, len, do_crypt);
