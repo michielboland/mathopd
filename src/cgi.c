@@ -422,5 +422,6 @@ int process_cgi(struct request *r)
 	destroy_parameters(&c);
 	if (debug)
 		log_d("process_cgi: %d", p[0]);
+	r->forked = 1;
 	return -1;
 }
