@@ -133,12 +133,6 @@ struct simple_list {
 	struct simple_list *next;
 };
 
-enum {
-	FO_USER,
-	FO_GROUP,
-	FO_WORLD
-};
-
 struct control {
 	char *alias;
 	int path_args_ok;
