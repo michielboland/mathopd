@@ -186,6 +186,14 @@ struct virtual {
 	unsigned long nread;
 	unsigned long nwritten;
 	struct virtual *next;
+	struct vserver *vserver;
+};
+
+struct vserver {
+	struct server *server;
+	struct control *controls;
+	struct vserver *next;
+	int nameless;
 };
 
 struct server {
@@ -198,6 +206,7 @@ struct server {
 	struct server *next;
 	unsigned long naccepts;
 	unsigned long nhandled;
+	struct vserver *vservers;
 };
 
 struct request {
