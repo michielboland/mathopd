@@ -21,7 +21,6 @@ char *child_filename;
 
 char *admin;
 char *coredir;
-int keepalive;
 struct connection *connections;
 struct server *servers;
 struct simple_list *exports;
@@ -562,9 +561,7 @@ static const char *config_main(void)
 
 	while (NOTEOF()) {
 		REQWORD();
-		if (strceq(tokbuf, c_keep_alive))
-			keepalive = 1;
-		else if (strceq(tokbuf, c_core_directory))
+		if (strceq(tokbuf, c_core_directory))
 			t = config_string(&coredir);
 		else if (strceq(tokbuf, c_default_name))
 			t = config_string(&fqdn);
