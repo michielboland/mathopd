@@ -1064,6 +1064,7 @@ static int process_headers(struct request *r)
 		memcpy(r->rhost, u, s - u);
 		r->rhost[s - u] = 0;
 		r->host = r->rhost;
+		sanitize_host(r->host);
 	}
 	if (unescape_url(s, r->path) == -1)
 		return 400;
