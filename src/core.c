@@ -55,11 +55,9 @@ static void init_pool(struct pool *p)
 static void reinit_connection(struct connection *cn, int action)
 {
 	if (debug)
-		log(L_DEBUG, "reinit: [%s].%hu -> [%s].%hu, action=%d",
+		log(L_DEBUG, "reinit: [%s].%hu, action=%d",
 				inet_ntoa(cn->peer.sin_addr),
 				ntohs(cn->peer.sin_port),
-				inet_ntoa(cn->sock.sin_addr),
-				ntohs(cn->sock.sin_port),
 				action);
 	if (cn->rfd != -1) {
 		close(cn->rfd);
@@ -75,11 +73,9 @@ static void reinit_connection(struct connection *cn, int action)
 static void close_connection(struct connection *cn)
 {
 	if (debug)
-		log(L_DEBUG, "close: [%s].%hu -> [%s].%hu",
+		log(L_DEBUG, "close: [%s].%hu",
 				inet_ntoa(cn->peer.sin_addr),
-				ntohs(cn->peer.sin_port),
-				inet_ntoa(cn->sock.sin_addr),
-				ntohs(cn->sock.sin_port));
+				ntohs(cn->peer.sin_port));
 	--nconnections;
 	close(cn->fd);
 	if (cn->rfd != -1)
@@ -113,7 +109,7 @@ static void nuke_connections(void)
 
 static void accept_connection(struct server *s)
 {
-	struct sockaddr_in sa, sa2;
+	struct sockaddr_in sa;
 	int lsa, fd;
 	struct connection *cn, *cw;
 
@@ -123,12 +119,6 @@ static void accept_connection(struct server *s)
 		if (fd == -1) {
 			if (errno != EAGAIN)
 				lerror("accept");
-			break;
-		}
-		lsa = sizeof sa2;
-		if (getsockname(fd, (struct sockaddr *) &sa2, &lsa) == -1) {
-			lerror("getsockname");
-			close(fd);
 			break;
 		}
 		s->naccepts++;
@@ -148,11 +138,9 @@ static void accept_connection(struct server *s)
 			cn = cw;
 		}
 		if (cn == 0) {
-			log(L_ERROR, "connection [%s].%hu -> [%s].%hu dropped",
+			log(L_ERROR, "connection [%s].%hu dropped",
 				inet_ntoa(sa.sin_addr),
-				ntohs(sa.sin_port),
-				inet_ntoa(sa2.sin_addr),
-				ntohs(sa2.sin_port));
+				ntohs(sa.sin_port));
 			close(fd);
 		} else {
 			s->nhandled++;
@@ -161,7 +149,6 @@ static void accept_connection(struct server *s)
 			cn->fd = fd;
 			cn->rfd = -1;
 			cn->peer = sa;
-			cn->sock = sa2;
 			strncpy(cn->ip, inet_ntoa(sa.sin_addr), 15);
 			cn->t = cn->it = current_time;
 			++nconnections;
