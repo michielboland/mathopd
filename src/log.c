@@ -256,7 +256,16 @@ static int init_log_d(char *name, int *fdp)
 
 	if (name) {
 		fd = *fdp;
-		nfd = open_log(name);
+		if (strcmp(name, "/dev/stdout") == 0) {
+			if (fd != -1)
+				return 0;
+			nfd = dup(1);
+		} else if (strcmp(name, "/dev/stderr") == 0) {
+			if (fd != -1)
+				return 0;
+			nfd = dup(2);
+		} else
+			nfd = open_log(name);
 		if (nfd == -1)
 			return fd == -1 ? -1 : 0;
 		if (fd == -1)
