@@ -284,6 +284,10 @@ int main(int argc, char *argv[])
 		setsid();
 		if (fork())
 			_exit(0);
+		for (i = 1; i < tuning.num_processes; i++) {
+			if (fork() <= 0)
+				break;
+		}
 	}
 	mysignal(SIGCHLD, sighandler);
 	mysignal(SIGHUP, sighandler);
@@ -297,7 +301,10 @@ int main(int argc, char *argv[])
 	my_pid = getpid();
 	if (pid_fd != -1) {
 		ftruncate(pid_fd, 0);
-		sprintf(buf, "%d\n", my_pid);
+		if (tuning.num_processes > 1)
+			sprintf(buf, "-%d\n", getpgrp());
+		else
+			sprintf(buf, "%d\n", my_pid);
 		write(pid_fd, buf, strlen(buf));
 		close(pid_fd);
 	}
