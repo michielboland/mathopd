@@ -430,7 +430,7 @@ static const char *config_log(struct configuration *p, int **colsp, int *numcols
 static const char *config_mime(struct configuration *p, struct mime **ms, int class)
 {
 	struct mime *m;
-	char *name, *s;
+	char *name;
 	const char *t;
 
 	if ((t = gettoken(p)) != t_open)
@@ -451,13 +451,8 @@ static const char *config_mime(struct configuration *p, struct mime **ms, int cl
 			m->name = name;
 			if (!strcasecmp(p->tokbuf, c_all))
 				m->ext = 0;
-			else {
-				s = p->tokbuf;
-				while (*s == '.')
-					++s;
-				if ((m->ext = strdup(s)) == 0)
-					return e_memory;
-			}
+			else if ((m->ext = strdup(p->tokbuf)) == 0)
+				return e_memory;
 			m->next = *ms;
 			*ms = m;
 		}
