@@ -589,6 +589,19 @@ Desc:    If you want to redirect a user to a different web site, regardless
 Keyword: PathInfo
 Where:   Control
 Type:    Flag
+Default: On
+Desc:    Normally mathopd allows requests for things like /script.cgi/args,
+         where /args is passed as 'path info' to the script.cgi program. This
+         works by mathopd chopping off all trailing path components until a
+         file is found. This operation can be quite expensive and in most
+         circumstances it is not needed. Worse yet, a request for, say,
+         /a/b/c/d/e/f/g/h will result in eight invocation of the stat()
+         system call.
+
+         To turn the 'chopping' behaviour off, set the value of PathInfo to
+         Off.
+
+         Note that PathInfo defaults to On for backwards compatibility.
 
 Keyword: Port
 Where:   Server
