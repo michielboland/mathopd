@@ -89,7 +89,16 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 	const char *p, *tmpname, *tmpvalue;
 	int havestatus, havelocation;
 	size_t len, tmpnamelen, tmpvaluelen;
+	char sbuf[40], dbuf[50], gbuf[40];
 
+	headers[0].len = sprintf(sbuf, "Server: %.30s", server_version);
+	headers[0].name = sbuf;
+	headers[0].namelen = 6;
+	headers[0].value = sbuf + 8;
+	headers[1].len = sprintf(dbuf, "Date: %s", rfctime(current_time, gbuf));
+	headers[1].name = dbuf;
+	headers[1].namelen = 4;
+	headers[2].value = dbuf + 6;
 	tmpname = 0;
 	tmpnamelen = 0;
 	tmpvalue = 0;
@@ -98,7 +107,7 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 	status = 0;
 	location = 0;
 	s = 0;
-	nheaders = 0;
+	nheaders = 2;
 	len = 0;
 	addheader = 0;
 	for (i = 0, p = inbuf; i < insize; i++, p++) {
