@@ -273,8 +273,6 @@ extern char *coredir;
 extern struct connection *connections;
 extern struct server *servers;
 extern char *user_name;
-extern uid_t user_id;
-extern gid_t group_id;
 #ifdef POLL
 extern struct pollfd *pollfds;
 #endif
