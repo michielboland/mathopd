@@ -250,6 +250,7 @@ struct request {
 	char *servername;
 	char newloc[PATHLEN];
 	const char *allowedmethods;
+	size_t location_length;
 };
 
 struct connection {
