@@ -185,16 +185,11 @@ void set_connection_state(struct connection *c, enum connection_state state)
 	}
 }
 
-static void init_pool(struct pool *p)
-{
-	p->start = p->end = p->floor;
-	p->state = 0;
-}
-
 static void init_connection(struct connection *cn)
 {
-	init_pool(&cn->input);
-	init_pool(&cn->output);
+	cn->header_input.start = cn->header_input.end = cn->header_input.floor;
+	cn->header_input.state = 0;
+	cn->output.start = cn->output.end = cn->output.floor;
 	init_request(cn->r);
 	cn->keepalive = 0;
 	cn->nread = 0;
@@ -261,6 +256,12 @@ static void close_connections(void)
 		c = n;
 	}
 	c = writing_connections.head;
+	while (c) {
+		n = c->next;
+		close_connection(c);
+		c = n;
+	}
+	c = forked_connections.head;
 	while (c) {
 		n = c->next;
 		close_connection(c);
@@ -375,7 +376,7 @@ static void write_connection(struct connection *cn)
 	do {
 		n = p->end - p->start;
 		if (n == 0) {
-			init_pool(p);
+			p->start = p->end = p->floor;
 			n = fill_connection(cn);
 			if (n <= 0) {
 				if (n == 0 && cn->keepalive)
@@ -413,7 +414,7 @@ static void read_connection(struct connection *cn)
 	struct pool *p;
 	char state;
 
-	p = &cn->input;
+	p = &cn->header_input;
 	state = p->state;
 	fd = cn->fd;
 	i = p->ceiling - p->end;
@@ -744,6 +745,12 @@ static void run_connections(void)
 		run_wconnection(c);
 		c = n;
 	}
+	c = forked_connections.head;
+	while (c) {
+		n = c->next;
+		pipe_run(c);
+		c = n;
+	}
 }
 
 static void timeout_connections(struct connection *c, time_t t)
@@ -819,7 +826,6 @@ void httpd_main(void)
 		}
 		if (gotsigusr1) {
 			gotsigusr1 = 0;
-			close_children();
 			close_connections();
 			log_d("connections closed");
 		}
@@ -849,7 +855,7 @@ void httpd_main(void)
 		if (accepting && (free_connections.head || waiting_connections.head))
 			n = setup_server_pollfds(n);
 		n = setup_connection_pollfds(n);
-		n = setup_child_pollfds(n);
+		n = setup_child_pollfds(n, forked_connections.head);
 		if (n == 0 && accepting) {
 			log_d("no more sockets to poll from");
 			break;
@@ -879,9 +885,8 @@ void httpd_main(void)
 			if (accepting && run_servers() == -1)
 				accepting = 0;
 			run_connections();
-			run_children();
 		}
-		cleanup_children();
+		cleanup_children(forked_connections.head);
 		cleanup_connections();
 	}
 	log_d("*** shutting down");
@@ -917,11 +922,23 @@ int init_connections(size_t n)
 		cn = connection_array + i;
 		if ((cn->r = malloc(sizeof *cn->r)) == 0)
 			return -1;
-		if ((cn->r->headers = malloc(tuning.num_headers * sizeof *cn->r->headers)) == 0)
-			return -1;
-		if (new_pool(&cn->input, tuning.input_buf_size) == -1)
+		if (tuning.num_headers == 0) {
+			cn->r->headers = 0;
+			cn->pipe_params.cgi_headers = 0;
+		}
+		else {
+			if ((cn->r->headers = malloc(tuning.num_headers * sizeof *cn->r->headers)) == 0)
+				return -1;
+			if ((cn->pipe_params.cgi_headers = malloc(tuning.num_headers * sizeof *cn->pipe_params.cgi_headers)) == 0)
+				return -1;
+		}
+		if (new_pool(&cn->header_input, tuning.input_buf_size) == -1)
 			return -1;
 		if (new_pool(&cn->output, tuning.buf_size) == -1)
+			return -1;
+		if (new_pool(&cn->client_input, tuning.script_buf_size) == -1)
+			return -1;
+		if (new_pool(&cn->script_input, tuning.script_buf_size) == -1)
 			return -1;
 		cn->r->cn = cn;
 		cn->connection_state = HC_UNATTACHED;
