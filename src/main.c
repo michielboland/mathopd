@@ -281,6 +281,8 @@ int main(int argc, char *argv[])
 		write(pid_fd, buf, strlen(buf));
 		close(pid_fd);
 	}
+	if (init_buffers() == -1)
+		return 1;
 	httpd_main();
 	return 0;
 }
