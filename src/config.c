@@ -4,7 +4,6 @@ int buf_size = DEFAULT_BUF_SIZE;
 int input_buf_size = INPUT_BUF_SIZE;
 int num_connections = DEFAULT_NUM_CONNECTIONS;
 int timeout = DEFAULT_TIMEOUT;
-int cern = 0;
 
 char *pid_filename;
 char *log_filename;
@@ -39,7 +38,6 @@ static const char c_alias[] =		"Alias";
 static const char c_allow[] =		"Allow";
 static const char c_apply[] =		"Apply";
 static const char c_buf_size[] =	"BufSize";
-static const char c_cern[] =		"CERNStyle";
 static const char c_child_log[] =	"ChildLog";
 static const char c_clients[] =		"Clients";
 static const char c_control[] =		"Control";
@@ -48,6 +46,8 @@ static const char c_default_name[] =	"DefaultName";
 static const char c_deny[] =		"Deny";
 static const char c_error[] =		"ErrorLog";
 static const char c_error_401_file[] =	"Error401File";
+static const char c_error_403_file[] =	"Error403File";
+static const char c_error_404_file[] =	"Error404File";
 static const char c_exact[] =		"Exact";
 static const char c_export[] =		"Export";
 static const char c_group[] =		"Group";
@@ -406,6 +406,8 @@ static const char *config_control(struct control **as)
 		a->realm = b->realm;
 		a->userfile = b->userfile;
 		a->error_401_file = b->error_401_file;
+		a->error_403_file = b->error_403_file;
+		a->error_404_file = b->error_404_file;
 	}
 	else {
 		a->index_names = 0;
@@ -419,6 +421,8 @@ static const char *config_control(struct control **as)
 		a->realm = 0;
 		a->userfile = 0;
 		a->error_401_file = 0;
+		a->error_403_file = 0;
+		a->error_404_file = 0;
 	}
 	a->next = *as;
 	*as = a;
@@ -469,6 +473,10 @@ static const char *config_control(struct control **as)
 			t = config_string(&a->userfile);
 		else if (!strcasecmp(tokbuf, c_error_401_file))
 			t = config_string(&a->error_401_file);
+		else if (!strcasecmp(tokbuf, c_error_403_file))
+			t = config_string(&a->error_403_file);
+		else if (!strcasecmp(tokbuf, c_error_404_file))
+			t = config_string(&a->error_404_file);
 		else
 			t = e_keyword;
 		if (t)
@@ -598,8 +606,6 @@ static const char *config_main(void)
 			t = config_string(&coredir);
 		else if (!strcasecmp(tokbuf, c_default_name))
 			t = config_string(&fqdn);
-		else if (!strcasecmp(tokbuf, c_cern))
-			t = config_flag(&cern);
 		else if (!strcasecmp(tokbuf, c_umask))
 			t = config_int(&fcm);
 		else if (!strcasecmp(tokbuf, c_timeout))
