@@ -407,6 +407,8 @@ static void write_connection(struct connection *cn)
 		}
 		cn->t = current_time;
 		m = send(cn->fd, p->start, n, 0);
+		if (debug)
+			log_d("write_connection: %d %d %d %d", cn->fd, p->start - p->floor, n, m);
 		if (m == -1) {
 			switch (errno) {
 			default:
@@ -441,6 +443,8 @@ static void read_connection(struct connection *cn)
 		return;
 	}
 	nr = recv(fd, p->end, i, MSG_PEEK);
+	if (debug)
+		log_d("read_connection (peek): %d %d %d %d", fd, p->end - p->floor, i, nr);
 	if (nr == -1) {
 		switch (errno) {
 		default:
@@ -584,6 +588,8 @@ static void read_connection(struct connection *cn)
 		}
 	}
 	nr = recv(fd, p->end, i, 0);
+	if (debug)
+		log_d("read_connection: %d %d %d %d", fd, p->end - p->floor, i, nr);
 	if (nr != i) {
 		if (nr == -1) {
 			log_d("error reading from %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
