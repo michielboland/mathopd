@@ -236,7 +236,7 @@ static int init_log_d(char *name, int *fdp)
 
 int init_logs(void)
 {
-	return init_log_d(log_filename, &log_file) == -1 || init_log_d(error_filename, &error_file) == -1 ? -1 : 0;
+	return init_log_d(error_filename, &error_file) == -1 || init_log_d(log_filename, &log_file) == -1 ? -1 : 0;
 }
 
 void log_d(const char *fmt, ...)
