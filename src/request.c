@@ -1140,6 +1140,6 @@ int process_request(struct request *r)
 		return -1;
 	}
 	if (r->status_line && r->c)
-			log_request(r);
+		r->processed = 1;
 	return r->status > 0 ? 0 : -1;
 }
