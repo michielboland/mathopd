@@ -282,7 +282,7 @@ struct connection {
 	int fd;
 	int rfd;
 	struct sockaddr_in peer;
-	char ip[16];
+	struct sockaddr_in sock;
 	time_t t;
 	time_t it;
 	struct pool *input;
