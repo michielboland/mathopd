@@ -1088,6 +1088,29 @@ static int process_headers(struct request *r)
 			++s;
 		if (*s == 0)
 			continue;
+		if (!strcasecmp(l, "Connection")) {
+			parse_connection_header(r, s);
+			continue;
+		} else if (!strcasecmp(l, "Keep-Alive"))
+			continue;
+		else if (!strcasecmp(l, "Expect")) {
+			if (parse_expect_header(r, s) == -1) {
+				if (debug)
+					log_d("parse_expect_header failed for \"%s\"", s);
+				r->status = 417;
+				return 0;
+			}
+			continue;
+		} else if (!strcasecmp(l, "Content-Type")) {
+			r->in_content_type = s;
+			continue;
+		} else if (!strcasecmp(l, "Content-Length")) {
+			r->in_content_length = s;
+			continue;
+		} else if (!strcasecmp(l, "Transfer-Encoding")) {
+			r->in_transfer_encoding = s;
+			continue;
+		}
 		if (n < tuning.num_headers) {
 			r->headers[n].rh_name = l;
 			r->headers[n++].rh_value = s;
@@ -1101,16 +1124,10 @@ static int process_headers(struct request *r)
 		else if (!strcasecmp(l, "Host")) {
 			sanitize_host(s);
 			r->host = s;
-		} else if (!strcasecmp(l, "Connection"))
-			parse_connection_header(r, s);
-		else if (!strcasecmp(l, "If-Modified-Since"))
+		} else if (!strcasecmp(l, "If-Modified-Since"))
 			r->ims_s = s;
 		else if (!strcasecmp(l, "If-Unmodified-Since"))
 			r->ius_s = s;
-		else if (!strcasecmp(l, "Content-Type"))
-			r->in_content_type = s;
-		else if (!strcasecmp(l, "Content-Length"))
-			r->in_content_length = s;
 		else if (!strcasecmp(l, "Range")) {
 			if (r->range_s) {
 				log_d("multiple Range headers");
@@ -1120,16 +1137,6 @@ static int process_headers(struct request *r)
 				r->range_s = s;
 		} else if (!strcasecmp(l, "If-Range"))
 			r->if_range_s = s;
-		else if (!strcasecmp(l, "Transfer-Encoding"))
-			r->in_transfer_encoding = s;
-		else if (!strcasecmp(l, "Expect")) {
-			if (parse_expect_header(r, s) == -1) {
-				if (debug)
-					log_d("parse_expect_header failed for \"%s\"", s);
-				r->status = 417;
-				return 0;
-			}
-		}
 	}
 	r->nheaders = n;
 	s = r->method_s;

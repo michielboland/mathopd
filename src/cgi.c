@@ -162,30 +162,8 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 	size_t n;
 
 	for (n = 0; n < r->nheaders; n++) {
-		switch (strlen(r->headers[n].rh_name)) {
-		case 10:
-			if (strcasecmp(r->headers[n].rh_name, "Connection") == 0)
-				continue;
-			if (strcasecmp(r->headers[n].rh_name, "Keep-Alive") == 0)
-				continue;
-			break;
-		case 12:
-			if (strcasecmp(r->headers[n].rh_name, "Content-Type") == 0)
-				continue;
-			break;
-		case 13:
-			if (strcasecmp(r->headers[n].rh_name, "Authorization") == 0 && r->user && r->user[0])
-				continue;
-			break;
-		case 14:
-			if (strcasecmp(r->headers[n].rh_name, "Content-Length") == 0)
-				continue;
-			break;
-		case 17:
-			if (strcasecmp(r->headers[n].rh_name, "Transfer-Encoding") == 0)
-				continue;
-			break;
-		}
+		if (strcasecmp(r->headers[n].rh_name, "Authorization") == 0 && r->user && r->user[0])
+			continue;
 		tmp = cgi_envar(r->headers[n].rh_name);
 		if (tmp == 0)
 			return -1;
