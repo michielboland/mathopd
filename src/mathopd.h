@@ -428,10 +428,11 @@ extern void pipe_run(struct connection *);
 extern void init_child(struct connection *, int);
 extern int setup_child_pollfds(int, struct connection *);
 
-#ifdef SENDFILE
+#if defined LINUX_SENDFILE || defined FREEBSD_SENDFILE
 
 /* sendfile */
 
+extern int set_nopush(int, int);
 extern off_t sendfile_connection(struct connection *);
 
 #endif
