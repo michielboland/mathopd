@@ -1,5 +1,9 @@
 Changes between Mathopd 1.5 and Mathopd 1.6
 
+IPv6 support has been added. It is not clear yet how the Access
+and Clients functionality should be ported. Therefore Access and
+Clients has been temporarily disabled.
+
 request.c:
 
 	The '*' character in Error40[134]File and
