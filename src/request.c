@@ -1007,7 +1007,7 @@ int prepare_reply(struct request *r)
 	return (output_headers(p, r) == -1 || (send_message && putstring(p, buf) == -1)) ? -1 : 0;
 }
 
-static void init_request(struct request *r)
+void init_request(struct request *r)
 {
 	r->vs = 0;
 	r->user_agent = 0;
@@ -1048,7 +1048,6 @@ static void init_request(struct request *r)
 
 int process_request(struct request *r)
 {
-	init_request(r);
 	if ((r->status = process_headers(r)) == 0)
 		r->status = process_path(r);
 	if (r->status > 0 && prepare_reply(r) == -1) {

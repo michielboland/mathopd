@@ -79,6 +79,7 @@ static void init_connection(struct connection *cn)
 {
 	init_pool(cn->input);
 	init_pool(cn->output);
+	init_request(cn->r);
 	cn->assbackwards = 1;
 	cn->keepalive = 0;
 	cn->nread = 0;
