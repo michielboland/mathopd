@@ -156,6 +156,8 @@ static int make_cgi_envp(struct request *r)
 	char t[16];
 	struct simple_list *e;
 	char *tmp;
+	char *pa;
+	int rv;
 
 	cgi_envc = 0;
 	cgi_envp = 0;
@@ -167,8 +169,18 @@ static int make_cgi_envp(struct request *r)
 	ADD("HTTP_FROM", r->from);
 	ADD("HTTP_REFERER", r->referer);
 	ADD("HTTP_USER_AGENT", r->user_agent);
-	if (r->path_args[0])
-		ADD("PATH_INFO", r->path_args);
+	if (r->path_args[0]) {
+		pa = malloc(strlen(r->path) + strlen(r->path_args) + 1);
+		if (pa == 0)
+			return -1;
+		sprintf(pa, "%s%s", r->path, r->path_args);
+		rv = add("PATH_INFO", pa);
+		free(pa);
+		if (rv == -1)
+			return -1;
+	} else
+		ADD("PATH_INFO", r->path);
+	ADD("PATH_TRANSLATED", r->path_translated);
 	ADD("QUERY_STRING", r->args);
 	sprintf(t, "%s", inet_ntoa(r->cn->peer.sin_addr));
 	ADD("REMOTE_ADDR", t);
