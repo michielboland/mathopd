@@ -281,8 +281,11 @@ static int accept_connection(struct server *s)
 			log_d("accept_connection: %d", fd);
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		fcntl(fd, F_SETFL, O_NONBLOCK);
-		if (cn->connection_state != HC_FREE)
+		if (cn->connection_state != HC_FREE) {
+			if (debug)
+				log_d("clobbering connection to %s[%s]", cn->peer.ap_address, cn->peer.ap_port);
 			close_connection(cn);
+		}
 		rv = getnameinfo((struct sockaddr *) &sa_remote, l, cn->peer.ap_address, sizeof cn->peer.ap_address, cn->peer.ap_port, sizeof cn->peer.ap_port, NI_NUMERICHOST | NI_NUMERICSERV);
 		if (rv) {
 			log_d("accept_connection: getnameinfo failed for peer: %s", gai_strerror(rv));
@@ -759,24 +762,27 @@ static void run_connections(void)
 	}
 }
 
-static void timeout_connections(struct connection *c, time_t t)
+static void timeout_connections(struct connection *c, time_t t, const char *what)
 {
 	struct connection *n;
 
 	while (c) {
 		n = c->next;
-		if (current_time >= c->t + t)
+		if (current_time >= c->t + t) {
+			if (what)
+				log_d("%s timeout to %s[%s]", what, c->peer.ap_address, c->peer.ap_port);
 			close_connection(c);
+		}
 		c = n;
 	}
 }
 
 static void cleanup_connections(void)
 {
-	timeout_connections(waiting_connections.head, tuning.wait_timeout);
-	timeout_connections(reading_connections.head, tuning.timeout);
-	timeout_connections(writing_connections.head, tuning.timeout);
-	timeout_connections(forked_connections.head, tuning.script_timeout);
+	timeout_connections(waiting_connections.head, tuning.wait_timeout, debug ? "wait" : 0);
+	timeout_connections(reading_connections.head, tuning.timeout, "read");
+	timeout_connections(writing_connections.head, tuning.timeout, "write");
+	timeout_connections(forked_connections.head, tuning.script_timeout, "script");
 }
 
 static void reap_children(void)
