@@ -447,6 +447,8 @@ void log(int type, const char *fmt, ...)
 	saved_errno = errno;
 	ti = ctime(&current_time);
 	l = sprintf(log_line, "%.24s\t", ti ? ti : "???");
+	if (type != L_TRANS)
+		l += sprintf(log_line + l, "[%d]\t", my_pid);
 	va_start(args, fmt);
 	l += vsprintf(log_line + l, fmt, args);
 	va_end(args);
@@ -495,7 +497,7 @@ void httpd_main(void)
 			init_logs();
 			if (first) {
 				first = 0;
-				log(L_LOG, "*** %s (pid %d) ***", server_version, my_pid);
+				log(L_LOG, "%s starting", server_version);
 			}
 			else
 				log(L_LOG, "logs reopened");
@@ -642,5 +644,5 @@ void httpd_main(void)
 		}
 	}
 	dump();
-	log(L_LOG, "*** Shutting down (pid %d) ***", my_pid);
+	log(L_LOG, "shutting down", my_pid);
 }
