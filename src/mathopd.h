@@ -113,12 +113,6 @@ enum {
 };
 
 enum {
-	STUB_ERROR_CLIENT = 1,
-	STUB_ERROR_PIPE,
-	STUB_ERROR_RESTART
-};
-
-enum {
 	SI_DONOTCHANGE,
 	SI_CHANGETOFIXED,
 	SI_CHANGETOOWNER
@@ -281,7 +275,6 @@ struct pipe_params {
 	int nocontent;
 	int haslen;
 	size_t pmax;
-	int error_condition;
 	struct cgi_header *cgi_headers;
 };
 
@@ -430,6 +423,5 @@ extern void lerror(const char *);
 extern void pipe_run(struct connection *);
 extern void init_child(struct connection *, int);
 extern int setup_child_pollfds(int, struct connection *);
-extern void cleanup_children(struct connection *);
 
 #endif
