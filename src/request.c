@@ -1245,7 +1245,11 @@ static int process_headers(struct request *r)
 		}
 	}
 	if (r->send_continue) {
-		if ((r->in_content_length && r->in_mblen) || r->in_transfer_encoding) {
+		if (r->protocol_minor == 0 && r->protocol_major == 1) {
+			if (debug)
+				log_d("suppressing '100 Continue' response (HTTP/1.0 client)");
+			r->send_continue = 0;
+		} else if ((r->in_content_length && r->in_mblen) || r->in_transfer_encoding) {
 			if (r->cn->header_input.end > r->cn->header_input.middle) {
 				if (debug)
 					log_d("suppressing '100 Continue' response (more input received)");
@@ -1254,6 +1258,7 @@ static int process_headers(struct request *r)
 		} else {
 			if (debug)
 				log_d("suppressing '100 Continue' response (no body)");
+			r->send_continue = 0;
 		}
 	}
 	return 1;
