@@ -78,10 +78,10 @@ static void nuke_servers(void)
 
 	s = servers;
 	while (s) {
-		dup2(STDIN_FILENO, s->fd);
+		close(s->fd);
+		s->fd = -1;
 		s = s->next;
 	}
-	servers = 0;
 }
 
 static void nuke_connections(void)
@@ -193,6 +193,8 @@ static void write_connection(struct connection *cn)
 				return;
 			}
 		}
+		if (cn->r->vs)
+			cn->r->vs->nwritten += m;
 		p->start += m;
 	} while (n == m);
 }
@@ -203,6 +205,8 @@ static void read_connection(struct connection *cn)
 	register char c;
 	struct pool *p = cn->input;
 	register char state = p->state;
+
+	log(L_DEBUG, "read_connection: starting");
 
 	cn->action = HC_READING;
 	fd = cn->fd;
@@ -225,6 +229,7 @@ static void read_connection(struct connection *cn)
 		}
 	}
 	if (nr == 0) {
+		log(L_DEBUG, "read_connection: eof received");
 		cn->action = HC_CLOSING;
 		return;
 	}
@@ -456,6 +461,46 @@ void lerror(const char *s)
 	errno = saved_errno;
 }
 
+static void do_servers(struct server *s, fd_set *r)
+{
+	while (s) {
+		if (s->fd != -1) {
+#ifdef POLL
+			if (pollfds[s->pollno].revents & POLLIN)
+#else
+			if (FD_ISSET(s->fd, r))
+#endif
+				accept_connection(s);
+		}
+		s = s->next;
+	}
+}
+
+static void do_connections(struct connection *cn, fd_set *r, fd_set *w)
+{
+	while (cn) {
+		if (cn->state == HC_ACTIVE) {
+#ifdef POLL
+			if (cn->pollno != -1) {
+				r = pollfds[cn->pollno].revents;
+				if (r & POLLIN)
+					read_connection(cn);
+				else if (r & POLLOUT)
+					write_connection(cn);
+				else if (r)
+					cn->action = HC_CLOSING;
+			}
+#else
+			if (FD_ISSET(cn->fd, r))
+				read_connection(cn);
+			else if (FD_ISSET(cn->fd, w))
+				write_connection(cn);
+#endif
+		}
+		cn = cn->next;
+	}
+}
+
 void httpd_main(void)
 {
 	struct server *s;
@@ -473,13 +518,15 @@ void httpd_main(void)
 
 	while (gotsigterm == 0) {
 
+		log(L_DEBUG, "top of loop");
+
 		if (gotsighup) {
 			gotsighup = 0;
 			init_logs();
 			if (first) {
 				first = 0;
 				log(L_LOG, "*** %s (pid %d) ***",
-				    server_version, getpid());
+				    server_version, my_pid);
 			}
 			else
 				log(L_LOG, "logs reopened");
@@ -497,6 +544,11 @@ void httpd_main(void)
 			log(L_LOG, "servers closed");
 		}
 
+		if (gotsigwinch) {
+			gotsigwinch = 0;
+			dump();
+		}
+
 #ifdef POLL
 		n = 0;
 #else
@@ -506,15 +558,17 @@ void httpd_main(void)
 #endif
 		s = servers;
 		while (s) {
+			if (s->fd != -1) {
 #ifdef POLL
-			pollfds[n].events = POLLIN;
-			pollfds[n].fd = s->fd;
-			s->pollno = n++;
+				pollfds[n].events = POLLIN;
+				pollfds[n].fd = s->fd;
+				s->pollno = n++;
 #else
-			FD_SET(s->fd, &rfds);
-			if (s->fd > m)
-				m = s->fd;
+				FD_SET(s->fd, &rfds);
+				if (s->fd > m)
+					m = s->fd;
 #endif
+			}
 			s = s->next;
 		}
 
@@ -562,6 +616,7 @@ void httpd_main(void)
 			log(L_ERROR, "no more sockets to select from");
 			break;
 		}
+		log(L_DEBUG, "selecting...");
 #ifdef POLL
 		rv = poll(pollfds, n, INFTIM);
 #else
@@ -571,6 +626,8 @@ void httpd_main(void)
 		rv = select(m + 1, &rfds, &wfds, 0, 0);
 #endif /* HPUX */
 #endif /* POLL */
+		log(L_DEBUG, "...done");
+		time(&current_time);
 		if (rv == -1) {
 			if (errno != EINTR) {
 #ifdef POLL
@@ -586,46 +643,14 @@ void httpd_main(void)
 		}
 		else {
 			error = 0;
-			time(&current_time);
-			if (rv == 0)
-				goto shortcut;
-
-			s = servers;
-			while (s) {
-#ifdef POLL
-				if (pollfds[s->pollno].revents & POLLIN)
-#else
-				if (FD_ISSET(s->fd, &rfds))
-#endif
-					accept_connection(s);
-				s = s->next;
+			if (rv) {
+				do_servers(servers, &rfds);
+				do_connections(connections, &rfds, &wfds);
 			}
-
-			cn = connections;
-			while (cn) {
-				if (cn->state == HC_ACTIVE) {
-#ifdef POLL
-					if (cn->pollno != -1) {
-						r = pollfds[cn->pollno].revents;
-						if (r & POLLIN)
-							read_connection(cn);
-						else if (r & POLLOUT)
-							write_connection(cn);
-						else if (r)
-							cn->action = HC_CLOSING;
-					}
-#else
-					if (FD_ISSET(cn->fd, &rfds))
-						read_connection(cn);
-					else if (FD_ISSET(cn->fd, &wfds))
-						write_connection(cn);
-#endif
-				}
-				cn = cn->next;
-			}
-shortcut:
+			log(L_DEBUG, "cleaning up");
 			cleanup_connections();
 		}
 	}
-	log(L_LOG, "*** Shutting down (pid %d) ***", getpid());
+	dump();
+	log(L_LOG, "*** Shutting down (pid %d) ***", my_pid);
 }
