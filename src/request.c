@@ -491,6 +491,7 @@ static int process_fd(struct request *r)
 		int fd;
 
 		if ((fd = open(r->path_translated, O_RDONLY)) == -1) {
+			r->last_modified = 0;
 			switch (errno) {
 			case EACCES:
 				r->error = fb_access;
