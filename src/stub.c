@@ -755,17 +755,11 @@ int run_children(void)
 
 static int childisfinished(struct pipe_params *p)
 {
-	if (p->ibp < p->isize)
-		if (p->istate == 1)
-			if (p->imax)
-				return 0;
-	if (p->otop > p->obp)
+	if (p->pstate != 3)
 		return 0;
-	if (p->ipp < p->psize)
-		if (p->pstate == 1)
-			if (p->chunkit || p->haslen == 0 || p->pmax)
-				return 0;
-	if (p->ibp > p->opp)
+	if (p->otop)
+		return 0;
+	if (p->istate == 1 && p->imax)
 		return 0;
 	return 1;
 }
