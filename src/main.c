@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
 		close(i);
 	null_fd = open(devnull, O_RDWR);
 	if (null_fd == -1)
-		die("open", "Cannot open %d", devnull);
+		die("open", "Cannot open %s", devnull);
 	while (null_fd < 3)
 		null_fd = dup(null_fd);
 	config();
