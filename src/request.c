@@ -944,12 +944,7 @@ static int parse_http_version(struct request *r)
 	if (*v == '-')
 		return -1;
 	mi = strtoul(v, &e, 10);
-	if (e == v)
-		return -1;
-	v = e;
-	while (*v == ' ')
-		++v;
-	if (*v)
+	if (e == v || *e)
 		return -1;
 	if (ma == 0 || ma > INT_MAX || mi > INT_MAX)
 		return -1;
