@@ -753,6 +753,23 @@ int run_children(void)
 	return 0;
 }
 
+static int childisfinished(struct pipe_params *p)
+{
+	if (p->ibp < p->isize)
+		if (p->istate == 1)
+			if (p->imax)
+				return 0;
+	if (p->otop > p->obp)
+		return 0;
+	if (p->ipp < p->psize)
+		if (p->pstate == 1)
+			if (p->chunkit || p->haslen == 0 || p->pmax)
+				return 0;
+	if (p->ibp > p->opp)
+		return 0;
+	return 1;
+}
+
 void cleanup_children(void)
 {
 	struct pipe_params *p;
@@ -768,7 +785,7 @@ void cleanup_children(void)
 			} else if (current_time >= p->t + (time_t) tuning.script_timeout) {
 				log_d("script timeout to %s[%hu]", inet_ntoa(p->cn->peer.sin_addr), ntohs(p->cn->peer.sin_port));
 				close_child(p, HC_CLOSING);
-			} else if (p->pstate == 3 && (p->istate == 0 || (p->imax == 0 && p->ibp == 0)))
+			} else if (childisfinished(p))
 				close_child(p, p->cn->keepalive ? HC_REINIT : HC_CLOSING);
 		}
 		p = p->next;
