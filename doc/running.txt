@@ -73,7 +73,7 @@ A list of signals and their effects follows.
            requests are timed out or done, Mathopd will exit. (It can
            happen sometimes that mathopd fails to exit after receiving
            SIGUSR2, for example when all connections are stuck for some
-           reason. This can be remedied by killing off old process by
+           reason. This can be remedied by killing off old processes by
            hand from time to time.)
 
 Terminating the server is done by sending a SIGUSR2 signal (or a SIGTERM,
