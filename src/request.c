@@ -14,6 +14,7 @@ static const char fb_post_file[] =		"POST to file";
 static const char ni_not_implemented[] =	"method not implemented";
 static const char se_alias[] =			"cannot resolve pathname";
 static const char se_get_path_info[] =		"cannot determine path args";
+static const char se_no_class[] =		"unknown class!?";
 static const char se_no_control[] =		"out of control";
 static const char se_no_mime[] =		"no MIME type";
 static const char se_no_specialty[] =		"unconfigured specialty";
@@ -298,7 +299,7 @@ static int get_mime(struct request *r, const char *s)
 {
 	struct mime *m = r->c->mimes;
 	char *saved_type = 0;
-	int saved_s = 0;
+	int saved_class = 0;
 	int l, le, lm;
 
 	lm = 0;
@@ -310,18 +311,18 @@ static int get_mime(struct request *r, const char *s)
 				!strcasecmp(s + l - le, m->ext)) {
 				lm = le;
 				saved_type = m->name;
-				saved_s = m->type == M_SPECIAL;
+				saved_class = m->class;
 			}
 		}
 		else if (saved_type == 0) {
 			saved_type = m->name;
-			saved_s = m->type == M_SPECIAL;
+			saved_class = m->class;
 		}
 		m = m->next;
 	}
 	if (saved_type) {
 		r->content_type = saved_type;
-		r->special = saved_s;
+		r->class = saved_class;
 		r->num_content = lm;
 		return 0;
 	}
@@ -451,6 +452,12 @@ static int append_indexes(struct request *r)
 		return 404;
 	}
 	return 0;
+}
+
+static int process_external(struct request *r)
+{
+	r->num_content = -1;
+	return process_cgi(r);
 }
 
 static int process_special(struct request *r)
@@ -691,7 +698,16 @@ static int process_path(struct request *r)
 		return 500;
 	}
 	log(L_DEBUG, " done.");
-	return r->special ? process_special(r) : process_fd(r);
+	switch (r->class) {
+	case CLASS_FILE:
+		return process_fd(r);
+	case CLASS_SPECIAL:
+		return process_special(r);
+	case CLASS_EXTERNAL:
+		return process_external(r);
+	}
+	r->error = se_no_class;
+	return 500;
 }
 
 static int get_method(char *p, struct request *r)
@@ -799,7 +815,7 @@ static int process_headers(struct request *r)
 	r->path_translated[0] = '\0';
 	r->path_args[0] = '\0';
 	r->num_content = -1;
-	r->special = 0;
+	r->class = 0;
 	r->content_length = -1;
 	r->last_modified = 0;
 	r->ims = 0;
