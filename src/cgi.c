@@ -170,7 +170,10 @@ static int make_cgi_envp(struct request *r)
 	if (r->path_args[0])
 		ADD("PATH_INFO", r->path_args);
 	ADD("QUERY_STRING", r->args);
-	ADD("REMOTE_ADDR", r->cn->ip);
+	sprintf(t, "%s", inet_ntoa(r->cn->peer.sin_addr));
+	ADD("REMOTE_ADDR", t);
+	sprintf(t, "%hu", ntohs(r->cn->peer.sin_port));
+	ADD("REMOTE_PORT", t);
 	if (r->c->dns) {
 		tmp = dnslookup(r->cn->peer.sin_addr);
 		if (tmp) {
@@ -181,7 +184,9 @@ static int make_cgi_envp(struct request *r)
 	ADD("REQUEST_METHOD", r->method_s);
 	ADD("SCRIPT_NAME", r->path);
 	ADD("SERVER_NAME", r->servername);
-	sprintf(t, "%lu", r->cn->s->port);
+	sprintf(t, "%s", inet_ntoa(r->cn->sock.sin_addr));
+	ADD("SERVER_ADDR", t);
+	sprintf(t, "%hu", ntohs(r->cn->sock.sin_port));
 	ADD("SERVER_PORT", t);
 	ADD("SERVER_SOFTWARE", server_version);
 	if (r->protocol_major) {
