@@ -487,7 +487,12 @@ void httpd_main(void)
 
 		while (cn) {
 			if (cn->state == HC_ACTIVE) {
+/*
+ * HACK - if you define NO_TIMEOUT, select() calls will never time out.
+ */
+#ifndef NO_TIMEOUT
 				gotactive = 1;
+#endif
 				switch (cn->action) {
 				case HC_WAITING:
 				case HC_READING:
