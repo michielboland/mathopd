@@ -264,7 +264,7 @@ static int convert_cgi_headers(struct connection *pp, int *sp)
 		pp->r->content_length = ul;
 	} else if (pp->r->protocol_minor == 0 && pp->pipe_params.nocontent == 0)
 		pp->keepalive = 0;
-	if (pool_print(po, "Server: %.30s\r\n", server_version) == -1)
+	if (pool_print(po, "Server: %s\r\n", server_version) == -1)
 		return no_room();
 	if (pool_print(po, "Date: %s\r\n", rfctime(current_time, gbuf)) == -1)
 		return no_room();
