@@ -753,14 +753,15 @@ static void run_connections(void)
 	}
 }
 
-static void timeout_connections(struct connection *c, time_t t)
+static void timeout_connections(struct connection *c, time_t t, const char *what)
 {
 	struct connection *n;
 
 	while (c) {
 		n = c->next;
 		if (current_time >= c->t + t) {
-			log_d("timeout to %s[%hu]", inet_ntoa(c->peer.sin_addr), ntohs(c->peer.sin_port));
+			if (what)
+				log_d("%s timeout to %s[%hu]", what, inet_ntoa(c->peer.sin_addr), ntohs(c->peer.sin_port));
 			close_connection(c);
 		}
 		c = n;
@@ -769,10 +770,10 @@ static void timeout_connections(struct connection *c, time_t t)
 
 static void cleanup_connections(void)
 {
-	timeout_connections(waiting_connections.head, tuning.timeout);
-	timeout_connections(reading_connections.head, tuning.timeout);
-	timeout_connections(writing_connections.head, tuning.timeout);
-	timeout_connections(forked_connections.head, tuning.script_timeout);
+	timeout_connections(waiting_connections.head, tuning.timeout, 0);
+	timeout_connections(reading_connections.head, tuning.timeout, "read");
+	timeout_connections(writing_connections.head, tuning.timeout, "write");
+	timeout_connections(forked_connections.head, tuning.script_timeout, "script");
 }
 
 static void reap_children(void)
