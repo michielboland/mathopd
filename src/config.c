@@ -75,6 +75,7 @@ static STRING(c_symlinks) =		"Symlinks";
 static STRING(c_timeout) =		"Timeout";
 static STRING(c_types) =		"Types";
 static STRING(c_virtual) =		"Virtual";
+static STRING(c_umask) =		"Umask";
 static STRING(c_user) =			"User";
 
 static STRING(e_addr_set) =		"address already set";
@@ -222,8 +223,11 @@ static const char *config_string(char **a)
 
 static const char *config_int(int *i)
 {
+	char *e;
+
 	GETWORD();
-	return ((*i = atoi(tokbuf)) < 1) ? e_inval : 0;
+	*i = (int) strtol(tokbuf, &e, 0);
+	return e && *e ? e_inval : 0;
 }
 
 static const char *config_flag(int *i)
@@ -567,6 +571,8 @@ static const char *config_main(void)
 			t = config_string(&admin);
 		else if (strceq(tokbuf, c_cern))
 			t = config_flag(&cern);
+		else if (strceq(tokbuf, c_umask))
+			t = config_int(&fcm);
 		else if (strceq(tokbuf, c_timeout))
 			t = config_int(&timeout);
 		else if (strceq(tokbuf, c_buf_size))
