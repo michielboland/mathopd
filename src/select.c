@@ -37,6 +37,11 @@
 
 static const char rcsid[] = "$Id$";
 
+#ifdef POLL_EMULATION
+#include "poll-emul.h"
+#else
+#include <poll.h>
+#endif
 #include "mathopd.h"
 
 void selectforoutput(struct connection_fd *x)
@@ -46,7 +51,7 @@ void selectforoutput(struct connection_fd *x)
 
 void deselectforoutput(struct connection_fd *x)
 {
-	x->events |= POLLOUT;
+	x->events &= ~POLLOUT;
 }
 
 void selectforinput(struct connection_fd *x)
@@ -54,8 +59,7 @@ void selectforinput(struct connection_fd *x)
 	x->events |= POLLIN;
 }
 
-void deselectforoutput(struct connection_fd *x)
+void deselectforinput(struct connection_fd *x)
 {
-	x->events |= POLLIN;
+	x->events &= ~POLLIN;
 }
-
