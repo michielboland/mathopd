@@ -1,15 +1,15 @@
-prefix=/usr/local
-SBINDIR=$(prefix)/sbin
+BIN=mathopd
 CC=gcc
-CFLAGS=-Wall -O
+CFLAGS=-O -Wall
 CPPFLAGS=
 LDFLAGS=
 LIBS=-lcrypt
+PREFIX=/usr/local
+SBINDIR=$(PREFIX)/sbin
 
-BIN=mathopd
 OBJS=	base64.o cgi.o config.o core.o dummy.o imap.o log.o main.o \
 	redirect.o request.o util.o
-DEPENDS=mathopd.h config.h Makefile
+DEPENDS=mathopd.h config.h $(MAKEFILE)
 
 all: $(BIN)
 install: $(BIN)
@@ -21,6 +21,4 @@ $(OBJS): $(DEPENDS)
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 clean:
 	rm -f $(BIN) $(OBJS)
-distclean: clean
-	rm -f config.log config.h config.cache config.status Makefile
-.PHONY: install clean distclean
+.PHONY: install clean
