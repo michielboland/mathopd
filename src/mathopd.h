@@ -202,7 +202,6 @@ struct request {
 	char *user_agent;
 	char *referer;
 	char *authorization;
-	char *cookie;
 	char *host;
 	char *in_content_type;
 	char *in_content_length;

@@ -48,6 +48,7 @@ static const char rcsid[] = "$Id$";
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <ctype.h>
 #include "mathopd.h"
 
 struct cgi_parameters {
@@ -174,26 +175,45 @@ static char *dnslookup(struct in_addr ia)
 	return tmp;
 }
 
+static char *cgi_envar(const char *s)
+{
+	size_t i, j, n;
+	char *t;
+	int c;
+
+	n = strlen(s);
+	t = malloc(n + 6);
+	if (t == 0)
+		return 0;
+	j = sprintf(t, "HTTP_");
+	for (i = 0; i < n; i++) {
+		c = toupper(s[i]);
+		if (c == '-')
+			c = '_';
+		t[j++] = c;
+	}
+	t[j] = 0;
+	return t;
+}
+
 static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 {
 	char t[16];
 	struct simple_list *e;
 	char path_translated[PATHLEN];
 	char *tmp;
+	int n;
 
+	for (n = 0; n < r->nheaders; n++) {
+		tmp = cgi_envar(r->headers[n].rh_name);
+		if (tmp == 0)
+			return -1;
+		if (add(tmp, r->headers[n].rh_value, 0, cp) == -1)
+			return -1;
+	}
 	if (add("CONTENT_LENGTH", r->in_content_length, 0, cp) == -1)
 		return -1;
 	if (add("CONTENT_TYPE", r->in_content_type, 0, cp) == -1)
-		return -1;
-	if (add("HTTP_AUTHORIZATION", r->authorization, 0, cp) == -1)
-		return -1;
-	if (add("HTTP_COOKIE", r->cookie, 0, cp) == -1)
-		return -1;
-	if (add("HTTP_HOST", r->host, 0, cp) == -1)
-		return -1;
-	if (add("HTTP_REFERER", r->referer, 0, cp) == -1)
-		return -1;
-	if (add("HTTP_USER_AGENT", r->user_agent, 0, cp) == -1)
 		return -1;
 	if (r->user && r->user[0]) {
 		if (add("REMOTE_USER", r->user, 0, cp) == -1)
