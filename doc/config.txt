@@ -1,0 +1,169 @@
+Keyword: AcceptMulti
+Where:   Tuning
+Type:    Flag
+Default: On
+Desc:    By default, Mathopd will try to accept more connections
+         after it has accepted one, until the accept call indicates
+         a blocking condition. When there is hardly any traffic,
+         this means that an extra system call is made each time
+         a connection comes in. If you don't want that behaviour,
+         use this keyword to turn it off.
+
+Keyword: Access
+Where:   Control
+Type:    Block
+Default: Inherits from previous Access blocks
+Desc:    The Access block can be used to allow or deny access to
+         specific IP addresses. Mathopd has a default-allow policy,
+         so if you have no Access blocks, access is allowed to anyone.
+         If you do have Access blocks, make sure that you put the
+         access entries in the correct order. Mathopd scans
+         access blocks from the bottom up until a match is found.
+         Example:
+
+            Access {
+              Deny 0/0
+              Allow 127.0.0.1/32
+            }
+
+         This will allow access to 127.0.0.1, while denying access to
+         anyone else.
+
+            Access {
+              Allow 127.0.0.1/32
+              Deny 0/0
+            }
+
+         The above will in fact block access to everyone, even 127.0.0.1
+         This is because the scan for access entries starts at the bottom,
+         and 0/0 matches any address.
+
+Keyword: Address
+Where:   Server
+Type:    Address
+Default: 0 (any address)
+Desc:    If you want a server to listen on a specific address, rather
+         than any address, use this keyword.
+         Example:
+
+           Server {
+             Address 127.0.0.1
+           }
+
+Keyword: Admin
+Where:   Control
+Type:    String
+Default: (none)
+Desc:    The value of this keyword, if set, is displayed in HTTP error
+         messages.
+
+Keyword: Alias
+Where:   Control
+Type:    String
+Desc:    Control blocks that contain an Alias keyword are used in
+         URI-to-path translation. A block with an Alias keyword must
+         have one or more Location keywords as well. Generally
+         speaking, Mathopd scans Control blocks until it can match
+         the directory part of the Request-URI with the alias.
+         Scanning starts in the Virtual server and continues
+         upwards.
+         Example:
+
+           Control {
+             Alias /
+             Location /usr/share/doc/handbook
+           }
+
+          You can do some tricks with aliases, one of which is the
+          tilde-hack:
+
+            Control {
+              Alias /~
+              Location public_html
+              UserDirectory On
+            }
+
+         Note that the order of aliases in the configuration matters.
+         In general you should put your leasts specific aliases, like
+         the root, first.
+
+Keyword: Allow
+Where:   Access
+Type:    Network
+Desc:    Allow is used to specify a network that is allowed access to
+         a resource. It is most useful in combination with Deny keywords.
+
+Keyword: AllowDotfiles
+Where:   Control
+Type:    Flag
+Default: Off
+Desc:    Normally, Mathopd will not serve any file if any part of its
+         pathname contains '/.', for security reasons.
+         If the AllowDotFiles flag is set, there restrictions are lifted
+         a bit, although constructions like '/./', '/../', etc. are
+         still disallowed.
+
+Keyword: AnyHost
+Keyword: Apply
+Keyword: BufSize
+Keyword: BytesRead
+Keyword: BytesWritten
+Keyword: ChildLog
+Keyword: Clients
+Keyword: ContentLength
+Keyword: Control
+Keyword: Control
+Keyword: Control
+Keyword: CoreDirectory
+Keyword: Ctime
+Keyword: DNSLookups
+Keyword: Deny
+Keyword: EncryptedUserFile
+Keyword: Error401File
+Keyword: Error403File
+Keyword: Error404File
+Keyword: ErrorLog
+Keyword: ExactMatch
+Keyword: Export
+Keyword: External
+Keyword: Host
+Keyword: IndexNames
+Keyword: InputBufSize
+Keyword: Location
+Keyword: Log
+Keyword: LogFormat
+Keyword: LogGMT
+Keyword: Method
+Keyword: Name
+Keyword: NoApply
+Keyword: NoHost
+Keyword: NumConnections
+Keyword: PIDFile
+Keyword: PathArgs
+Keyword: Port
+Keyword: PutEnv
+Keyword: QueryString
+Keyword: Realm
+Keyword: Referer
+Keyword: RemoteAddress
+Keyword: RemotePort
+Keyword: RemoteUser
+Keyword: RootDirectory
+Keyword: RunScriptsAsOwner
+Keyword: ScriptUser
+Keyword: Server
+Keyword: ServerName
+Keyword: Specials
+Keyword: Status
+Keyword: StayRoot
+Keyword: Timeout
+Keyword: Tuning
+Keyword: Types
+Keyword: Umask
+Keyword: Uri
+Keyword: User
+Keyword: UserAgent
+Keyword: UserDirectory
+Keyword: UserFile
+Keyword: Version
+Keyword: Virtual

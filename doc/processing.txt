@@ -1,0 +1,58 @@
+How does Mathopd process a request?
+
+- Read Request-URI.
+- Remove '?' character and everything after it, if present.
+- Decode ""%" HEX HEX"-encoded characters.
+- If Request-URI is not an absolute path, return error.
+- Sanitize Host: header sent by client by converting to lower case
+  and removing port number and trailing dot, if present.
+- Find a virtual server as follows:
+    Start with the last Virtual block defined within a particular
+    Server block, and scan upward until a match is found.
+    A match is found:
+     if a Host: header is sent:
+      if the Host: header exactly matches one of the Host keywords
+     if no Host: header is sent:
+      if the NoHost flag is set
+    If no match is found:
+     if a Host: header is sent:
+      use the first Virtual server found during the above scan
+      that has the AnyHost flag set
+    If there is still no matching Virtual block after that,
+    return an error.
+  An example is provided below.
+- Find a physical path as follows:
+    Start with the last Control block defined within the matched
+    Virtual block and scan upward until a match is found.
+    If no match is found within the Virtual block, scanning
+    continues in the enclosing Server block, and after that in
+    the global configuration.
+    Control blocks that do not have an Alias declaration are
+    ignored during this scan.
+    A match is found if the Alias is part of the Request-URI,
+    except when the ExactMatch flag is set for that specific
+    control block, in which case the Alias must the Request-URI
+    exactly and the Request-URI must end with a slash.
+    The phrase 'part of' above means rougly that a Request-URI
+    "/some/dir/index.html" matches alias "/some", but not an alias
+    "/so". As a special case, a Request-URI like "/~user/index.html"
+    will match alias "/~".
+    If the Control block has a nonempty Clients list, the IP address
+    of the client must pass the 'Apply' filter for that list.
+    If the UserDirectory flag is set in the control block, the
+    first part after the matching alias in the Request-URI should
+    be the name of a valid user account, otherwise an error occurs.
+  After a match is found, a 'real' path is computed based on the
+  contents of the Location keywords for that particular Control block.
+  If more than one Location is present for the same Alias, one of
+  the locations is picked on a round-robin basis.
+  If * characters are present in the location, these are expanded
+  to the current value of the Host: header (this is currently not
+  done if the Alias has the UserDirectory flag set.)
+  If PathArgs is set to On, and the value of Location is not
+  absolute (i.e. a redirect), that value will be used as the
+  'translated' path.
+  Otherwise (in most cases), the Alias in the Request-URI is
+  replaced with the value of Location and stored as the 'translated'
+  path.
+  Phew!

@@ -1,0 +1,89 @@
+Configuration File Syntax
+
+configuration-item:
+	"RootDirectory" string
+	"CoreDirectory" string
+	"Umask" integer
+	"StayRoot" flag
+	"User" string
+	"PIDFile" string
+	"Log" string
+	"ErrorLog" string
+	"Tuning" tuning-block 
+	"Control" control-block 
+	"Server" server-block 
+	"LogFormat" logformat-block 
+	"LogGMT" flag
+
+tuning-item:
+	"Timeout" integer
+	"BufSize" integer
+	"InputBufSize" integer
+	"NumConnections" integer
+	"AcceptMulti" flag
+
+control-item:
+	"Location" string
+	"Alias" string
+	"PathArgs" flag
+	"IndexNames" string-block 
+	"Access" access-block 
+	"Clients" access-block 
+	"Types" type-block 
+	"Specials" type-block
+	"External" type-block
+	"Admin" string
+	"Realm" string
+	"UserFile" string
+	"Error401File" string
+	"Error403File" string
+	"Error404File" string
+	"EncryptedUserFile" flag
+	"ChildLog" string
+	"DNSLookups" flag
+	"Export" string-block
+	"ExactMatch" flag
+	"ScriptUser" string
+	"RunScriptsAsOwner" string
+	"AllowDotfiles" flag
+	"UserDirectory" flag
+	"PutEnv" string-block
+
+server-item:
+	"Port" integer
+	"Name" string
+	"Address" address
+	"Virtual" virtual-block
+	"Control" control-block
+
+virtual-item:
+	"Host" string
+	"NoHost"
+	"Control" control-block
+	"AnyHost"
+
+access-item:
+	"Allow" network
+	"Deny" network
+	"Apply" network
+	"NoApply" network
+
+type-item:
+	string string-block
+
+logformat-item:
+	"Ctime"
+	"RemoteUser"
+	"RemoteAddress"
+	"RemotePort"
+	"ServerName"
+	"Method"
+	"Uri"
+	"Version"
+	"Status"
+	"ContentLength"
+	"Referer"
+	"UserAgent"
+	"BytesRead"
+	"BytesWritten"
+	"QueryString"
