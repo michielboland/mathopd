@@ -463,9 +463,6 @@ static const char *config_mime(struct configuration *p, struct mime **ms, int cl
 	return 0;
 }
 
-#define ALLOWDENY 0
-#define APPLYNOAPPLY 1
-
 static const char *config_script_user(struct configuration *p, struct control *c)
 {
 	const char *t;
