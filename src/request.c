@@ -616,38 +616,6 @@ static int process_fd(struct request *r)
 	return r->range ? 206 : 200;
 }
 
-static int add_fd(struct request *r, const char *filename)
-{
-	int fd;
-	struct stat s;
-
-	if (filename == 0)
-		return -1;
-	if (get_mime(r, filename) == -1)
-		return -1;
-	if (r->class != CLASS_FILE)
-		return -1;
-	fd = open(filename, O_RDONLY | O_NONBLOCK);
-	if (debug)
-		log_d("add_fd: %d %s", fd, filename);
-	if (fd == -1)
-		return -1;
-	if (fstat(fd, &s) == -1) {
-		lerror("fstat");
-		close(fd);
-		return -1;
-	}
-	if (!S_ISREG(s.st_mode)) {
-		log_d("non-plain file %s", filename);
-		close(fd);
-		return -1;
-	}
-	fcntl(fd, F_SETFD, FD_CLOEXEC);
-	r->cn->rfd = fd;
-	r->content_length = s.st_size;
-	return 0;
-}
-
 static int find_vs(struct request *r)
 {
 	struct virtual *v, *d;
@@ -1139,7 +1107,7 @@ static int prepare_reply(struct request *r)
 	char *b, buf[200];
 	int send_message;
 
-	send_message = r->method != M_HEAD;
+	send_message = r->num_content == -1 && r->method != M_HEAD;
 	if (r->status >= 400)
 		r->last_modified = 0;
 	switch (r->status) {
@@ -1202,10 +1170,6 @@ static int prepare_reply(struct request *r)
 	default:
 		r->status_line = "500 Internal Server Error";
 		break;
-	}
-	if (r->error_file) {
-		if (send_message && add_fd(r, r->error_file) != -1)
-			send_message = 0;
 	}
 	if (send_message) {
 		b = buf;
