@@ -278,7 +278,7 @@ int main(int argc, char *argv[])
 	mysignal(SIGQUIT, sighandler);
 	mysignal(SIGUSR1, sighandler);
 	mysignal(SIGUSR2, sighandler);
-	mysignal(SIGPIPE, SIG_IGN);
+	mysignal(SIGPIPE, sighandler);
 	my_pid = getpid();
 	if (pid_fd != -1) {
 		ftruncate(pid_fd, 0);
@@ -311,7 +311,6 @@ int fork_request(struct request *r, int (*f)(struct request *))
 	case 0:
 		my_pid = getpid();
 		forked = 1;
-		mysignal(SIGPIPE, SIG_DFL);
 		fd = r->cn->fd;
 		fcntl(fd, F_SETFL, 0);
 		dup2(fd, 0);
