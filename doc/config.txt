@@ -538,13 +538,6 @@ Keyword: Method
 Where:   LogFormat
 Desc:    The client's request-method, usually GET.
 
-Keyword: Name
-Where:   Server
-Type:    String
-Desc:    The value of this parameter is passed to CGI programs in the
-         SERVER_NAME environment variable, if no match is found for a
-         virtual server using Host headers.
-
 Keyword: NoApply
 Where:   Clients
 Type:    Network

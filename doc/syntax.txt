@@ -86,7 +86,6 @@ control-item:
 
 server-item:
 	"Port" integer
-	"Name" string
 	"Address" address
 	"Virtual" virtual-block
 	"Control" control-block
