@@ -738,7 +738,7 @@ static int process_headers(struct request *r)
 		u = strchr(l, ' ');
 		if (u)
 			break;
-		log_d("%s: ignoring garbage \"%s\"", r->cn->ip, l);
+		log_d("%s: ignoring garbage \"%s\"", inet_ntoa(r->cn->peer.sin_addr), l);
 	}
 	r->method_s = l;
 	*u++ = 0;
@@ -829,12 +829,12 @@ static int process_headers(struct request *r)
 			return -1;
 		}
 		if (strncmp(s, "HTTP/", 5)) {
-			log_d("%s: unsupported version \"%s\"", r->cn->ip, s);
+			log_d("%s: unsupported version \"%s\"", inet_ntoa(r->cn->peer.sin_addr), s);
 			return 400;
 		}
 		t = strchr(s + 5, '.');
 		if (t == 0) {
-			log_d("%s: unsupported version \"%s\"", r->cn->ip, s);
+			log_d("%s: unsupported version \"%s\"", inet_ntoa(r->cn->peer.sin_addr), s);
 			return 400;
 		}
 		*t = 0;
@@ -842,7 +842,7 @@ static int process_headers(struct request *r)
 		y = atoi(t + 1);
 		*t = '.';
 		if (x != 1 || y > 1) {
-			log_d("%s: unsupported version \"%s\"", r->cn->ip, s);
+			log_d("%s: unsupported version \"%s\"", inet_ntoa(r->cn->peer.sin_addr), s);
 			return 505;
 		}
 		r->protocol_major = x;
