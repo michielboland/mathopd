@@ -55,6 +55,7 @@ static const char rcsid[] = "$Id$";
 
 int nconnections;
 int maxconnections;
+time_t startuptime;
 time_t current_time;
 int log_file;
 int error_file;
@@ -462,6 +463,7 @@ void httpd_main(void)
 	int n;
 	short r;
 
+	current_time = startuptime = time(0);
 	first = 1;
 	error = 0;
 	log_file = -1;

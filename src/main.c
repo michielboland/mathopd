@@ -62,7 +62,6 @@ volatile int gotsigusr2;
 volatile int gotsigchld;
 volatile int gotsigquit;
 int numchildren;
-time_t startuptime;
 int debug;
 unsigned long fcm; /* should be mode_t */
 int stayroot;
@@ -284,8 +283,6 @@ int main(int argc, char *argv[])
 	gotsigusr2 = 0;
 	gotsigchld = 0;
 	gotsigquit = 0;
-	time(&startuptime);
-	time(&current_time);
 	httpd_main();
 	return 0;
 }
