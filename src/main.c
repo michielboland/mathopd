@@ -1,6 +1,6 @@
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.2b13";
+const char server_version[] = "Mathopd/1.2b14";
 
 volatile int gotsigterm;
 volatile int gotsighup;
@@ -38,13 +38,9 @@ static void startup_server(struct server *s)
 
 	onoff = 1;
 
-	if (setsockopt(s->fd, SOL_SOCKET, SO_REUSEADDR, 
-		       (char *) &onoff, sizeof onoff) == -1
-	    || setsockopt(s->fd, SOL_SOCKET, SO_SNDBUF, 
-			  (char *) &buf_size, sizeof buf_size) == -1
-	    || setsockopt(s->fd, SOL_SOCKET, SO_RCVBUF,
-			  (char *) &input_buf_size,
-			  sizeof input_buf_size) == -1)
+	if (setsockopt(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &onoff, sizeof onoff) == -1 ||
+	    setsockopt(s->fd, SOL_SOCKET, SO_SNDBUF, (char *) &tuning.buf_size, sizeof tuning.buf_size) == -1 ||
+	    setsockopt(s->fd, SOL_SOCKET, SO_RCVBUF, (char *) &tuning.input_buf_size, sizeof tuning.input_buf_size) == -1)
 		die("setsockopt", 0);
 
 	fcntl(s->fd, F_SETFD, FD_CLOEXEC);
