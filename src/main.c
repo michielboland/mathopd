@@ -227,8 +227,8 @@ int main(int argc, char *argv[])
 			die(0, "%s: Unknown user.", user_name);
 		if (pwd->pw_uid == 0)
 			die(0, "%s: Invalid user.", user_name);
-		if (initgroups(user_name, pwd->pw_gid) == -1)
-			die("initgroups", 0);
+		if (setgroups(0, 0) == -1)
+			die("setgroups", 0);
 		if (setgid(pwd->pw_gid) == -1)
 			die("setgid", 0);
 		if (stayroot) {

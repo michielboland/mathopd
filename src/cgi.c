@@ -383,10 +383,6 @@ static int set_uids(uid_t uid, gid_t gid)
 		log_d("refusing to set uid to %d", uid);
 		return -1;
 	}
-	if (setgroups(0, &gid) == -1) {
-		lerror("setgroups");
-		return -1;
-	}
 	if (setgid(gid) == -1) {
 		lerror("setgid");
 		return -1;
@@ -423,10 +419,6 @@ static int become_user(const char *name)
 	u = pw->pw_uid;
 	if (u == 0) {
 		log_d("%s: invalid user (uid 0)", name);
-		return -1;
-	}
-	if (initgroups(name, pw->pw_gid) == -1) {
-		lerror("initgroups");
 		return -1;
 	}
 	if (setgid(pw->pw_gid) == -1) {
