@@ -41,6 +41,7 @@
 
 int process_redirect(struct request *r)
 {
+	char buf[STRLEN];
 	char *location, *c;
 	FILE *fp;
 
@@ -54,19 +55,19 @@ int process_redirect(struct request *r)
 		r->error = "cannot open redirect file";
 		return 500;
 	}
-	fgets(location, STRLEN, fp);
+	fgets(buf, STRLEN, fp);
 	fclose(fp);
-	c = strchr(location, '\n');
+	c = strchr(buf, '\n');
 	if (c)
 		*c = '\0';
 	else {
 		r->error = "redirect url too long";
 		return 500;
 	}
-	if (strncmp(location, "http://", 7)) {
-		r->error = "can only redirect to http urls";
-		return 500;
-	}
+	if (*buf == '/')
+		construct_url(location, buf, r);
+	else
+		strcpy(location, buf);
 	escape_url(location);
 	r->location = location;
 	return 302;
