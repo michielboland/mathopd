@@ -81,8 +81,10 @@ static int add(const char *name, const char *value, size_t choplen, struct cgi_p
 				valuelen = 0;
 		}
 		tmp = malloc(namelen + valuelen + 2);
-		if (tmp == 0)
+		if (tmp == 0) {
+			cp->cgi_envp[cp->cgi_envc] = 0;
 			return -1;
+		}
 		memcpy(tmp, name, namelen);
 		tmp[namelen] = '=';
 		memcpy(tmp + namelen + 1, value, valuelen);
@@ -108,8 +110,10 @@ static int add_argv(const char *a, const char *b, int decode, struct cgi_paramet
 	else {
 		s = b ? b - a : strlen(a);
 		tmp = malloc(s + 1);
-		if (tmp == 0)
+		if (tmp == 0) {
+			cp->cgi_argv[cp->cgi_argc] = 0;
 			return -1;
+		}
 		if (decode) {
 			if (unescape_url_n(a, tmp, s)) {
 				free(tmp);
