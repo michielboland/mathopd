@@ -248,6 +248,7 @@ struct request {
 	unsigned long range_total;
 	char *ius_s;
 	time_t ius;
+	char rhost[STRLEN];
 };
 
 struct connection {
