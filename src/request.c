@@ -1355,7 +1355,7 @@ int process_request(struct request *r)
 			if (debug)
 				log_d("process_request: %s", r->path_translated);
 			s = process_path_translated(r);
-		} while (++n < 3 && s == 1);
+		} while (++n < 3 && s == 1 && r->error_file);
 		if (n == 3 && s == 1) {
 			log_d("process_request: loop detected");
 			r->status = 500;
