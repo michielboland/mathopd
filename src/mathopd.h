@@ -192,6 +192,8 @@ struct request {
 	char *host;
 	char *in_content_type;
 	char *in_content_length;
+	char *connection;
+	char *ims_s;
 	char path[PATHLEN];
 	char path_translated[PATHLEN];
 	char path_args[PATHLEN];
@@ -204,10 +206,11 @@ struct request {
 	char *location;
 	const char *status_line;
 	const char *error;
-	const char *method_s;
+	char *method_s;
 	char *url;
 	char *args;
 	char *params;
+	char *version;
 	int protocol_major;
 	int protocol_minor;
 	int method;
