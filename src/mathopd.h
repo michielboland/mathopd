@@ -115,6 +115,7 @@ enum {
 };
 
 enum {
+	M_UNKNOWN,
 	M_HEAD,
 	M_GET,
 	M_POST
@@ -236,7 +237,9 @@ struct request {
 	const char *method_s;
 	char *url;
 	char *args;
-	const char *protocol;
+	char *params;
+	int protocol_major;
+	int protocol_minor;
 	int method;
 	int status;
 	struct control *c;
@@ -292,7 +295,6 @@ extern char *child_filename;
 
 extern char *admin;
 extern char *coredir;
-extern int keepalive;
 extern struct connection *connections;
 extern struct server *servers;
 extern char *user_name;
@@ -315,7 +317,6 @@ extern void httpd_main(void);
 
 /* request */
 
-extern STRING(magic_word);
 extern int prepare_reply(struct request *);
 extern int process_request(struct request *);
 extern struct control *faketoreal(char *, char *, struct request *, int);
