@@ -376,8 +376,6 @@ static int get_path_info(struct request *r)
 	pa = r->path_args;
 	*pa = 0;
 	cp = end;
-	if (debug)
-		log_d("get_path_info: p=%s", p);
 	while (cp >= start && cp[-1] == '/')
 		--cp;
 	while (cp >= start) {
