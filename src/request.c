@@ -485,12 +485,6 @@ static int append_indexes(struct request *r)
 	r->isindex = 1;
 	i = r->c->index_names;
 	while (i) {
-		if (*i->name == '/') {
-			*q = 0;
-			r->content_type = i->name;
-			r->class = CLASS_EXTERNAL;
-			return fork_request(r, exec_cgi);
-		}
 		strcpy(q, i->name);
 		rv = stat(p, &r->finfo);
 		if (rv != -1)
@@ -500,7 +494,7 @@ static int append_indexes(struct request *r)
 	if (i == 0) {
 		*q = 0;
 		r->error_file = r->c->error_404_file;
-		return 404;
+		return -1;
 	}
 	return 0;
 }
@@ -790,8 +784,6 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update, int 
 
 static int process_path(struct request *r)
 {
-	int rv;
-
 	switch (find_vs(r)) {
 	case -1:
 		return 500;
@@ -825,9 +817,15 @@ static int process_path(struct request *r)
 	if (S_ISDIR(r->finfo.st_mode)) {
 		if (r->path_args[0] != '/')
 			return makedir(r);
-		rv = append_indexes(r);
-		if (rv)
-			return rv;
+		if (append_indexes(r) == -1) {
+			if (r->c->auto_index_command && *r->c->auto_index_command == '/') {
+				r->content_type = r->c->auto_index_command;
+				r->class = CLASS_EXTERNAL;
+				return fork_request(r, exec_cgi);
+			}
+			return 404;
+		}
+		
 	}
 	if (!S_ISREG(r->finfo.st_mode)) {
 		log_d("%s is not a regular file", r->path_translated);
