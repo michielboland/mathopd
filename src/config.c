@@ -101,7 +101,6 @@ static const char c_input_buf_size[] =	"InputBufSize";
 static const char c_location[] =	"Location";
 static const char c_log[] =		"Log";
 static const char c_log_format[] =	"LogFormat";
-static const char c_max_age[] =		"MaxAge";
 static const char c_method[] =		"Method";
 static const char c_name[] =		"Name";
 static const char c_noapply[] =		"NoApply";
@@ -607,7 +606,6 @@ static const char *config_control(FILE *f, struct control **as)
 		a->exports = b->exports;
 		a->script_user = b->script_user;
 		a->run_scripts_as_owner = b->run_scripts_as_owner;
-		a->max_age = b->max_age;
 		a->allowed_owners = b->allowed_owners;
 	} else {
 		a->index_names = 0;
@@ -627,7 +625,6 @@ static const char *config_control(FILE *f, struct control **as)
 		a->exports = 0;
 		a->script_user = 0;
 		a->run_scripts_as_owner = 0;
-		a->max_age = 0;
 		a->allowed_owners = 0;
 	}
 	a->next = *as;
@@ -693,8 +690,6 @@ static const char *config_control(FILE *f, struct control **as)
 			t = config_string(f, &a->script_user);
 		else if (!strcasecmp(tokbuf, c_run_scripts_as_owner))
 			t = config_flag(f, &a->run_scripts_as_owner);
-		else if (!strcasecmp(tokbuf, c_max_age))
-			t = config_int(f, &a->max_age);
 		else if (!strcasecmp(tokbuf, c_allowed_owners))
 			t = config_owners(f, &a->allowed_owners);
 		else

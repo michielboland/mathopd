@@ -195,7 +195,6 @@ struct control {
 	struct simple_list *exports;
 	char *script_user;
 	int run_scripts_as_owner;
-	unsigned long max_age;
 	struct file_owner *allowed_owners;
 };
 

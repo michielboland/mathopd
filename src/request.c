@@ -262,8 +262,6 @@ static int output_headers(struct pool *p, struct request *r)
 		if (r->status == 200) {
 			if (r->c->refresh)
 				b += sprintf(b, "Refresh: %lu\r\n", r->c->refresh);
-			if (r->c->max_age)
-				b += sprintf(b, "Cache-Control: max-age=%lu\n", r->c->max_age);
 		} else if (r->status == 401 && r->c->realm)
 			b += sprintf(b, "WWW-Authenticate: Basic realm=\"%s\"\r\n", r->c->realm);
 	}
