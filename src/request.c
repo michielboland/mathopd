@@ -239,6 +239,10 @@ static int putstring(struct pool *p, char *s)
 	return 0;
 }
 
+/*
+ * XXX: location gets trimmed after 512 characters
+ */
+
 static int output_headers(struct pool *p, struct request *r)
 {
 	long cl;
@@ -367,12 +371,6 @@ static int get_path_info(struct request *r)
 		if (cp != end)
 			*cp = 0;
 		rv = stat(p, s);
-		if (debug) {
-			if (rv == -1)
-				log_d("get_path_info: stat(\"%s\") = %d", p, rv);
-			else
-				log_d("get_path_info: stat(\"%s\") = %d; st_mode = %#o", p, rv, s->st_mode);
-		}
 		if (cp != end)
 			*cp = '/';
 		if (rv != -1) {
@@ -430,12 +428,6 @@ static int check_symlinks(struct request *r)
 		} else if (flag) {
 			flag = 0;
 			rv = lstat(b, &buf);
-			if (debug) {
-				if (rv == -1)
-					log_d("check_symlinks: lstat(\"%s\") = %d", b, rv);
-				else
-					log_d("check_symlinks: lstat(\"%s\") = %d; st_mode = %#o", b, rv, buf.st_mode);
-			}
 			if (rv == -1) {
 				lerror("lstat");
 				return -1;
@@ -475,8 +467,6 @@ static int append_indexes(struct request *r)
 	while (i) {
 		strcpy(q, i->name);
 		rv = stat(p, &r->finfo);
-		if (debug)
-			log_d("append_indexes: stat(\"%s\") = %d", p, rv);
 		if (rv != -1)
 			break;
 		i = i->next;
@@ -511,7 +501,7 @@ static int process_special(struct request *r)
 		return process_dummy(r);
 	if (!strcasecmp(ct, DUMP_MAGIC_TYPE))
 		return process_dump(r);
-	log_d("don't know how to process '%.60s' specialties", ct);
+	log_d("don't know how to process '%s' specialties", ct);
 	return 500;
 }
 
@@ -533,8 +523,6 @@ static int process_fd(struct request *r)
 	}
 	if (r->method == M_GET) {
 		fd = open(r->path_translated, O_RDONLY);
-		if (debug)
-			log_d("process_fd: open(\"%s\") = %d", r->path_translated, fd);
 		if (fd == -1) {
 			switch (errno) {
 			case EACCES:
@@ -549,8 +537,6 @@ static int process_fd(struct request *r)
 			}
 		}
 		rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
-		if (debug)
-			log_d("process_fd: fcntl(%d, F_SETFD, FD_CLOEXEC) = %d", fd, rv);
 		r->cn->rfd = fd;
 	}
 	return 200;
@@ -566,27 +552,15 @@ static int add_fd(struct request *r, const char *filename)
 	if (get_mime(r, filename) == -1)
 		return -1;
 	fd = open(filename, O_RDONLY);
-	if (debug)
-		log_d("add_fd: open(\"%s\") = %d", filename, fd);
 	if (fd == -1)
 		return -1;
 	rv = fstat(fd, &s);
-	if (debug) {
-		if (rv == -1)
-			log_d("add_fd: fstat(%d) = %d", fd, rv);
-		else
-			log_d("add_fd: fstat(%d) = %d; st_mode = %#o", fd, rv, s.st_mode);
-	}
 	if (!S_ISREG(s.st_mode)) {
 		log_d("non-plain file %s", filename);
 		rv = close(fd);
-		if (debug)
-			log_d("add_fd: close(%d) = rv", fd);
 		return -1;
 	}
 	rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
-	if (debug)
-		log_d("add_fd: fcntl(%d, F_SETFD, FD_CLOEXEC) = %d", fd, rv);
 	r->cn->rfd = fd;
 	r->content_length = s.st_size;
 	return 0;
@@ -623,7 +597,7 @@ static int find_vs(struct request *r)
 			v = v->next;
 		}
 		if (v == 0) {
-			log_d("No such virtual server: %.50s", r->host);
+			log_d("No such virtual server: %s", r->host);
 			return 1;
 		}
 		tmp = v->host;
@@ -774,7 +748,7 @@ static int process_headers(struct request *r)
 		u = strchr(l, ' ');
 		if (u)
 			break;
-		log_d("ignoring garbage \"%.80s\" from %s", l, r->cn->ip);
+		log_d("%s: ignoring garbage \"%s\"", r->cn->ip, l);
 	}
 	r->method_s = l;
 	*u++ = 0;
@@ -825,33 +799,33 @@ static int process_headers(struct request *r)
 	}
 	if (debug) {
 		if (r->method_s)
-			log_d("method_s = \"%.80s\"", r->method_s);
+			log_d("method_s = \"%s\"", r->method_s);
 		if (r->version)
-			log_d("version = \"%.80s\"", r->version);
+			log_d("version = \"%s\"", r->version);
 		if (r->url)
-			log_d("url = \"%.80s\"", r->url);
+			log_d("url = \"%s\"", r->url);
 		if (r->args)
-			log_d("args = \"%.80s\"", r->args);
+			log_d("args = \"%s\"", r->args);
 		if (r->user_agent)
-			log_d("user_agent = \"%.80s\"", r->user_agent);
+			log_d("user_agent = \"%s\"", r->user_agent);
 		if (r->referer)
-			log_d("referer = \"%.80s\"", r->referer);
+			log_d("referer = \"%s\"", r->referer);
 		if (r->from)
-			log_d("from = \"%.80s\"", r->from);
+			log_d("from = \"%s\"", r->from);
 		if (r->authorization)
-			log_d("authorization = \"%.80s\"", r->authorization);
+			log_d("authorization = \"%s\"", r->authorization);
 		if (r->cookie)
-			log_d("cookie = \"%.80s\"", r->cookie);
+			log_d("cookie = \"%s\"", r->cookie);
 		if (r->host)
-			log_d("host = \"%.80s\"", r->host);
+			log_d("host = \"%s\"", r->host);
 		if (r->connection)
-			log_d("connection = \"%.80s\"", r->connection);
+			log_d("connection = \"%s\"", r->connection);
 		if (r->ims_s)
-			log_d("ims_s = \"%.80s\"", r->ims_s);
+			log_d("ims_s = \"%s\"", r->ims_s);
 		if (r->in_content_type)
-			log_d("in_content_type = \"%.80s\"", r->in_content_type);
+			log_d("in_content_type = \"%s\"", r->in_content_type);
 		if (r->in_content_length)
-			log_d("in_content_length = \"%.80s\"", r->in_content_length);
+			log_d("in_content_length = \"%s\"", r->in_content_length);
 	}
 	s = r->method_s;
 	if (s == 0) {
@@ -862,7 +836,7 @@ static int process_headers(struct request *r)
 		r->method = M_GET;
 	} else {
 		if (r->cn->assbackwards) {
-			log_d("method \"%.80s\" not implemented for old-style connections", s);
+			log_d("method \"%s\" not implemented for old-style connections", s);
 			return 501;
 		}
 		if (strcmp(s, m_head) == 0)
@@ -870,7 +844,7 @@ static int process_headers(struct request *r)
 		else if (strcmp(s, m_post) == 0)
 			r->method = M_POST;
 		else {
-			log_d("method \"%.80s\" not implemented", s);
+			log_d("method \"%s\" not implemented", s);
 			return 501;
 		}
 	}
@@ -895,12 +869,12 @@ static int process_headers(struct request *r)
 			return -1;
 		}
 		if (strncmp(s, "HTTP/", 5)) {
-			log_d("unsupported version \"%.32s\" from %s", s, r->cn->ip);
+			log_d("%s: unsupported version \"%s\"", r->cn->ip, s);
 			return 400;
 		}
 		t = strchr(s + 5, '.');
 		if (t == 0) {
-			log_d("unsupported version \"%.32s\" from %s", s, r->cn->ip);
+			log_d("%s: unsupported version \"%s\"", r->cn->ip, s);
 			return 400;
 		}
 		*t = 0;
@@ -908,7 +882,7 @@ static int process_headers(struct request *r)
 		y = atoi(t + 1);
 		*t = '.';
 		if (x != 1 || y > 1) {
-			log_d("unsupported version \"%.32s\" from %s", s, r->cn->ip);
+			log_d("%s: unsupported version \"%s\"", r->cn->ip, s);
 			return 505;
 		}
 		r->protocol_major = x;
@@ -925,7 +899,7 @@ static int process_headers(struct request *r)
 		if (s) {
 			i = timerfc(s);
 			if (i == (time_t) -1) {
-				log_d("illegal date \"%.80s\" in If-Modified-Since", s);
+				log_d("illegal date \"%s\" in If-Modified-Since", s);
 				return 400;
 			}
 			r->ims = i;

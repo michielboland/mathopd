@@ -150,9 +150,7 @@ static char *dnslookup(struct in_addr ia, int level)
 		}
 	}
 	if (message) {
-		log_d("dnslookup: %s", message);
-		log_d("name=%s", tmp);
-		log_d("address=%s", inet_ntoa(ia));
+		log_d("dnslookup: %s, address=%s, name=%s", message, inet_ntoa(ia), tmp);
 		free(tmp);
 		return 0;
 	}
@@ -245,19 +243,19 @@ static int cgi_error(struct request *r, int code)
 static int init_cgi_env(struct request *r)
 {
 	char *p, *b;
-	int rv;
 
 	p = r->path_translated;
 	b = strrchr(p, '/');
 	if (b == 0)
 		return -1;
 	*b = 0;
-	rv = chdir(p);
-	if (debug)
-		log_d("init_cgi_env: chdir(\"%s\") = %d", p, rv);
-	*b = '/';
-	if (rv == -1)
+	if (chdir(p) == -1) {
+		log_d("failed to change directory to %s", p);
+		lerror("chdir");
+		*b = '/';
 		return -1;
+	}
+	*b = '/';
 	if (make_cgi_envp(r) == -1)
 		return -1;
 	if (make_cgi_argv(r, p) == -1)
@@ -267,7 +265,6 @@ static int init_cgi_env(struct request *r)
 
 static int become_user(const char *name)
 {
-	int rv;
 	struct passwd *pw;
 	uid_t u;
 
@@ -285,57 +282,37 @@ static int become_user(const char *name)
 		log_d("%s: invalid user (uid 0)", name);
 		return -1;
 	}
-	rv = initgroups(name, pw->pw_gid);
-	if (debug)
-		log_d("become_user: initgroups(\"%s\", %d) = %d", name, pw->pw_gid, rv);
-	if (rv == -1) {
+	if (initgroups(name, pw->pw_gid) == -1) {
 		lerror("initgroups");
 		return -1;
 	}
-	rv = setgid(pw->pw_gid);
-	if (debug)
-		log_d("become_user: setgid(%d) = %d", pw->pw_gid, rv);
-	if (rv == -1) {
+	if (setgid(pw->pw_gid) == -1) {
 		lerror("setgid");
 		return -1;
 	}
-	rv = setuid(u);
-	if (debug)
-		log_d("become_user: setuid(%d) = %d", u, rv);
-	if (rv == -1) {
+	if (setuid(u) == -1) {
 		lerror("setuid");
 		return -1;
 	}
-	log_d("now running as user %s (%d)", name, u);
+	log_d("now running as uid %d (%s)", u, name);
 	return 0;
 }
 
 static int set_uids(uid_t uid, gid_t gid)
 {
-	int rv;
-
 	if (uid < 100) {
 		log_d("refusing to set uid to %d", uid);
 		return -1;
 	}
-	rv = setgroups(0, &gid);
-	if (debug)
-		log_d("set_uids: setgroups(0, [%d]) = %d", gid, rv);
-	if (rv == -1) {
+	if (setgroups(0, &gid) == -1) {
 		lerror("setgroups");
 		return -1;
 	}
-	rv = setgid(gid);
-	if (debug)
-		log_d("set_uids: setgid(%d) = %d", gid, rv);
-	if (rv == -1) {
+	if (setgid(gid) == -1) {
 		lerror("setgid");
 		return -1;
 	}
-	rv = setuid(uid);
-	if (debug)
-		log_d("set_uids: setuid(%d) = %d", uid, rv);
-	if (rv == -1) {
+	if (setuid(uid) == -1) {
 		lerror("setuid");
 		return -1;
 	}
@@ -345,12 +322,7 @@ static int set_uids(uid_t uid, gid_t gid)
 
 static int exec_cgi(struct request *r)
 {
-	int rv;
-
-	rv = setuid(0);
-	if (debug)
-		log_d("exec_cgi: setuid(0) = %d", rv);
-	if (rv != -1) {
+	if (setuid(0) != -1) {
 		if (r->c->script_user) {
 			if (become_user(r->c->script_user) == -1)
 				return cgi_error(r, 403);
@@ -362,9 +334,16 @@ static int exec_cgi(struct request *r)
 			return cgi_error(r, 403);
 		}
 	}
+	if (getuid() == 0 || geteuid() == 0) {
+		log_d("cannot run scripts as the super-user");
+		return cgi_error(r, 403);
+	}
 	if (init_cgi_env(r) == -1)
 		return cgi_error(r, 500);
-	log_d("executing %s", cgi_argv[0]);
+	if (r->class == CLASS_EXTERNAL)
+		log_d("executing %s %s", cgi_argv[0], cgi_argv[1]);
+	else
+		log_d("executing %s", cgi_argv[0]);
 	if (execve(cgi_argv[0], (char **) cgi_argv, cgi_envp) == -1) {
 		log_d("could not execute %s", cgi_argv[0]);
 		lerror("execve");
