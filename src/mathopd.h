@@ -306,6 +306,7 @@ struct pipe_params {
 	int error_condition;
 	struct connection *cn;
 	struct pipe_params *next;
+	time_t t;
 };
 
 struct tuning {

@@ -40,6 +40,8 @@ static const char rcsid[] = "$Id$";
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -369,6 +371,7 @@ static void pipe_run(struct pipe_params *p)
 					p->error_condition = STUB_ERROR_CLIENT;
 					return;
 				default:
+					p->t = current_time;
 					p->cn->nread += r;
 					p->ibp += r;
 					p->imax -= r;
@@ -387,6 +390,7 @@ static void pipe_run(struct pipe_params *p)
 				p->error_condition = STUB_ERROR_CLIENT;
 				return;
 			default:
+				p->t = current_time;
 				p->cn->nwritten += r;
 				p->obp += r;
 				break;
@@ -423,9 +427,11 @@ static void pipe_run(struct pipe_params *p)
 					p->error_condition = STUB_ERROR_PIPE;
 					return;
 				}
+				p->t = current_time;
 				p->pstate = 2;
 				break;
 			default:
+				p->t = current_time;
 				p->ipp += r;
 				if (p->haslen)
 					p->pmax -= r;
@@ -442,6 +448,7 @@ static void pipe_run(struct pipe_params *p)
 				p->error_condition = STUB_ERROR_PIPE;
 				return;
 			default:
+				p->t = current_time;
 				p->opp += r;
 				break;
 			}
@@ -566,6 +573,7 @@ void init_child(struct pipe_params *p, struct request *r, int fd)
 	p->error_condition = 0;
 	p->cpollno = -1;
 	p->ppollno = -1;
+	p->t = current_time;
 }
 
 int setup_child_pollfds(int n)
@@ -637,7 +645,10 @@ void cleanup_children(void)
 		if (p->cn) {
 			if (p->error_condition)
 				close_child(p, HC_CLOSING);
-			else {
+			else if (current_time >= p->t + (time_t) tuning.script_timeout) {
+				log_d("script timeout to %s[%hu]", inet_ntoa(p->cn->peer.sin_addr), ntohs(p->cn->peer.sin_port));
+				close_child(p, HC_CLOSING);
+			} else {
 				f = 0;
 				if (p->istate == 1 && p->ibp < p->isize && p->imax)
 					f = 1;
