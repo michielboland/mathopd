@@ -60,7 +60,7 @@ int poll(struct pollfd *fds, unsigned n, int timeout)
 				FD_SET(fds[i].fd, &rfds);
 			if (fds[i].events & POLLOUT)
 				FD_SET(fds[i].fd, &wfds);
-			if (nfds < fds[i].fd)
+			if (nfds < fds[i].fd + 1)
 				nfds = fds[i].fd + 1;
 		}
 	}
