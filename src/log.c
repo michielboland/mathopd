@@ -40,8 +40,6 @@ static const char rcsid[] = "$Id$";
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <netinet/in.h>
-#include <netdb.h>
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
@@ -89,17 +87,13 @@ void log_request(struct request *r)
 	const char *s;
 	char tmp[20];
 	long cl;
-	int i, l, n, rv;
+	int i, l, n;
 	int left;
 	char *b;
 	static int l1, l2;
 	struct tm *tp;
 	struct timeval tv, dtv;
 	time_t rounded_time;
-	struct sockaddr_storage sa;
-	socklen_t salen;
-	char peer_a[INET6_ADDRSTRLEN], sock_a[INET6_ADDRSTRLEN];
-	char peer_p[6], sock_p[6];
 
 	if (log_fd == -1)
 		return;
@@ -109,32 +103,6 @@ void log_request(struct request *r)
 			log_d("log_request: nothing to log!");
 		}
 		return;
-	}
-	salen = sizeof sa;
-	if (getpeername(r->cn->fd, (struct sockaddr *) &sa, &salen) == -1) {
-		lerror("getpeername");
-		strcpy(peer_a, "?");
-		strcpy(peer_p, "?");
-	} else {
-		rv = getnameinfo((struct sockaddr *) &sa, salen, peer_a, sizeof peer_a, peer_p, sizeof peer_p, NI_NUMERICHOST | NI_NUMERICSERV);
-		if (rv) {
-			log_d("getnameinfo: %s", gai_strerror(rv));
-			strcpy(peer_a, "!");
-			strcpy(peer_p, "!");
-		}
-	}
-	salen = sizeof sa;
-	if (getsockname(r->cn->fd, (struct sockaddr *) &sa, &salen) == -1) {
-		lerror("getsockname");
-		strcpy(sock_a, "?");
-		strcpy(sock_p, "?");
-	} else {
-		rv = getnameinfo((struct sockaddr *) &sa, salen, sock_a, sizeof sock_a, sock_p, sizeof sock_p, NI_NUMERICHOST | NI_NUMERICSERV);
-		if (rv) {
-			log_d("getnameinfo: %s", gai_strerror(rv));
-			strcpy(sock_a, "!");
-			strcpy(sock_p, "!");
-		}
 	}
 	left = log_buffer_size - log_columns;
 	if (left < 0) {
@@ -160,16 +128,16 @@ void log_request(struct request *r)
 			s = r->user;
 			break;
 		case ML_REMOTE_ADDRESS:
-			s = peer_a;
+			s = r->cn->peer.ap_address;
 			break;
 		case ML_REMOTE_PORT:
-			s = peer_p;
+			s = r->cn->peer.ap_port;
 			break;
 		case ML_LOCAL_ADDRESS:
-			s = sock_a;
+			s = r->cn->sock.ap_address;
 			break;
 		case ML_LOCAL_PORT:
-			s = sock_p;
+			s = r->cn->sock.ap_port;
 			break;
 		case ML_SERVERNAME:
 			s = r->host;
