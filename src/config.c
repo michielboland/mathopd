@@ -115,6 +115,7 @@ static const char c_micro_time[] =		"MicroTime";
 static const char c_no_host[] =			"NoHost";
 static const char c_num_connections[] =		"NumConnections";
 static const char c_num_headers[] =		"NumHeaders";
+static const char c_num_processes[] =		"NumProcesses";
 static const char c_off[] =			"Off";
 static const char c_on[] =			"On";
 static const char c_options[] =			"Options";
@@ -162,6 +163,7 @@ static const char e_illegalport[] =	"illegal port number";
 static const char e_noinput[] =		"no input";
 static const char e_user_invalid[] =	"invalid user";
 static const char e_user_unknown[] =	"user unknown";
+static const char e_toobig[] =		"number too big";
 
 static const char t_close[] =		"unexpected closing brace";
 static const char t_eof[] =		"unexpected end of file";
@@ -861,6 +863,20 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	return 0;
 }
 
+static const char *config_smallint(struct configuration *p, int *i)
+{
+	const char *t;
+	unsigned long u;
+
+	t = config_int(p, &u);
+	if (t)
+		return t;
+	if (u > CONF_SMALLINT_MAX)
+		return e_toobig;
+	*i = u;
+	return 0;
+}
+
 static const char *config_tuning(struct configuration *p, struct tuning *tp)
 {
 	const char *t;
@@ -890,6 +906,8 @@ static const char *config_tuning(struct configuration *p, struct tuning *tp)
 			t = config_flag(p, &tp->clobber);
 		else if (!strcasecmp(p->tokbuf, c_wait))
 			t = config_int(p, &tp->wait_timeout);
+		else if (!strcasecmp(p->tokbuf, c_num_processes))
+			t = config_smallint(p, &tp->num_processes);
 		else
 			t = e_keyword;
 		if (t)
@@ -987,6 +1005,7 @@ const char *config(const char *config_filename)
 	tuning.script_buf_size = DEFAULT_SCRIPT_BUF_SIZE;
 	tuning.clobber = 1;
 	tuning.wait_timeout = DEFAULT_WAIT_TIMEOUT;
+	tuning.num_processes = 1;
 	fcm = DEFAULT_UMASK;
 	stayroot = 0;
 	log_columns = 0;
