@@ -301,7 +301,6 @@ struct connection {
 	long left;
 	int logged;
 	struct timeval itv;
-	pid_t pid;
 	struct pipe_params pipe_params;
 };
 
