@@ -126,13 +126,12 @@ static int f_process_imap(struct request *r, FILE *fp)
 	text = 1;
 	if (r->args) {
 		t = strchr(r->args, ',');
-		if (t) {
-			*t++ = 0;
-			testpoint.x = atol(r->args);
-			testpoint.y = atol(t);
-			if (testpoint.x || testpoint.y)
-				text = 0;
-		}
+		if (t == 0 || *++t == 0)
+			return 400;
+		testpoint.x = atol(r->args);
+		testpoint.y = atol(t);
+		if (testpoint.x || testpoint.y)
+			text = 0;
 	}
 	line = 0;
 	sawpoint = 0;
