@@ -191,7 +191,6 @@ struct server {
 
 struct request {
 	struct connection *cn;
-	int processed;
 	struct virtual *vs;
 	char *user_agent;
 	char *referer;

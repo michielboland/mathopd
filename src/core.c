@@ -73,7 +73,6 @@ static void init_connection(struct connection *cn)
 	cn->nread = 0;
 	cn->nwritten = 0;
 	cn->left = 0;
-	cn->r->processed = 0;
 }
 
 static void reinit_connection(struct connection *cn)
