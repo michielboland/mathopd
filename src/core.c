@@ -559,7 +559,7 @@ static int scan_request(struct connection *cn)
 			}
 			return 0;
 		}
-		cn->left = cn->r->content_length;
+		cn->left = cn->rfd == -1 ? 0 : cn->r->content_length;
 		if (fill_connection(cn) == -1) {
 			close_connection(cn);
 			return -1;
