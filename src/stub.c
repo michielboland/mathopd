@@ -422,7 +422,7 @@ static void pipe_run(struct pipe_params *p)
 			case 0:
 				if (p->state != 2) {
 					log_d("pipe_run: premature end of script headers");
-					p->error_condition = STUB_ERROR_PIPE;
+					p->error_condition = STUB_ERROR_RESTART;
 					return;
 				}
 				if (p->haslen) {
@@ -487,7 +487,7 @@ static void pipe_run(struct pipe_params *p)
 			convert_result = convert_cgi_headers(p, &p->cn->r->status);
 			if (convert_result == -1) {
 				log_d("pipe_run: problem in convert_cgi_headers");
-				p->error_condition = STUB_ERROR_PIPE;
+				p->error_condition = STUB_ERROR_RESTART;
 				return;
 			}
 			if (p->haslen && p->pstart < p->ipp) {
@@ -500,7 +500,7 @@ static void pipe_run(struct pipe_params *p)
 			}
 		} else if (p->pstart == p->psize) {
 			log_d("pipe_run: too many headers");
-			p->error_condition = STUB_ERROR_PIPE;
+			p->error_condition = STUB_ERROR_RESTART;
 			return;
 		}
 	}
@@ -658,9 +658,12 @@ void cleanup_children(void)
 	p = children;
 	while (p) {
 		if (p->cn) {
-			if (p->error_condition)
-				close_child(p, HC_CLOSING);
-			else if (current_time >= p->t + (time_t) tuning.script_timeout) {
+			if (p->error_condition) {
+				if (p->error_condition == STUB_ERROR_RESTART)
+					close_child(p, cgi_error(p->cn->r) == -1 ? HC_CLOSING : HC_WRITING);
+				else
+					close_child(p, HC_CLOSING);
+			} else if (current_time >= p->t + (time_t) tuning.script_timeout) {
 				log_d("script timeout to %s[%hu]", inet_ntoa(p->cn->peer.sin_addr), ntohs(p->cn->peer.sin_port));
 				close_child(p, HC_CLOSING);
 			} else {
