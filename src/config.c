@@ -89,6 +89,7 @@ static const char c_address[] =		"Address";
 static const char c_admin[] =		"Admin";
 static const char c_alias[] =		"Alias";
 static const char c_allow[] =		"Allow";
+static const char c_allow_dotfiles[] =	"AllowDotfiles";
 static const char c_allowed_owners[] =	"AllowedOwners";
 static const char c_apply[] =		"Apply";
 static const char c_buf_size[] =	"BufSize";
@@ -647,6 +648,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->script_user = b->script_user;
 		a->run_scripts_as_owner = b->run_scripts_as_owner;
 		a->allowed_owners = b->allowed_owners;
+		a->allow_dotfiles = b->allow_dotfiles;
 	} else {
 		a->index_names = 0;
 		a->accesses = 0;
@@ -665,6 +667,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->script_user = 0;
 		a->run_scripts_as_owner = 0;
 		a->allowed_owners = 0;
+		a->allow_dotfiles = 0;
 	}
 	a->next = *as;
 	*as = a;
@@ -738,6 +741,8 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_flag(p, &a->run_scripts_as_owner);
 		else if (!strcasecmp(p->tokbuf, c_allowed_owners))
 			t = config_owners(p, &a->allowed_owners);
+		else if (!strcasecmp(p->tokbuf, c_allow_dotfiles))
+			t = config_flag(p, &a->allow_dotfiles);
 		else
 			t = e_keyword;
 		if (t)
