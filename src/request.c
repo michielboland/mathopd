@@ -298,7 +298,7 @@ static int output_headers(struct pool *p, struct request *r)
 			b += sprintf(b, "Connection: Keep-Alive\r\n");
 	} else if (r->protocol_minor)
 		b += sprintf(b, "Connection: Close\r\n");
-	if (r->c)
+	if (r->c && (r->status == 200 || r->status == 206))
 		for (h = r->c->extra_headers; h; h = h->next)
 			b += sprintf(b, "%s\r\n", h->name);
 	b += sprintf(b, "\r\n");
