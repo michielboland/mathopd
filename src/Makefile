@@ -1,6 +1,6 @@
 BIN = mathopd
 CC = gcc
-CFLAGS = -g -O -Wall
+CFLAGS = -O -Wall
 CPPFLAGS = 
 LDFLAGS = 
 LIBS = -lcrypt
