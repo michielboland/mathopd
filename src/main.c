@@ -43,7 +43,6 @@ static const char rcsid[] = "$Id$";
 #include <arpa/inet.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#include <sysexits.h>
 #include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
