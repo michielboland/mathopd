@@ -302,14 +302,16 @@ pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd,
 #endif
 	switch (pid) {
 	default:
+		sigprocmask(SIG_SETMASK, &oset, 0);
 		if (debug)
 			log_d("child process %d created", pid);
-		setpgid(pid, pid);
+		return pid;
 	case -1:
 		sigprocmask(SIG_SETMASK, &oset, 0);
-		return pid;
+		lerror("spawn: failed to create child process");
+		return -1;
 	case 0:
-		setpgid(0, getpid());
+		setpgid(0, 0);
 		mysignal(SIGCHLD, SIG_DFL);
 		mysignal(SIGHUP, SIG_DFL);
 		mysignal(SIGTERM, SIG_DFL);
