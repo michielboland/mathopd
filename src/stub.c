@@ -61,7 +61,54 @@ struct cgi_header {
 
 static struct cgi_header *cgi_headers;
 
-struct pipe_params *children;
+struct pipe_params *pipe_params_array;
+
+static struct pipe_params_list free_pipes;
+static struct pipe_params_list busy_pipes;
+
+static void p_unlink(struct pipe_params *c, struct pipe_params_list *l)
+{
+	struct pipe_params *p, *n;
+
+	p = c->prev;
+	n = c->next;
+	if (p)
+		p->next = n;
+	if (n)
+		n->prev = p;
+	c->prev = 0;
+	c->next = 0;
+	if (c == l->head)
+		l->head = n;
+	if (c == l->tail)
+		l->tail = p;
+}
+
+static void p_link(struct pipe_params *c, struct pipe_params_list *l)
+{
+	struct pipe_params *n;
+
+	n = l->head;
+	c->prev = 0;
+	c->next = n;
+	if (n == 0)
+		l->tail = c;
+	else
+		n->prev = c;
+	l->head = c;
+}
+
+struct pipe_params *new_pipe_params(void)
+{
+	struct pipe_params *p;
+
+	p = free_pipes.head;
+	if (p) {
+		p_unlink(p, &free_pipes);
+		p_link(p, &busy_pipes);
+	}
+	return p;
+}
 
 int init_children(size_t n)
 {
@@ -73,9 +120,11 @@ int init_children(size_t n)
 		if (cgi_headers == 0)
 			return -1;
 	}
+	pipe_params_array = malloc(n * sizeof *pipe_params_array);
+	if (pipe_params_array == 0)
+		return -1;
 	for (i = 0; i < n; i++){
-		if ((p = malloc(sizeof *p)) == 0)
-			return -1;
+		p = pipe_params_array + i;
 		p->isize = tuning.script_buf_size;
 		p->osize = tuning.script_buf_size + 16;
 		p->psize = tuning.script_buf_size;
@@ -86,8 +135,7 @@ int init_children(size_t n)
 		if ((p->pbuf = malloc(p->psize)) == 0)
 			return -1;
 		p->cn = 0;
-		p->next = children;
-		children = p;
+		p_link(p, &free_pipes);
 	}
 	return 0;
 }
@@ -693,7 +741,7 @@ int setup_child_pollfds(int n)
 	struct pipe_params *p;
 	short e;
 
-	p = children;
+	p = busy_pipes.head;
 	while (p) {
 		if (p->cn && p->error_condition == 0) {
 			e = 0;
@@ -726,32 +774,37 @@ int setup_child_pollfds(int n)
 
 static void close_child(struct pipe_params *p, int nextaction)
 {
-	close(p->pfd);
-	set_connection_state(p->cn, nextaction);
+	if (p->cn) {
+		close(p->pfd);
+		set_connection_state(p->cn, nextaction);
+	}
 	p->cn = 0;
+	p_unlink(p, &busy_pipes);
+	p_link(p, &free_pipes);
 }
 
 void close_children(void)
 {
-	struct pipe_params *p;
+	struct pipe_params *p, *n;
 
-	p = children;
+	p = busy_pipes.head;
 	while (p) {
-		if (p->cn)
-			close_child(p, HC_CLOSING);
-		p = p->next;
+		n = p->next;
+		close_child(p, HC_CLOSING);
+		p = n;
 	}
 }
 
 int run_children(void)
 {
-	struct pipe_params *p;
+	struct pipe_params *p, *n;
 
-	p = children;
+	p = busy_pipes.head;
 	while (p) {
+		n = p->next;
 		if (p->cn)
 			pipe_run(p);
-		p = p->next;
+		p = n;
 	}
 	return 0;
 }
@@ -771,11 +824,15 @@ static int childisfinished(struct pipe_params *p)
 
 void cleanup_children(void)
 {
-	struct pipe_params *p;
+	struct pipe_params *p, *n;
 
-	p = children;
+	p = busy_pipes.head;
 	while (p) {
-		if (p->cn) {
+		n = p->next;
+		if (p->cn == 0) {
+			log_d("cleaning up orphan pipe");
+			close_child(p, -1);
+		} else {
 			if (p->error_condition) {
 				if (p->error_condition == STUB_ERROR_RESTART)
 					close_child(p, cgi_error(p->cn->r) == -1 ? HC_CLOSING : HC_WRITING);
@@ -787,6 +844,6 @@ void cleanup_children(void)
 			} else if (childisfinished(p))
 				close_child(p, p->cn->keepalive ? HC_REINIT : HC_CLOSING);
 		}
-		p = p->next;
+		p = n;
 	}
 }
