@@ -100,25 +100,66 @@ static int add_argv(const char *a, const char *b, int decode)
 
 #define ADD_ARGV(x, y, z) if (add_argv(x, y, z) == -1) return -1
 
+static char *dnslookup(struct in_addr ia, int level)
+{
+	int hostok;
+	char **al;
+	struct hostent *h;
+	const char *message;
+	char *tmp;
+
+	if (level == 0)
+		return 0;
+	if (debug)
+		log_d("dnslookup: gethostbyaddr(%s)", inet_ntoa(ia));
+	h = gethostbyaddr((char *) &ia, sizeof ia, AF_INET);
+	if (h == 0 || h->h_name == 0)
+		return 0;
+	tmp = strdup(h->h_name);
+	if (tmp == 0)
+		return 0;
+	if (level <= 1)
+		return tmp;
+	hostok = 0;
+	message = 0;
+	if (debug)
+		log_d("dnslookup: gethostbyname(\"%s\")", tmp);
+	h = gethostbyname(tmp);
+	if (h == 0)
+		message = "host not found";
+	else if (h->h_name == 0)
+		message = "h_name == 0";
+	else if (level > 2 && strcasecmp(h->h_name, tmp))
+		message = "name not canonical";
+	else if (h->h_addrtype != AF_INET)
+		message = "h_addrtype != AF_INET";
+	else if (h->h_length != sizeof ia)
+		message = "h_length != sizeof (struct in_addr)";
+	else {
+		for (al = h->h_addr_list; *al; al++) {
+			if (memcmp(*al, &ia, sizeof ia) == 0) {
+				hostok = 1;
+				break;
+			}
+		}
+	}
+	if (hostok == 0) {
+		free(tmp);
+		log_d("dnslookup: %s != %s%s%s", tmp, inet_ntoa(ia), message ? ": " : "", message ? message : "");
+		return 0;
+	}
+	return tmp;
+}
+
 static int make_cgi_envp(struct request *r)
 {
 	char t[16];
 	struct simple_list *e;
-	unsigned long ia;
-	struct hostent *hp;
-	char *addr;
-	int i;
 	char path_translated[PATHLEN];
+	char *tmp;
 
-	faketoreal(r->path_args, path_translated, r, 0);
-	i = strlen(r->path) - strlen(r->path_args);
-	if (i >= 0)
-		r->path[i] = 0;
 	cgi_envc = 0;
 	cgi_envp = 0;
-	sprintf(t, "%d", r->cn->s->port);
-	addr = r->cn->ip;
-	ia = r->cn->peer.sin_addr.s_addr;
 	ADD("CONTENT_LENGTH", r->in_content_length);
 	ADD("CONTENT_TYPE", r->in_content_type);
 	ADD("HTTP_AUTHORIZATION", r->authorization);
@@ -128,17 +169,21 @@ static int make_cgi_envp(struct request *r)
 	ADD("HTTP_REFERER", r->referer);
 	ADD("HTTP_USER_AGENT", r->user_agent);
 	if (r->path_args[0]) {
+		faketoreal(r->path_args, path_translated, r, 0);
 		ADD("PATH_INFO", r->path_args);
 		ADD("PATH_TRANSLATED", path_translated);
 	}
 	ADD("QUERY_STRING", r->args);
-	ADD("REMOTE_ADDR", addr);
-	hp = gethostbyaddr((char *) &ia, sizeof ia, AF_INET);
-	if (hp)
-		ADD("REMOTE_HOST", hp->h_name);
+	ADD("REMOTE_ADDR", r->cn->ip);
+	tmp = dnslookup(r->cn->peer.sin_addr, r->c->dns);
+	if (tmp) {
+		ADD("REMOTE_HOST", tmp);
+		free(tmp);
+	}
 	ADD("REQUEST_METHOD", r->method_s);
 	ADD("SCRIPT_NAME", r->path);
 	ADD("SERVER_NAME", r->servername);
+	sprintf(t, "%d", r->cn->s->port);
 	ADD("SERVER_PORT", t);
 	ADD("SERVER_SOFTWARE", server_version);
 	if (r->protocol_major) {
