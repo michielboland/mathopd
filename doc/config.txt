@@ -111,9 +111,20 @@ Desc:    The server uses two buffers to store incoming and outgoing data.
 
 Keyword: BytesRead
 Where:   LogFormat
+Desc:    The number of octets (bytes) read from the client during a single
+         request. Note that bytes read by CGI scripts and/or external
+         programs are not counted.
 
 Keyword: BytesWritten
 Where:   LogFormat
+Desc:    The number of octets (bytes) sent to the client during a single
+         request. For non-CGI requests, this corresponds to the total size
+         of the response headers plus the size of the response body,
+         unless the HTTP transfer is interrupted, in which case this
+         number will be the number of bytes transferred before the
+         interruption occurs. For CGI/External requests, the value zero is
+         logged, since Mathopd has no way of knowing how many bytes a child
+         process transfers to a client.
 
 Keyword: ChildLog
 Where:   Control
@@ -156,6 +167,7 @@ Desc:    This directive is similar to 'Access', except that it causes
 
 Keyword: ContentLength
 Where:   LogFormat
+Desc:    The total size of the resource requested by the client.
 
 Keyword: Control
 Where:   Global, Server, Virtual
@@ -187,6 +199,7 @@ Type:    String
 
 Keyword: Ctime
 Where:   LogFormat
+Desc:    The current time in 'C' format (e.g. Sun Mar 30 21:44:52 2003.)
 
 Keyword: DNSLookups
 Where:   Control
@@ -350,6 +363,36 @@ Desc:    This keyword determines where the access log is stored. The
 Keyword: LogFormat
 Where:   Global
 Type:    Block
+Desc:    This keyword determined the order in which items are written into
+         the log file. Each line of the log file consists of some tab-
+         separated fields. The contents of each field is determined by
+         whatever is inside the LogFormat block. For example, if the
+         following is specified
+
+           LogFormat { CTime URI }
+
+         the first field in the log file corresponds to the date and time
+         of the request, and the second field corresponds to the client's
+         request-URI at that time.
+
+         The default field order for the log is as follows.
+
+           Ctime
+           RemoteUser
+           RemoteAddress
+           RemotePort
+           ServerName
+           Method
+           Uri
+           Status
+           ContentLength
+           Referer
+           UserAgent
+           BytesRead
+           BytesWritten
+
+         In addition to the above, the fields Version and QueryString are
+         available for logging.
 
 Keyword: LogGMT
 Where:   Global
@@ -362,6 +405,7 @@ Desc:    Normally time stamps in log files are in local time. If
 
 Keyword: Method
 Where:   LogFormat
+Desc:    The client's request-method, usually GET.
 
 Keyword: Name
 Where:   Server
@@ -433,6 +477,8 @@ Type:    Block
 
 Keyword: QueryString
 Where:   LogFormat
+Desc:    The query string (the part that follows the '?' in the request-URI)
+         if present.
 
 Keyword: Realm
 Where:   Control
@@ -440,15 +486,21 @@ Type:    String
 
 Keyword: Referer
 Where:   LogFormat
+Desc:    The value of the 'Referer:' header sent by the client. Sometimes
+         this refers to a URL that contains a link to the current request.
 
 Keyword: RemoteAddress
 Where:   LogFormat
+Desc:    The Internet Address of the client.
 
 Keyword: RemotePort
 Where:   LogFormat
+Desc:    The port number at the client's end of its connection to the server.
 
 Keyword: RemoteUser
 Where:   LogFormat
+Desc:    The username sent by the client for a request that needs
+         authorization and has successfully authenticated.
 
 Keyword: RootDirectory
 Where:   Global
@@ -469,6 +521,7 @@ Type:    Block
 
 Keyword: ServerName
 Where:   LogFormat
+Desc:    The value of the 'Host:' header sent by the client (more or less.)
 
 Keyword: Specials
 Where:   Control
@@ -476,6 +529,8 @@ Type:    Block
 
 Keyword: Status
 Where:   LogFormat
+Desc:    The three-digit HTTP status code for this request. Requests that
+         are passed to CGI/External programs are marked with status "---".
 
 Keyword: StayRoot
 Where:   Global
@@ -502,6 +557,7 @@ Default: 022
 
 Keyword: Uri
 Where:   LogFormat
+Desc:    The URI requested by the client (minus query string, if present.)
 
 Keyword: User
 Where:   Global
@@ -509,6 +565,8 @@ Type:    String
 
 Keyword: UserAgent
 Where:   LogFormat
+Desc:    The value of the 'User-Agent:' header sent by the client. This may,
+         or may not, contain a string that can identify a web browser.
 
 Keyword: UserDirectory
 Where:   Control
@@ -520,6 +578,7 @@ Type:    String
 
 Keyword: Version
 Where:   LogFormat
+Desc:    The HTTP version requested by the client.
 
 Keyword: Virtual
 Where:   Server
