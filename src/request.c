@@ -45,6 +45,7 @@ static const char rcsid[] = "$Id$";
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <fcntl.h>
 #include <pwd.h>
 #include <time.h>
@@ -1046,7 +1047,7 @@ static int process_headers(struct request *r)
 	}
 	s = r->in_content_length;
 	if (s) {
-		if (*s == '-' || (n = strtoul(s, &u, 10), u == s || *u)) {
+		if (*s == '-' || (n = strtoul(s, &u, 10), u == s || *u || n == ULONG_MAX)) {
 			log_d("bad Content-Length from client: \"%s\"", s);
 			return 400;
 		}
