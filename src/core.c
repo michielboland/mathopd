@@ -516,7 +516,8 @@ void httpd_main(void)
 				pollfds[n].events = POLLIN;
 				pollfds[n].fd = s->fd;
 				s->pollno = n++;
-			}
+			} else
+				s->pollno = -1;
 			s = s->next;
 		}
 		cn = connections;
