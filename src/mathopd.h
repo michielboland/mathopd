@@ -4,38 +4,6 @@
 #define CGI_MAGIC_TYPE "CGI"
 #define IMAP_MAGIC_TYPE "Imagemap"
 
-#if defined SOLARIS
-
-#define POLL
-
-#elif defined SUNOS
-
-#define NEED_PROTOTYPES
-#define NEED_STRERROR
-#define NEED_MEMORY_H
-#define BROKEN_SPRINTF
-
-#elif defined ULTRIX
-
-#define NEED_PROTOTYPES
-#define NEED_STRDUP
-#define NEED_MEMORY_H
-#define NO_GETRLIMIT
-
-#endif
-
-#if defined SUNOS || defined ULTRIX
-
-#define M_NONBLOCK FNDELAY
-#define M_AGAIN EWOULDBLOCK
-
-#else
-
-#define M_NONBLOCK O_NONBLOCK
-#define M_AGAIN EAGAIN
-
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -169,6 +137,7 @@ struct control {
 	char *admin;
 	int refresh;
 	char *realm;
+	char *userfile;
 	char *error_401_file;
 };
 
@@ -331,8 +300,7 @@ extern void dump(void);
 /* base64 */
 
 extern void base64initialize(void);
-extern int base64decode(const unsigned char *, unsigned char *);
-extern int base64compare(const unsigned char *, const unsigned char *);
+extern int webuserok(const char *, const char *);
 
 #ifdef NEED_STRERROR
 extern const char *strerror(int);
@@ -363,20 +331,6 @@ int getrlimit(int, struct rlimit *);
 int setrlimit(int, const struct rlimit *);
 #endif
 
-#ifdef SUNOS
-int _filbuf(FILE *);
-int fclose(FILE *);
-int fprintf(FILE *, const char *, ...);
-int fwrite(const char *, size_t, size_t, FILE *);
-void perror(const char *);
-int strftime(char *, size_t, const char *, const struct tm *);
-time_t time(time_t *);
-int toupper(int);
-int ungetc(int, FILE *);
-char *vfprintf(FILE *, const char *, va_list);
-char *vsprintf(char *, const char *, va_list);
 #endif
 
-#endif
-
-#endif
+#endif /* NEED_PROTOTYPES */
