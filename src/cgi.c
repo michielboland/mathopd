@@ -408,7 +408,7 @@ int process_cgi(struct request *r)
 		close(p[0]);
 		destroy_parameters(cp);
 		r->cn->keepalive = 0;
-		return 500;
+		return 503;
 	}
 	r->cn->pid = pid;
 	fcntl(p[0], F_SETFL, O_NONBLOCK);
