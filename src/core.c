@@ -584,6 +584,7 @@ void httpd_main(void)
 		}
 		if (gotsigusr1) {
 			gotsigusr1 = 0;
+			close_children();
 			close_connections();
 			log_d("connections closed");
 		}

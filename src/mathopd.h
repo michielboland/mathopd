@@ -417,5 +417,6 @@ extern int init_children(size_t);
 extern void init_child(struct pipe_params *, struct request *, int);
 extern int run_children(void);
 extern void cleanup_children(void);
+extern void close_children(void);
 
 #endif

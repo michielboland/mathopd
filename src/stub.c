@@ -629,6 +629,18 @@ static void close_child(struct pipe_params *p, int nextaction)
 	p->cn = 0;
 }
 
+void close_children(void)
+{
+	struct pipe_params *p;
+
+	p = children;
+	while (p) {
+		if (p->cn)
+			close_child(p, HC_CLOSING);
+		p = p->next;
+	}
+}
+
 int run_children(void)
 {
 	struct pipe_params *p;
