@@ -3,7 +3,7 @@ Please see the README that comes with the stable release
 to find out exactly what Mathopd is. If you are planning to run
 Mathopd in a production environment, and you are not the same
 person as the author, you should stay away from this code, and
-use that stable version instead.
+use the stable version instead.
 
 Mathopd 1.3b1 was a private release for testing purposes; so I've
 jumped straight to 1.3b2.
