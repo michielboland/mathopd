@@ -558,16 +558,14 @@ void httpd_main(void)
 				cn = connections;
 				while (cn) {
 					if (cn->state == HC_ACTIVE) {
-						if (cn->pollno != -1) {
-							r = pollfds[cn->pollno].revents;
-							if (r & POLLIN)
-								read_connection(cn);
-							else if (r & POLLOUT)
-								write_connection(cn);
-							else if (r) {
-								log_d("poll: unexpected event %hd", r);
-								cn->action = HC_CLOSING;
-							}
+						r = pollfds[cn->pollno].revents;
+						if (r & POLLIN)
+							read_connection(cn);
+						else if (r & POLLOUT)
+							write_connection(cn);
+						else if (r) {
+							log_d("poll: unexpected event %hd", r);
+							cn->action = HC_CLOSING;
 						}
 					}
 					cn = cn->next;
