@@ -857,6 +857,7 @@ static int process_headers(struct request *r)
 	char *l, *u, *s;
 	time_t i;
 	size_t n;
+	int multiple_range;
 
 	l = getline(r->cn->input);
 	if (l == 0)
@@ -883,6 +884,7 @@ static int process_headers(struct request *r)
 		*s = 0;
 	}
 	n = 0;
+	multiple_range = 0;
 	while ((l = getline(r->cn->input)) != 0) {
 		s = strchr(l, ':');
 		if (s == 0)
@@ -912,9 +914,12 @@ static int process_headers(struct request *r)
 			r->in_content_type = s;
 		else if (!strcasecmp(l, "Content-length"))
 			r->in_content_length = s;
-		else if (!strcasecmp(l, "Range"))
-			r->range_s = s;
-		else if (!strcasecmp(l, "If-Range"))
+		else if (!strcasecmp(l, "Range")) {
+			if (r->range_s)
+				multiple_range = 1;
+			else
+				r->range_s = s;
+		} else if (!strcasecmp(l, "If-Range"))
 			r->if_range_s = s;
 	}
 	r->nheaders = n;
@@ -979,12 +984,16 @@ static int process_headers(struct request *r)
 			if (i != -1)
 				r->if_range = i;
 		}
-		s = r->range_s;
-		if (s) {
-			if (process_range_header(r, s) == -1)
-				log_d("ignoring Range header \"%s\"", s);
-			else if (debug)
-				log_d("range=%d floor=%lu ceiling=%lu suffix=%lu", r->range, r->range_floor, r->range_ceiling, r->range_suffix);
+		if (multiple_range)
+			log_d("multiple Range headers!?");
+		else {
+			s = r->range_s;
+			if (s) {
+				if (process_range_header(r, s) == -1)
+					log_d("ignoring Range header \"%s\"", s);
+				else if (debug)
+					log_d("Range: %s", s);
+			}
 		}
 	}
 	return 0;
