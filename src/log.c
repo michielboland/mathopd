@@ -51,8 +51,8 @@ static const char rcsid[] = "$Id$";
 #include <stdlib.h>
 #include "mathopd.h"
 
-static int log_file = -1;
-static int error_file = -1;
+static int log_fd = -1;
+static int error_fd = -1;
 static char *log_buffer;
 static size_t log_buffer_size;
 
@@ -79,7 +79,7 @@ void log_request(struct request *r)
 	static int l1, l2;
 	struct tm *tp;
 
-	if (log_file == -1)
+	if (log_fd == -1)
 		return;
 	if (log_columns <= 0) {
 		if (l1 == 0) {
@@ -178,7 +178,7 @@ void log_request(struct request *r)
 		*b++ = '\t';
 	}
 	b[-1] = '\n';
-	if (write(log_file, log_buffer, b - log_buffer) == -1) {
+	if (write(log_fd, log_buffer, b - log_buffer) == -1) {
 		gotsigterm = 1;
 		log_d("log_request: cannot write to log file");
 		lerror("write");
@@ -236,7 +236,7 @@ static int init_log_d(char *name, int *fdp)
 
 int init_logs(void)
 {
-	return init_log_d(error_filename, &error_file) == -1 || init_log_d(log_filename, &log_file) == -1 ? -1 : 0;
+	return init_log_d(error_filename, &error_fd) == -1 || init_log_d(log_filename, &log_fd) == -1 ? -1 : 0;
 }
 
 void log_d(const char *fmt, ...)
@@ -248,7 +248,7 @@ void log_d(const char *fmt, ...)
 	size_t l;
 	struct tm *tp;
 
-	if (error_file == -1 && am_daemon)
+	if (error_fd == -1 && am_daemon)
 		return;
 	va_start(ap, fmt);
 	saved_errno = errno;
@@ -262,7 +262,7 @@ void log_d(const char *fmt, ...)
 	n = vsnprintf(log_line + l, m, fmt, ap);
 	l += n < m ? n : m - 1;
 	log_line[l++] = '\n';
-	if (error_file != -1 && write(error_file, log_line, l) == -1)
+	if (error_fd != -1 && write(error_fd, log_line, l) == -1)
 		gotsigterm = 1;
 	if (am_daemon == 0)
 		write(2, log_line, l);
