@@ -264,6 +264,11 @@ static void read_connection(struct connection *cn)
 	i = 0;
 	while (i < nr && state < 8) {
 		c = p->end[i++];
+		if (c == 0) {
+			log_d("read_connection: NUL in headers");
+			cn->action = HC_CLOSING;
+			return;
+		}
 		switch (state) {
 		case 0:
 			switch (c) {
