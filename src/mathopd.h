@@ -110,6 +110,20 @@ enum {
 	HC_CLOSING
 };
 
+enum {
+	ML_CTIME,
+	ML_USERNAME,
+	ML_ADDRESS,
+	ML_PORT,
+	ML_SERVERNAME,
+	ML_METHOD,
+	ML_URI,
+	ML_STATUS,
+	ML_CONTENT_LENGTH,
+	ML_REFERER,
+	ML_USER_AGENT
+};
+
 struct pool {
 	char *floor;
 	char *ceiling;
@@ -287,14 +301,17 @@ extern struct server *servers;
 extern char *user_name;
 extern void config(void);
 
+extern int log_columns;
+extern int *log_column;
+
 /* core */
 
 extern int nconnections;
 extern int maxconnections;
+extern int log_file;
 extern time_t current_time;
 
 extern void log_d(const char *, ...);
-extern void log_trans(const char *, ...);
 extern void lerror(const char *);
 extern void httpd_main(void);
 
@@ -334,5 +351,9 @@ extern int unescape_url_n(const char *, char *, size_t);
 /* dummy */
 
 extern int process_dummy(struct request *);
+
+/* log */
+
+extern void log_request(struct request *);
 
 #endif
