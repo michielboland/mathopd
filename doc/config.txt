@@ -9,28 +9,6 @@ Desc:    By default, Mathopd will try to accept more connections
          a connection comes in. If you don't want that behaviour,
          use this keyword to turn it off.
 
-Keyword: Access
-Where:   Control
-Type:    Block
-Default: Inherits from previous Access blocks
-Desc:    The Access block can be used to allow or deny access to
-         specific IP addresses. Mathopd has a default-allow policy,
-         so if you have no Access blocks, access is allowed to anyone.
-         If you do have Access blocks, make sure that you put the
-         access entries in the correct order. Mathopd scans
-         access blocks from the bottom up until a match is found.
-         Example:
-
-            Control {
-              Access {
-                Deny 0/0
-                Allow 127.0.0.1/32
-              }
-            }
-
-         This will allow access to 127.0.0.1, while denying access to
-         anyone else.
-
 Keyword: Address
 Where:   Server
 Type:    Address
@@ -77,10 +55,6 @@ Desc:    Control blocks that contain an Alias keyword are used in
          things will happen (the more specific alias will be obscured by
          the '/' alias.)
 
-Keyword: Allow
-Where:   Access
-Type:    Network
-
 Keyword: AllowDotfiles
 Where:   Control
 Type:    Flag
@@ -98,10 +72,6 @@ Desc:    If a virtual server has this keyword, it will match on any Host:
          an explicit Host name are still checked, so the 'AnyHost' virtual
          server will only be used as a last resort. See also the discussion
          of wildcard expansion under the 'Location' keyword.
-
-Keyword: Apply
-Where:   Clients
-Type:    Network
 
 Keyword: AutoIndexCommand
 Where:   Control
@@ -157,38 +127,6 @@ Desc:    If a child process, such as a CGI script, writes a message to its
          designated by the ChildLog keyword. If no ChildLog is specified,
          diagnostic messages will be thrown away.
 
-Keyword: Clients
-Where:   Control
-Type:    Block
-Desc:    This directive is similar to 'Access', except that it causes
-         'conditional alias matching', rather than blocking traffic with
-         '403 Forbidden' errors. As such, it is only useful when used in
-         combination with Control blocks that contain an Alias. To distinguish
-         a 'Clients' access list from a 'normal' access list, the keywords
-         to be used inside the list are 'Apply' and 'NoApply', rather than
-         'Allow' and 'Deny'.
-
-         All this is perhaps best illustrated by an example.
-
-           Control {
-             Alias /
-             Location /usr/share/doc/handbook
-           }
-           Control {
-             Alias /
-             Location /usr/share/doc/internal/handbook
-             Clients {
-               Apply 192.168.57.0/24
-             }
-           }
-
-         In this example, visitors from within the 192.168.57.0/24 network
-         will get their content served from /usr/share/doc/internal/handbook,
-         whereas other clients will see /usr/share/doc/handbook. Note that
-         the order of the control blocks matters. If you put the unconditional
-         alias at the bottom, rather than at the top, it will be matched first
-         by the server, thus occluding the conditional alias.
-
 Keyword: Clobber
 Where:   Tuning
 Type:    Flag
@@ -241,10 +179,6 @@ Desc:    Normally, for practical reasons, the server changes its current
 Keyword: Ctime
 Where:   LogFormat
 Desc:    The current time in 'C' format (e.g. Sun Mar 30 21:44:52 2003.)
-
-Keyword: Deny
-Where:   Access
-Type:    Network
 
 Keyword: EncryptedUserFile
 Where:   Control
@@ -581,10 +515,6 @@ Where:   LogFormat
 Desc:    The time, measured in seconds, with microsecond precision,
          since 00:00:00 UTC, January 1, 1970. (Or whatever is returned
          by the gettimeofday() system call.)
-
-Keyword: NoApply
-Where:   Clients
-Type:    Network
 
 Keyword: NoHost
 Where:   Virtual
