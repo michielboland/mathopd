@@ -1,0 +1,80 @@
+Running Mathopd
+
+The Mathopd is started as follows:
+
+  /usr/local/sbin/mathopd -f /usr/local/etc/mathopd.cfg
+
+(assuming that the mathopd executable is in /usr/local/sbin and
+there is a configuration file in /usr/local/etc.)
+For a description of the configuration file, see syntax.txt and
+config.txt.
+
+Command-line options.
+
+There are a few command-line options for Mathopd. We have already
+seen -f. A complete summary follows.
+
+  -n  If this option is supplied, Mathopd continues to run
+      in the foreground after initialization. This is useful
+      for debugging purposes. Also, if this option is used,
+      diagnostics will be written to the standard error
+      channel as well as the error log.
+
+  -d  If this option is supplied, Mathopd starts up in debugging
+      mode. Actually debugging mode does not do very much at
+      present, it mainly produces a bit of noise in the error log.
+      Debugging can be turned on and off while the server is
+      running; see the section on signals below.
+
+  -v  If this option is supplied, Mathopd prints its version number
+      and exits.
+
+  -f <filename>
+
+      Use the configuration file specified by <filename>.
+      If the -f option is not used, Mathopd expects a configuration
+      file from standard input. This is mainly for historic reasons;
+      there is no reason why one should not use the -f flag.
+
+Signals.
+
+While the server is running, is reacts to certain signals. If a PIDFile
+is specified in the configuration file, you can send signals to Mathopd
+using something like
+
+  # kill -<signal> `cat /var/run/mathopd.pid`
+
+from the command line (assuming the PIDFile is /var/run/mathopd.pid.)
+
+A list of signals and their effects follows.
+
+  SIGHUP   If this signal is received, Mathopd will reopen its log files.
+           This is a leftover from older versions that did not have
+           automatic log rotation.
+
+  SIGTERM
+  SIGINT   These signals have identical effects: they stop Mathopd
+           immediately, that is, all connections are closed and all
+           server sockets as well. Note that the fact that SIGINT
+           stops the server means that you can stop Mathopd by pressing
+           ctrl-C (or whatever key has the interrupt function) if it
+           was started with the -n flag.
+
+  SIGQUIT  This signal toggles the debugging flag: if debugging was
+           turned off before this signal was sent, it will be turned on,
+           and vice versa.
+
+  SIGUSR1  This signal disconnects all clients, if any from the server.
+           New connections can still be made after this.
+
+  SIGUSR2  This signal closes the server socket(s). No more connections
+           will be received after this. Connections that are active at
+           the time of the signal will be completed. After all active
+           requests are timed out or done, Mathopd will exit. (It can
+           happen sometimes that mathopd fails to exit after receiving
+           SIGUSR2, for example when all connections are stuck for some
+           reason. This can be remedied by killing off old process by
+           hand from time to time.)
+
+Terminating the server is done by sending a SIGUSR2 signal (or a SIGTERM,
+but that is a bit too drastic in most cases.)
