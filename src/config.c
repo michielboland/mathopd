@@ -121,7 +121,7 @@ static const char e_help[] =		"unknown error (help)";
 static const char e_inval[] =		"illegal quantity";
 static const char e_keyword[] =		"unknown keyword";
 static const char e_memory[] =		"out of memory";
-static const char e_unknown_host[] =	"no default hostname";
+static const char e_unknown_host[] =	"unknown host";
 
 static const char t_close[] =		"unexpected closing brace";
 static const char t_eof[] =		"unexpected end of file";
@@ -615,10 +615,14 @@ static const char *fill_servernames(void)
 	while (s) {
 		if (s->port == 0)
 			s->port = DEFAULT_PORT;
-		s->s_name = fqdn;
+		if (s->s_name = 0) {
+			if (fqdn == 0)
+				return e_unknown_host;
+			s->s_name = fqdn;
+		}
 		v = s->children;
 		while (v) {
-			name = v->host ? v->host : s->s_name ? s->s_name : "0";
+			name = v->host ? v->host : s->s_name;
 			if (s->port == DEFAULT_PORT)
 				v->fullname = name;
 			else {
