@@ -362,7 +362,8 @@ static int become_user(const char *name)
 		lerror("setuid");
 		return -1;
 	}
-	log_d("now running as uid %d (%s)", u, name);
+	if (debug)
+		log_d("now running as uid %d (%s)", u, name);
 	return 0;
 }
 
@@ -384,7 +385,8 @@ static int set_uids(uid_t uid, gid_t gid)
 		lerror("setuid");
 		return -1;
 	}
-	log_d("set_uids: uid set to %d, gid set to %d", uid, gid);
+	if (debug)
+		log_d("set_uids: uid set to %d, gid set to %d", uid, gid);
 	return 0;
 }
 
