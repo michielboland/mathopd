@@ -29,15 +29,6 @@ Desc:    The Access block can be used to allow or deny access to
          This will allow access to 127.0.0.1, while denying access to
          anyone else.
 
-            Access {
-              Allow 127.0.0.1/32
-              Deny 0/0
-            }
-
-         The above will in fact block access to everyone, even 127.0.0.1
-         This is because the scan for access entries starts at the bottom,
-         and 0/0 matches any address.
-
 Keyword: Address
 Where:   Server
 Type:    Address
