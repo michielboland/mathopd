@@ -1388,13 +1388,13 @@ static int prepare_reply(struct request *r)
 
 	if (r->forked)
 		return 0;
-	if (r->in_mblen || r->in_transfer_encoding) {
+	if (r->in_content_length || r->in_transfer_encoding) {
 		if (debug)
 			log_d("client sent request-body; turning off keepalive");
 		r->cn->keepalive = 0;
 	}
 	p = &r->cn->output;
-	send_message = r->num_content == -1 && r->method != M_HEAD && r->status != 204 && r->status != 304;
+	send_message = r->cn->rfd == -1 && r->method != M_HEAD && r->status != 204 && r->status != 304;
 	status_line = http_code_phrase(r->status);
 	cl_start = cl_end = 0;
 	if (send_message) {
