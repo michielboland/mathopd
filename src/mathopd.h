@@ -439,4 +439,11 @@ extern void pipe_run(struct connection *);
 extern void init_child(struct connection *, int);
 extern int setup_child_pollfds(int, struct connection *);
 
+/* select */
+
+extern void selectforoutput(struct connection_fd *);
+extern void deselectforoutput(struct connection_fd *);
+extern void selectforinput(struct connection_fd *);
+extern void deselectforinput(struct connection_fd *);
+
 #endif
