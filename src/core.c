@@ -149,12 +149,32 @@ static void close_connections(void)
 	}
 }
 
+static struct connection *find_connection(void)
+{
+	struct connection *cn, *cw;
+
+	cn = connections;
+	cw = 0;
+	while (cn) {
+		if (cn->state == HC_FREE)
+			break;
+		if (cw == 0 && cn->action == HC_WAITING)
+			cw = cn;
+		cn = cn->next;
+	}
+	if (cn == 0 && cw) {
+		close_connection(cw);
+		cn = cw;
+	}
+	return cn;
+}
+
 static int accept_connection(struct server *s)
 {
 	struct sockaddr_in sa_remote, sa_local;
 	socklen_t l;
 	int fd;
-	struct connection *cn, *cw;
+	struct connection *cn;
 
 	do {
 		if (available_connections == 0)
@@ -179,19 +199,7 @@ static int accept_connection(struct server *s)
 			close(fd);
 			break;
 		}
-		cn = connections;
-		cw = 0;
-		while (cn) {
-			if (cn->state == HC_FREE)
-				break;
-			if (cw == 0 && cn->action == HC_WAITING)
-				cw = cn;
-			cn = cn->next;
-		}
-		if (cn == 0 && cw) {
-			close_connection(cw);
-			cn = cw;
-		}
+		cn = find_connection();
 		if (cn == 0) {
 			log_d("connection to %s[%hu] dropped", inet_ntoa(sa_remote.sin_addr), ntohs(sa_remote.sin_port));
 			close(fd);
