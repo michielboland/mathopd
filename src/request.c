@@ -979,13 +979,23 @@ static int parse_http_version(struct request *r)
 
 static const char *header_list_next(const char *s, size_t *lp)
 {
-	const char *c;
+	int inquotedstring;
+	char c, lastc;
 	size_t l;
 
 	while (*s == ',' || *s == ' ')
 		++s;
-	c = strchr(s, ',');
-	l = c == 0 ? strlen(s) : c - s;
+	l = 0;
+	lastc = 0;
+	inquotedstring = 0;
+	while ((c = s[l]) != 0) {
+		if (c == ',' && inquotedstring == 0)
+			break;
+		if (c == '"' && (inquotedstring == 0 || lastc != '\\'))
+			inquotedstring = inquotedstring == 0;
+		lastc = c;
+		++l;
+	}
 	while (l > 0 && s[l - 1] == ' ')
 		--l;
 	if (debug)
@@ -998,15 +1008,13 @@ static int parse_connection_header(struct request *r, const char *s)
 {
 	size_t l;
 
-	if (strchr(s, '"'))
-		return -1;
 	while (1) {
 		s = header_list_next(s, &l);
 		if (l == 0)
 			break;
-		if (strncasecmp(s, "keep-alive", l) == 0)
+		if (l == 10 && strncasecmp(s, "keep-alive", l) == 0)
 			r->cn->keepalive = 1;
-		else if (strncasecmp(s, "close", l) == 0)
+		else if (l == 5 && strncasecmp(s, "close", l) == 0)
 			r->cn->keepalive = 0;
 		s += l;
 	}
