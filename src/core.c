@@ -73,12 +73,56 @@ static void close_connection(struct connection *cn)
 	cn->state = HC_FREE;
 }
 
+static void nuke_servers(void)
+{
+	struct server *s;
+
+	s = servers;
+	while (s) {
+		dup2(STDIN_FILENO, s->fd);
+		s = s->next;
+	}
+	servers = 0;
+}
+
+static void nuke_connections(void)
+{
+	struct connection *cn;
+
+	cn = connections;
+	while (cn) {
+		if (cn->state != HC_FREE)
+		close_connection(cn);
+		cn = cn->next;
+	}
+}
+
+static int thrash(void)
+{
+	log(L_LOG, "thrashing");
+
+	switch (fork()) {
+	case -1:
+		lerror("fork");
+		return -1;
+	case 0:
+		log(L_LOG, "*** forked pid %d ***", getpid());
+		nuke_servers();
+		break;
+	default:
+		nuke_connections();
+		break;
+	}
+	return 0;
+}
+
 static void accept_connection(struct server *s)
 {
 	struct sockaddr_in sa;
-	int lsa, fd;
+	int lsa, fd, do_thrash;
 	struct connection *cn, *cw;
 
+	do_thrash = 0;
 	lsa = sizeof sa;
 	while ((fd = accept(s->fd, (struct sockaddr *) &sa, &lsa)) != -1) {
 		s->naccepts++;
@@ -99,11 +143,16 @@ static void accept_connection(struct server *s)
 			close_connection(cw);
 			init_connection(cw, s, fd, sa.sin_addr);
 		}
-		else
+		else {
+			log(L_ERROR, "had to drop connection");
 			close(fd);
+			do_thrash = 1;
+		}
 	}
 	if (errno != M_AGAIN)
 		lerror("accept");
+	if (do_thrash)
+		thrash();
 }
 
 static int fill_connection(struct connection *cn)
@@ -127,7 +176,7 @@ static int fill_connection(struct connection *cn)
 			lerror("read");
 		else
 			log(L_ERROR, "premature end of file %s",
-				cn->r->path_translated);
+			    cn->r->path_translated);
 		return -1;
 	}
 	p->end += n;
@@ -444,7 +493,8 @@ void httpd_main(void)
 			init_logs();
 			if (first) {
 				first = 0;
-				log(L_LOG, "*** %s ***", server_version);
+				log(L_LOG, "*** %s (pid %d) ***",
+				    server_version, getpid());
 			}
 			else
 				log(L_LOG, "logs reopened");
@@ -452,19 +502,20 @@ void httpd_main(void)
 
 		if (gotsigusr1) {
 			gotsigusr1 = 0;
-			cn = connections;
-			while (cn) {
-				if (cn->state != HC_FREE)
-				close_connection(cn);
-				cn = cn->next;
-			}
+			nuke_connections();
 			log(L_LOG, "connections closed");
+		}
+
+		if (gotsigusr2) {
+			gotsigusr2 = 0;
+			nuke_servers();
+			log(L_LOG, "servers closed");
 		}
 
 #ifdef POLL
 		n = 0;
 #else
-		m = 0;
+		m = -1;
 		FD_ZERO(&rfds);
 		FD_ZERO(&wfds);
 #endif
@@ -487,9 +538,6 @@ void httpd_main(void)
 
 		while (cn) {
 			if (cn->state == HC_ACTIVE) {
-/*
- * HACK - if you define NO_TIMEOUT, select() calls will never time out.
- */
 #ifndef NO_TIMEOUT
 				gotactive = 1;
 #endif
@@ -523,6 +571,15 @@ void httpd_main(void)
 				cn->pollno = -1;
 #endif
 			cn = cn->next;
+		}
+#ifdef POLL
+		if (n == 0)
+#else
+		if (m == -1)
+#endif
+		{
+			log(L_ERROR, "no more sockets to select from");
+			break;
 		}
 #ifdef POLL
 		rv = poll(pollfds, n, gotactive ? to : INFTIM);
@@ -568,29 +625,29 @@ void httpd_main(void)
 
 			cn = connections;
 			while (cn) {
-#ifdef POLL
-				if (cn->pollno != -1) {
-					r = pollfds[cn->pollno].revents;
-					if (r & POLLIN)
-						read_connection(cn);
-					else if (r & POLLOUT)
-						write_connection(cn);
-					else if (r)
-						cn->action = HC_CLOSING;
-				}
-#else
 				if (cn->state == HC_ACTIVE) {
+#ifdef POLL
+					if (cn->pollno != -1) {
+						r = pollfds[cn->pollno].revents;
+						if (r & POLLIN)
+							read_connection(cn);
+						else if (r & POLLOUT)
+							write_connection(cn);
+						else if (r)
+							cn->action = HC_CLOSING;
+					}
+#else
 					if (FD_ISSET(cn->fd, &rfds))
 						read_connection(cn);
 					else if (FD_ISSET(cn->fd, &wfds))
 						write_connection(cn);
-				}
 #endif
+				}
 				cn = cn->next;
 			}
 shortcut:
 			cleanup_connections();
 		}
 	}
-	log(L_LOG, "*** Shutting down ***");
+	log(L_LOG, "*** Shutting down (pid %d) ***", getpid());
 }
