@@ -87,6 +87,7 @@ control-item:
 	"ExtraHeaders" string-block
 	"PathInfo" flag
 	"AutoIndexCommand" string
+	"ExpireInterval" integer
 
 server-item:
 	"Port" string

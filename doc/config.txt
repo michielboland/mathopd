@@ -265,6 +265,13 @@ Desc:    The ExactMatch causes an Alias to be used only if it matches the
          and htm are processed normally, so that you can for example still
          have things like images on your home page.
 
+Keyword: ExpireInterval
+Where:   Control
+Type:    Integer
+Desc:    If the value of ExpireInterval is nonzero (which is the default)
+         the server will send an Expires: header that points to a data that
+         is the specified number of seconds in the future.
+
 Keyword: Export
 Where:   Control
 Type:    Block
