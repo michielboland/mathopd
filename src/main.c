@@ -54,7 +54,6 @@ int my_pid;
 static char *progname;
 static int forked;
 
-static const char su_fork[] = "could not fork";
 static const char devnull[] = "/dev/null";
 
 static int mysignal(int sig, void(*f)(int))
@@ -339,7 +338,6 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		break;
 	case -1:
 		lerror("fork");
-		r->error = su_fork;
 		return 503;
 	default:
 		log_d("child process %d created", pid);

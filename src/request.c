@@ -36,26 +36,6 @@
 
 #include "mathopd.h"
 
-static const char br_bad_url[] =		"bad or missing url";
-static const char br_bad_protocol[] =		"bad protocol";
-static const char br_bad_date[] =		"bad date";
-static const char br_bad_path_name[] =		"bad path name";
-static const char fb_not_plain[] =		"file not plain";
-static const char fb_symlink[] =		"symlink spotted";
-static const char fb_active[] =			"actively forbidden";
-static const char fb_access[] =			"no permission";
-static const char fb_post_file[] =		"POST to file";
-static const char ni_not_implemented[] =	"method not implemented";
-static const char se_alias[] =			"cannot resolve pathname";
-static const char se_get_path_info[] =		"cannot determine path args";
-static const char se_no_class[] =		"unknown class!?";
-static const char se_no_mime[] =		"no MIME type";
-static const char se_no_specialty[] =		"unconfigured specialty";
-static const char se_no_virtual[] =		"virtual server does not exist";
-static const char se_open[] =			"open failed";
-static const char su_open[] =			"too many open files";
-static const char ni_version_not_supp[] =	"version not supported";
-
 static const char m_get[] =			"GET";
 static const char m_head[] =			"HEAD";
 static const char m_post[] =			"POST";
@@ -531,7 +511,7 @@ static int process_special(struct request *r)
 		return process_dummy(r);
 	if (!strcasecmp(ct, DUMP_MAGIC_TYPE))
 		return process_dump(r);
-	r->error = se_no_specialty;
+	log_d("don't know how to process '%.60s' specialties", ct);
 	return 500;
 }
 
@@ -543,10 +523,8 @@ static int process_fd(struct request *r)
 		r->error_file = r->c->error_404_file;
 		return 404;
 	}
-	if (r->method == M_POST) {
-		r->error = fb_post_file;
+	if (r->method == M_POST)
 		return 405;
-	}
 	r->content_length = r->finfo.st_size;
 	r->last_modified = r->finfo.st_mtime;
 	if (r->last_modified <= r->ims) {
@@ -560,15 +538,13 @@ static int process_fd(struct request *r)
 		if (fd == -1) {
 			switch (errno) {
 			case EACCES:
-				r->error = fb_access;
 				r->error_file = r->c->error_403_file;
 				return 403;
 			case EMFILE:
-				r->error = su_open;
+				lerror("open");
 				return 503;
 			default:
 				lerror("open");
-				r->error = se_open;
 				return 500;
 			}
 		}
@@ -727,18 +703,13 @@ static int process_path(struct request *r)
 
 	switch (find_vs(r)) {
 	case -1:
-		r->error = se_no_virtual;
 		return 500;
 	case 1:
-		r->error = se_no_virtual;
 		return 404;
 	}
-	if ((r->c = faketoreal(r->path, r->path_translated, r, 1)) == 0) {
-		r->error = se_alias;
+	if ((r->c = faketoreal(r->path, r->path_translated, r, 1)) == 0)
 		return 500;
-	}
 	if (r->c->accesses && evaluate_access(r->cn->peer.sin_addr.s_addr, r->c->accesses) == DENY) {
-		r->error = fb_active;
 		r->error_file = r->c->error_403_file;
 		return 403;
 	}
@@ -746,23 +717,17 @@ static int process_path(struct request *r)
 		r->error_file = r->c->error_401_file;
 		return 401;
 	}
-	if (r->path_translated[0] == 0) {
-		r->error = se_alias;
+	if (r->path_translated[0] == 0)
 		return 500;
-	}
 	if (r->path_translated[0] != '/') {
 		escape_url(r->path_translated, r->newloc);
 		r->location = r->newloc;
 		return 302;
 	}
-	if (check_path(r) == -1) {
-		r->error = br_bad_path_name;
+	if (check_path(r) == -1)
 		return 400;
-	}
-	if (get_path_info(r) == -1) {
-		r->error = se_get_path_info;
+	if (get_path_info(r) == -1)
 		return 500;
-	}
 	if (S_ISDIR(r->finfo.st_mode)) {
 		if (r->path_args[0] != '/')
 			return makedir(r);
@@ -771,19 +736,16 @@ static int process_path(struct request *r)
 			return rv;
 	}
 	if (!S_ISREG(r->finfo.st_mode)) {
-		r->error = fb_not_plain;
+		log_d("%s is not a regular file", r->path_translated);
 		r->error_file = r->c->error_403_file;
 		return 403;
 	}
 	if (check_symlinks(r) == -1) {
-		r->error = fb_symlink;
 		r->error_file = r->c->error_403_file;
 		return 403;
 	}
-	if (get_mime(r, r->path_translated) == -1) {
-		r->error = se_no_mime;
+	if (get_mime(r, r->path_translated) == -1)
 		return 500;
-	}
 	switch (r->class) {
 	case CLASS_FILE:
 		return process_fd(r);
@@ -792,7 +754,7 @@ static int process_path(struct request *r)
 	case CLASS_EXTERNAL:
 		return process_external(r);
 	}
-	r->error = se_no_class;
+	log_d("unknown class!?");
 	return 500;
 }
 
@@ -901,7 +863,6 @@ static int process_headers(struct request *r)
 	} else {
 		if (r->cn->assbackwards) {
 			log_d("method \"%.80s\" not implemented for old-style connections", s);
-			r->error = ni_not_implemented;
 			return 501;
 		}
 		if (strcmp(s, m_head) == 0)
@@ -910,7 +871,6 @@ static int process_headers(struct request *r)
 			r->method = M_POST;
 		else {
 			log_d("method \"%.80s\" not implemented", s);
-			r->error = ni_not_implemented;
 			return 501;
 		}
 	}
@@ -919,19 +879,12 @@ static int process_headers(struct request *r)
 		log_d("url == 0 !?");
 		return -1;
 	}
-	if (strlen(s) > STRLEN) {
-		log_d("url too long from %s", r->cn->ip);
-		r->error = br_bad_url;
+	if (strlen(s) > STRLEN)
 		return 400;
-	}
-	if (unescape_url(s, r->path) == -1) {
-		r->error = br_bad_url;
+	if (unescape_url(s, r->path) == -1)
 		return 400;
-	}
-	if (r->path[0] != '/') {
-		r->error = br_bad_url;
+	if (r->path[0] != '/')
 		return 400;
-	}
 	if (r->cn->assbackwards) {
 		r->protocol_major = 0;
 		r->protocol_minor = 9;
@@ -943,13 +896,11 @@ static int process_headers(struct request *r)
 		}
 		if (strncmp(s, "HTTP/", 5)) {
 			log_d("unsupported version \"%.32s\" from %s", s, r->cn->ip);
-			r->error = br_bad_protocol;
 			return 400;
 		}
 		t = strchr(s + 5, '.');
 		if (t == 0) {
 			log_d("unsupported version \"%.32s\" from %s", s, r->cn->ip);
-			r->error = br_bad_protocol;
 			return 400;
 		}
 		*t = 0;
@@ -958,7 +909,6 @@ static int process_headers(struct request *r)
 		*t = '.';
 		if (x != 1 || y > 1) {
 			log_d("unsupported version \"%.32s\" from %s", s, r->cn->ip);
-			r->error = ni_version_not_supp;
 			return 505;
 		}
 		r->protocol_major = x;
@@ -976,7 +926,6 @@ static int process_headers(struct request *r)
 			i = timerfc(s);
 			if (i == (time_t) -1) {
 				log_d("illegal date \"%.80s\" in If-Modified-Since", s);
-				r->error = br_bad_date;
 				return 400;
 			}
 			r->ims = i;
@@ -1108,7 +1057,6 @@ static void init_request(struct request *r)
 	r->ims = 0;
 	r->location = 0;
 	r->status_line = 0;
-	r->error = 0;
 	r->method_s = 0;
 	r->url = 0;
 	r->args = 0;

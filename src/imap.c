@@ -221,7 +221,6 @@ static int f_process_imap(struct request *r, FILE *fp)
 		}
 	}
 	if (status) {
-		r->error = status;
 		log_d("imagemap: %s on line %d of %s", status, line, r->path_translated);
 		return 500;
 	}
@@ -240,14 +239,12 @@ int process_imap(struct request *r)
 
 	if (r->method == M_HEAD)
 		return 204;
-	else if (r->method != M_GET) {
-		r->error = "invalid method for imagemap";
+	else if (r->method != M_GET)
 		return 405;
-	}
 	fp = fopen(r->path_translated, "r");
 	if (fp == 0) {
+		log_d("cannot open map file %.200s", r->path_translated);
 		lerror("fopen");
-		r->error = "cannot open map file";
 		return 500;
 	}
 	retval = f_process_imap(r, fp);
