@@ -51,7 +51,8 @@ static const char rcsid[] = "$Id$";
 #include <ctype.h>
 #include "mathopd.h"
 
-#define PLBUFSIZE 4096
+#define PLBUFSIZE 4080
+#define STUB_NHEADERS 100
 
 struct pipe_params {
 	char *ibuf;
@@ -73,6 +74,7 @@ struct pipe_params {
 	int pfd;
 	int timeout;
 	size_t imax;
+	int chunkit;
 };
 
 struct cgi_header {
@@ -82,24 +84,30 @@ struct cgi_header {
 	size_t len;
 };
 
-static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, size_t outsize, size_t *r, int *sp)
+static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 {
 	int addheader, c, s;
-	struct cgi_header headers[100];
+	struct cgi_header headers[STUB_NHEADERS];
 	size_t i, nheaders, status, location;
 	const char *p, *tmpname, *tmpvalue;
 	int havestatus, havelocation, firstline;
 	size_t len, tmpnamelen, tmpvaluelen;
-	char sbuf[40], dbuf[50], gbuf[40];
+	char sbuf[40], dbuf[50], gbuf[40], cbuf[30];
 
-	headers[0].len = sprintf(sbuf, "Server: %.30s", server_version);
-	headers[0].name = sbuf;
-	headers[0].namelen = 6;
-	headers[0].value = sbuf + 8;
-	headers[1].len = sprintf(dbuf, "Date: %s", rfctime(current_time, gbuf));
-	headers[1].name = dbuf;
-	headers[1].namelen = 4;
-	headers[2].value = dbuf + 6;
+	headers[nheaders = 0].len = sprintf(sbuf, "Server: %.30s", server_version);
+	headers[nheaders].name = sbuf;
+	headers[nheaders].namelen = 6;
+	headers[nheaders++].value = sbuf + 8;
+	headers[nheaders].len = sprintf(dbuf, "Date: %s", rfctime(current_time, gbuf));
+	headers[nheaders].name = dbuf;
+	headers[nheaders].namelen = 4;
+	headers[nheaders++].value = dbuf + 6;
+	if (pp->chunkit) {
+		headers[nheaders].len = sprintf(cbuf, "Transfer-Encoding: chunked");
+		headers[nheaders].name = cbuf;
+		headers[nheaders].namelen = 17;
+		headers[nheaders++].value = cbuf + 19;
+	}
 	tmpname = 0;
 	tmpnamelen = 0;
 	tmpvalue = 0;
@@ -108,11 +116,10 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 	status = 0;
 	location = 0;
 	s = 0;
-	nheaders = 2;
 	len = 0;
 	addheader = 0;
 	firstline = 1;
-	for (i = 0, p = inbuf; i < insize; i++, p++) {
+	for (i = 0, p = pp->pbuf; i < pp->pstart; i++, p++) {
 		c = *p;
 		switch (s) {
 		case 0:
@@ -184,6 +191,14 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 						}
 					}
 					break;
+				case 10:
+					if (strncasecmp(tmpname, "Connection", 10) == 0)
+						addheader = 0;
+					break;
+				case 14:
+					if (strncasecmp(tmpname, "Content-Length", 14) == 0)
+						addheader = 0;
+					break;
 				}
 			if (firstline)
 				firstline = 0;
@@ -191,7 +206,7 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 				if (debug)
 					log_d("convert_cgi_headers: disallowing header \"%.*s\"", len, tmpname);
 			} else {
-				if (nheaders == 100) {
+				if (nheaders == STUB_NHEADERS) {
 					log_d("convert_cgi_headers: too many header lines");
 					return -1;
 				}
@@ -209,20 +224,20 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 	}
 	len = 0;
 	if (havelocation && havestatus == 0) {
-		if (len + 20 > outsize) {
+		if (len + 20 > pp->osize) {
 			log_d("convert_cgi_headers: no room to put Moved line");
 			return -1;
 		}
 		s = 302;
-		memcpy(outbuf + len, "HTTP/1.0 302 Moved\r\n", 20);
+		memcpy(pp->obuf + len, "HTTP/1.0 302 Moved\r\n", 20);
 		len += 20;
 	} else if (havestatus == 0) {
-		if (len + 17 > outsize) {
+		if (len + 17 > pp->osize) {
 			log_d("convert_cgi_headers: no room to put OK line");
 			return -1;
 		}
 		s = 200;
-		memcpy(outbuf + len, "HTTP/1.0 200 OK\r\n", 17);
+		memcpy(pp->obuf + len, "HTTP/1.0 200 OK\r\n", 17);
 		len += 17;
 	} else {
 		s = atoi(headers[status].value);
@@ -231,36 +246,36 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 			return -1;
 		}
 		tmpvaluelen = headers[status].len - (headers[status].value - headers[status].name);
-		if (len + tmpvaluelen + 11 > outsize) {
+		if (len + tmpvaluelen + 11 > pp->osize) {
 			log_d("convert_cgi_headers: no room to put status line");
 			return -1;
 		}
-		memcpy(outbuf + len, "HTTP/1.0 ", 9);
+		memcpy(pp->obuf + len, "HTTP/1.0 ", 9);
 		len += 9;
-		memcpy(outbuf + len, headers[status].value, tmpvaluelen);
+		memcpy(pp->obuf + len, headers[status].value, tmpvaluelen);
 		len += tmpvaluelen;
-		outbuf[len++] = '\r';
-		outbuf[len++] = '\n';
+		pp->obuf[len++] = '\r';
+		pp->obuf[len++] = '\n';
 	}
 	for (i = 0; i < nheaders; i++) {
 		if (havestatus == 0 || i != status) {
-			if (len + headers[i].len + 2 > outsize) {
+			if (len + headers[i].len + 2 > pp->osize) {
 				log_d("convert_cgi_headers: no room to put header");
 				return -1;
 			}
-			memcpy(outbuf + len, headers[i].name, headers[i].len);
+			memcpy(pp->obuf + len, headers[i].name, headers[i].len);
 			len += headers[i].len;
-			outbuf[len++] = '\r';
-			outbuf[len++] = '\n';
+			pp->obuf[len++] = '\r';
+			pp->obuf[len++] = '\n';
 		}
 	}
-	if (len + 2 > outsize) {
+	if (len + 2 > pp->osize) {
 		log_d("convert_cgi_headers: no room to put trailing newline");
 		return -1;
 	}
-	outbuf[len++] = '\r';
-	outbuf[len++] = '\n';
-	*r = len;
+	pp->obuf[len++] = '\r';
+	pp->obuf[len++] = '\n';
+	pp->otop = len;
 	*sp = s;
 	return 0;
 }
@@ -297,6 +312,8 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 	int n;
 	int convert_result;
 	size_t bytestoread;
+	char chunkbuf[16];
+	size_t chunkheaderlen;
 
 	done = 1;
 	pollfds[0].fd = -1;
@@ -351,6 +368,14 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		log_d("poll done,     fd0=%d, re0=%d, fd1=%d, re1=%d, n=%d", pollfds[0].fd, pollfds[0].revents, pollfds[1].fd, pollfds[1].revents, n);
 	if (n == 0) {
 		log_d("pipe_run: timeout");
+		return 1;
+	}
+	if (pollfds[0].revents & ~(POLLIN | POLLOUT)) {
+		log_d("pipe_run: pollfds[%d].revents=%d", 0, pollfds[0].revents);
+		return 1;
+	}
+	if (pollfds[1].revents & ~(POLLIN | POLLOUT)) {
+		log_d("pipe_run: pollfds[%d].revents=%d", 1, pollfds[1].revents);
 		return 1;
 	}
 	if (pollfds[0].revents & POLLIN) {
@@ -447,7 +472,7 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 			}
 		}
 		if (p->state == 2) {
-			convert_result = convert_cgi_headers(p->pbuf, p->pstart, p->obuf, p->osize, &p->otop, &cn->r->status);
+			convert_result = convert_cgi_headers(p, &cn->r->status);
 			if (convert_result == -1) {
 				log_d("pipe_run: problem in convert_cgi_headers");
 				return 1;
@@ -462,6 +487,21 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 		bytestocopy = p->ipp - p->pstart;
 		if (bytestocopy > room)
 			bytestocopy = room;
+		if (bytestocopy && p->chunkit) {
+			chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
+			if (debug)
+				log_d("chunkit; bytestocopy=%d, chunkheaderlen=%d", bytestocopy, chunkheaderlen);
+			if (chunkheaderlen >= bytestocopy)
+				bytestocopy = 0;
+			else {
+				if (bytestocopy + chunkheaderlen > room) {
+					bytestocopy -= chunkheaderlen;
+					chunkheaderlen = sprintf(chunkbuf, "%lx\r\n", (unsigned long) bytestocopy);
+				}
+				memcpy(p->obuf + p->otop, chunkbuf, chunkheaderlen);
+				p->otop += chunkheaderlen;
+			}
+		}
 		if (bytestocopy) {
 			memcpy(p->obuf + p->otop, p->pbuf + p->pstart, bytestocopy);
 			p->otop += bytestocopy;
@@ -470,13 +510,20 @@ static int pipe_run(struct pipe_params *p, struct connection *cn)
 				p->pstart = p->ipp = 0;
 		}
 	}
+	if (p->pstate == 2) {
+		if (p->osize - p->otop >= 5) {
+			memcpy(p->obuf + p->otop, "0\r\n\r\n", 5);
+			p->otop += 5;
+			p->pstate = 3;
+		}
+	}
 	return 0;
 }
 
 static int pipe_loop(int fd, struct request *r, int timeout)
 {
 	char ibuf[PLBUFSIZE];
-	char obuf[PLBUFSIZE];
+	char obuf[PLBUFSIZE + 16]; /* room for chunk-header */
 	char pbuf[PLBUFSIZE];
 	struct pipe_params p;
 	int rv;
@@ -500,6 +547,7 @@ static int pipe_loop(int fd, struct request *r, int timeout)
 	p.pfd = fd;
 	timeout *= 1000;
 	p.timeout = timeout;
+	p.chunkit = r->protocol_minor > 0;
 	if (r->method == M_POST) {
 		p.istate = 1;
 		p.imax = r->in_mblen;
