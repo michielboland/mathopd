@@ -131,11 +131,6 @@ static void accept_connection(struct server *s)
 				lerror("accept");
 			break;
 		}
-		if (fd >= FD_SETSIZE) {
-			log_d("accept_connection: accepted fd %d is greater than FD_SETSIZE (%d)", fd, FD_SETSIZE);
-			close(fd);
-			break;
-		}
 		s->naccepts++;
 		rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
 		if (debug)
