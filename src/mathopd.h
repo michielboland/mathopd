@@ -183,6 +183,7 @@ struct control {
 	struct simple_list *exports;
 	char *script_user;
 	int run_scripts_as_owner;
+	int max_age;
 };
 
 struct virtual {
