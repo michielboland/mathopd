@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 1999 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999, 2000 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -37,6 +37,7 @@
 
 static const char rcsid[] = "$Id$";
 
+#include <ctype.h>
 #include "mathopd.h"
 
 static const char hex[] = "0123456789abcdef";

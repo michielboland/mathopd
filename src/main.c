@@ -37,6 +37,20 @@
 
 static const char rcsid[] = "$Id$";
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <pwd.h>
+#include <grp.h>
+#include <string.h>
+#include <stdarg.h>
 #include "mathopd.h"
 
 const char server_version[] = "Mathopd/1.4b7";
@@ -104,7 +118,7 @@ static void startup_server(struct server *s)
 	sa.sin_addr = s->addr;
 	sa.sin_port = htons(s->port);
 	if (bind(s->fd, (struct sockaddr *) &sa, sizeof sa) == -1)
-		die("bind", "cannot start up server at %s port %lu", inet_ntoa(s->addr), s->port);
+		die("bind", "cannot start up server at %#lx port %lu", s->addr, s->port);
 	if (listen(s->fd, 128) == -1)
 		die("listen", 0);
 }

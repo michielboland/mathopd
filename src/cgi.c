@@ -37,6 +37,17 @@
 
 static const char rcsid[] = "$Id$";
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <pwd.h>
+#include <grp.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <unistd.h>
 #include "mathopd.h"
 
 static char **cgi_envp;

@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 1999 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999, 2000 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -37,6 +37,9 @@
 
 static const char rcsid[] = "$Id$";
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include "mathopd.h"
 
 #define MAXVERTS 100
