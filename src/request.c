@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003 Michiel Boland.
+ *   Copyright 1996 - 2004 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -790,42 +790,41 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update, int 
 	return c;
 }
 
-static int process_path(struct request *r)
+static void process_path(struct request *r)
 {
 	if (find_vs(r) == -1) {
 		if (debug)
 			log_d("find_vs failed (host=%s)", r->host ? r->host : "[not set]");
 		r->status = 400;
-		return 0;
+		return;
 	}
 	if ((r->c = faketoreal(r->path, r->path_translated, r, 1, sizeof r->path_translated)) == 0) {
 		if (debug)
 			log_d("faketoreal failed");
 		r->status = 500;
-		return 0;
+		return;
 	}
 	if (check_path(r) == -1) {
 		if (debug)
 			log_d("check_path failed for %s", r->path);
 		r->error_file = r->c->error_404_file;
 		r->status = 404;
-		return 1;
+		return;
 	}
 	if (r->c->accesses && evaluate_access(r->cn->peer.sin_addr.s_addr, r->c->accesses) == DENY) {
 		if (debug)
 			log_d("access denied");
 		r->error_file = r->c->error_403_file;
 		r->status = 403;
-		return 1;
+		return;
 	}
 	if (r->c->realm && check_realm(r) == -1) {
 		if (debug)
 			log_d("login incorrect");
 		r->error_file = r->c->error_401_file;
 		r->status = 401;
-		return 1;
+		return;
 	}
-	return 1;
 }
 
 static int process_path_translated(struct request *r)
@@ -1571,8 +1570,8 @@ int process_request(struct request *r)
 	case 0:
 		break;
 	default:
-		s = process_path(r);
-		if (s != 1)
+		process_path(r);
+		if (r->status && r->error_file == 0)
 			break;
 		n = 0;
 		do {
