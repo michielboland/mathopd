@@ -103,30 +103,41 @@ static int base64decode(const unsigned char *encoded, unsigned char *decoded)
 
 static int f_webuserok(const char *authorization, FILE *fp, char *username, int len)
 {
-	char buf[128], tmp[128], *p;
+	char buf[128], tmp[128], *p, *q;
 	register int c, bp, skipline;
 
-	if (strlen(authorization) >= sizeof tmp)
+	if (strlen(authorization) >= sizeof tmp) {
+		log_d("authorization exceeds %d bytes", sizeof tmp);
 		return 0;
-	if (base64decode(authorization, tmp) == -1)
+	}
+	if (base64decode(authorization, tmp) == -1) {
+		log_d("could not decode authorization");
 		return 0;
+	}
+	q = strchr(tmp, ':');
+	if (q == 0) {
+		log_d("no colon in decoded authorization");
+		return 0;
+	}
+	if (username && q >= tmp + len) {
+		log_d("supplied username exceeds %d bytes", len);
+		return 0;
+	}
+	*q++ = 0;
 	bp = 0;
 	skipline = 0;
 	while ((c = getc(fp)) != EOF) {
 		if (c == '\n') {
 			if (skipline == 0) {
 				buf[bp] = 0;
-				if (strcmp(tmp, buf) == 0) {
-					if (username && len) {
-						p = strchr(buf, ':');
-						if (p)
-							*p = 0;
-						if (buf + len - 1 > p)
+				p = strchr(buf, ':');
+				if (p) {
+					*p++ = 0;
+					if (strcmp(tmp, buf) == 0 && strcmp(p, q) == 0) {
+						if (username)
 							strcpy(username, buf);
-						else
-							return 0;
+						return 1;
 					}
-					return 1;
 				}
 			}
 			bp = 0;
