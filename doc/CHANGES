@@ -110,6 +110,11 @@ core.c:
 	that has been idle for the longest period of time. Previously
 	a more or less random connection would be clobbered.
 
+	Mathopd will perform an 'internal dump' if a SIGWINCH signal is
+	received. The dump will be written to /tmp/mathopd-PID-dump
+	(where PID is the process ID of server). This is an experimental
+	feature.
+
 dump.c:
 
 	Adjust the formatting slightly.
