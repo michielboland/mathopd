@@ -136,4 +136,7 @@ family:
 	"inet6"
 
 socket-option-item:
+	"rcvbuf" integer
+	"sndbuf" integer
 	"v6only" flag
+	"nodelay" flag

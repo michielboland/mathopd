@@ -573,6 +573,21 @@ Where:   Server
 Desc:    The Options keyword sets so-called socket options for a particular
          server. The options currently defined are:
 
+           Name: rcvbuf
+           Type: integer
+           This option sets the size of the kernel receive buffer for
+           each connection on this server.
+
+           Name: sndbuf
+           Type: integer
+           This option sets the size of the kernel send buffer for
+           each connection on this server.
+
+           Name: nodelay
+           Type: flag
+           This option, if set, disables the so-called Nagle algorithm
+           for this server.
+
            Name: v6only
            Type: flag
            This option is valid only for inet6 servers. If the option
