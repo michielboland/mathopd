@@ -157,7 +157,6 @@ static int make_cgi_envp(struct request *r)
 {
 	char t[16];
 	struct simple_list *e;
-	char path_translated[PATHLEN];
 	char *tmp;
 
 	cgi_envc = 0;
@@ -170,11 +169,8 @@ static int make_cgi_envp(struct request *r)
 	ADD("HTTP_FROM", r->from);
 	ADD("HTTP_REFERER", r->referer);
 	ADD("HTTP_USER_AGENT", r->user_agent);
-	if (r->path_args[0]) {
-		faketoreal(r->path_args, path_translated, r, 0);
+	if (r->path_args[0])
 		ADD("PATH_INFO", r->path_args);
-		ADD("PATH_TRANSLATED", path_translated);
-	}
 	ADD("QUERY_STRING", r->args);
 	ADD("REMOTE_ADDR", r->cn->ip);
 	tmp = dnslookup(r->cn->peer.sin_addr, r->c->dns);
