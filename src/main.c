@@ -8,11 +8,12 @@
 
 #include "mathopd.h"
 
-STRING(server_version) = "Mathopd/1.1b9";
+STRING(server_version) = "Mathopd/1.1b10";
 
 volatile int gotsigterm;
 volatile int gotsighup;
 volatile int gotsigusr1;
+volatile int gotsigusr2;
 volatile int numchildren;
 time_t startuptime;
 int debug;
@@ -82,6 +83,11 @@ static void sigusr1(int sig)
 	gotsigusr1 = 1;
 }
 
+static void sigusr2(int sig)
+{
+	gotsigusr2 = 1;
+}
+
 static void sigchld(int sig)
 {
 	int pid;
@@ -97,7 +103,7 @@ int main(int argc, char *argv[])
 	int c;
 	int daemon = 1;
 	int version = 0;
-	int i, pid_fd, n;
+	int i, pid_fd, n, null_fd;
 	struct server *s;
 	char buf[10];
 #ifndef NO_GETRLIMIT
@@ -214,6 +220,7 @@ int main(int argc, char *argv[])
 	mysignal(SIGINT,  sigterm, SA_INTERRUPT);
 	mysignal(SIGQUIT, sigterm, SA_INTERRUPT);
 	mysignal(SIGUSR1, sigusr1, SA_INTERRUPT);
+	mysignal(SIGUSR2, sigusr2, SA_INTERRUPT);
 	mysignal(SIGPIPE, SIG_IGN, 0);
 
 	if (pid_fd != -1) {
@@ -223,12 +230,18 @@ int main(int argc, char *argv[])
 		close(pid_fd);
 	}
 
-	dup2(servers->fd, STDIN_FILENO);
-	dup2(servers->fd, STDERR_FILENO);
+	null_fd = open("/dev/null", O_RDWR);
+	if (null_fd == -1)
+		die("open", "Cannot open /dev/null");
+
+	dup2(null_fd, STDIN_FILENO);
+	dup2(null_fd, STDERR_FILENO);
+	close(null_fd);
 
 	gotsighup = 1;
 	gotsigterm = 0;
 	gotsigusr1 = 0;
+	gotsigusr2 = 0;
 
 	time(&startuptime);
 
