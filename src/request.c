@@ -299,22 +299,22 @@ static int output_headers(struct pool *p, struct request *r)
 	return putstring(p, tmp_outbuf);
 }
 
-static int dirmatch(char *s, char *t)
+static char *dirmatch(char *s, char *t)
 {
 	size_t n;
 
 	n = strlen(t);
 	if (n == 0)
-		return 0;
-	return !strncmp(s, t, n) && (s[n] == '/' || s[n] == 0 || s[n - 1] == '~') ? n : -1;
+		return s;
+	return !strncmp(s, t, n) && (s[n] == '/' || s[n] == 0 || s[n - 1] == '~') ? s + n : 0;
 }
 
-static int exactmatch(char *s, char *t)
+static char *exactmatch(char *s, char *t)
 {
 	size_t n;
 
 	n = strlen(t);
-	return !strncmp(s, t, n) && s[n] == '/' && s[n + 1] == 0 ? n : -1;
+	return !strncmp(s, t, n) && s[n] == '/' && s[n + 1] == 0 ? s + n : 0;
 }
 
 static int evaluate_access(unsigned long ip, struct access *a)
@@ -644,19 +644,19 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 {
 	unsigned long ip;
 	struct control *c;
-	int n;
+	char *s;
 
 	if (r->vs == 0) {
 		log_d("virtualhost not initialized!");
 		return 0;
 	}
 	ip = r->cn->peer.sin_addr.s_addr;
-	n = -1;
+	s = 0;
 	c = r->vs->controls;
 	while (c) {
 		if (c->locations && c->alias) {
-			n = c->exact_match ? exactmatch(x, c->alias) : dirmatch(x, c->alias);
-			if (n != -1 && (c->clients == 0 || evaluate_access(ip, c->clients) == APPLY))
+			s = c->exact_match ? exactmatch(x, c->alias) : dirmatch(x, c->alias);
+			if (s && (c->clients == 0 || evaluate_access(ip, c->clients) == APPLY))
 				break;
 		}
 		c = c->next;
@@ -666,7 +666,7 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 			c->locations = c->locations->next;
 		strcpy(y, c->locations->name);
 		if (c->locations->name[0] == '/' || !c->path_args_ok)
-			strcat(y, x + n);
+			strcat(y, s);
 	}
 	return c;
 }
