@@ -129,6 +129,7 @@ logformat-item:
 	"BytesRead"
 	"BytesWritten"
 	"QueryString"
+        "TimeTaken"
 
 flag:
 	"On"

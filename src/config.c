@@ -147,6 +147,7 @@ static const char c_specials[] =		"Specials";
 static const char c_status[] =			"Status";
 static const char c_stay_root[] =		"StayRoot";
 static const char c_timeout[] =			"Timeout";
+static const char c_time_taken[] =		"TimeTaken";
 static const char c_tuning[] =			"Tuning";
 static const char c_types[] =			"Types";
 static const char c_virtual[] =			"Virtual";
@@ -434,6 +435,8 @@ static const char *config_log(struct configuration *p, int **colsp, int *numcols
 			ml = ML_BYTES_WRITTEN;
 		else if (!strcasecmp(p->tokbuf, c_query_string))
 			ml = ML_QUERY_STRING;
+		else if (!strcasecmp(p->tokbuf, c_time_taken))
+			ml = ML_TIME_TAKEN;
 		else
 			return e_keyword;
 		++numcols;

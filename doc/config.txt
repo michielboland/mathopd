@@ -811,6 +811,12 @@ Desc:    Connections that are idle for too long are aborted by Mathopd.
          It is possible to increase or decrease the timeout by adding
          a Timeout keyword. The unit of the timeout value is seconds.
 
+Keyword: TimeTaken
+Where:   LogFormat
+Desc:    The time it has taken for the request to complete. Time is
+         measured from the first meaningful byte received from the client,
+         or the time the client connected.
+
 Keyword: Tuning
 Where:   Global
 Type:    Block
