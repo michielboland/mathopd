@@ -90,3 +90,15 @@ A new keyword, AnyHost, has been added. AnyHost can be used
 to indicate that a virtual server matches any host name sent
 by a client. Virtual servers that explicitly match servers
 with a host name take precedence of course.
+
+Mathopd no longers adds server name and protocol in
+Location: headers. This probably violates the HTTP RFC
+but most browsers do the right thing anyway. Also this
+makes it possible to put mathopd behind something like
+stunnel and still get redirections to work.
+
+In image maps and redirect files, the user is now responsible
+for '%'-escaping URLs if needed. Previously this was done
+by the server. The old behaviour made it impossible to put
+URLs with query strings in imagemaps etc because the '?'
+character would be converted to '%3f'.
