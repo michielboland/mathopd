@@ -389,7 +389,7 @@ static int get_path_info(struct request *r)
 		rv = stat(p, s);
 		if (debug) {
 			if (rv == -1)
-				log_d("get_path_info: stat(\"%s\") = %d", p, rv, s->st_mode);
+				log_d("get_path_info: stat(\"%s\") = %d", p, rv);
 			else
 				log_d("get_path_info: stat(\"%s\") = %d; st_mode = %#o", p, rv, s->st_mode);
 		}
@@ -452,7 +452,7 @@ static int check_symlinks(struct request *r)
 			rv = lstat(b, &buf);
 			if (debug) {
 				if (rv == -1)
-					log_d("check_symlinks: lstat(\"%s\") = %d", b, rv, buf.st_mode);
+					log_d("check_symlinks: lstat(\"%s\") = %d", b, rv);
 				else
 					log_d("check_symlinks: lstat(\"%s\") = %d; st_mode = %#o", b, rv, buf.st_mode);
 			}
@@ -597,7 +597,7 @@ static int add_fd(struct request *r, const char *filename)
 	rv = fstat(fd, &s);
 	if (debug) {
 		if (rv == -1)
-			log_d("add_fd: fstat(%d) = %d", fd, rv, s.st_mode);
+			log_d("add_fd: fstat(%d) = %d", fd, rv);
 		else
 			log_d("add_fd: fstat(%d) = %d; st_mode = %#o", fd, rv, s.st_mode);
 	}
