@@ -90,25 +90,24 @@ int init_children(size_t n)
 	return 0;
 }
 
+static int no_room(void)
+{
+	log_d("no room left for HTTP headers");
+	return -1;
+}
+
 static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 {
-	int addheader, c, s;
+	int addheader, c, s, l;
 	struct cgi_header headers[STUB_NHEADERS];
 	size_t i, nheaders, status, location, length;
 	const char *p, *tmpname, *tmpvalue;
 	int havestatus, havelocation, firstline, havelength;
 	size_t len, tmpnamelen, tmpvaluelen;
-	char sbuf[40], dbuf[50], gbuf[40], cbuf[30], *cp;
+	char buf[50], gbuf[40], *cp;
 	unsigned long ul;
 
-	headers[nheaders = 0].len = sprintf(sbuf, "Server: %.30s", server_version);
-	headers[nheaders].name = sbuf;
-	headers[nheaders].namelen = 6;
-	headers[nheaders++].value = sbuf + 8;
-	headers[nheaders].len = sprintf(dbuf, "Date: %s", rfctime(current_time, gbuf));
-	headers[nheaders].name = dbuf;
-	headers[nheaders].namelen = 4;
-	headers[nheaders++].value = dbuf + 6;
+	nheaders = 0;
 	tmpname = 0;
 	tmpnamelen = 0;
 	tmpvalue = 0;
@@ -238,18 +237,14 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 	}
 	len = 0;
 	if (havelocation && havestatus == 0) {
-		if (len + 20 > pp->osize) {
-			log_d("convert_cgi_headers: no room to put Moved line");
-			return -1;
-		}
+		if (len + 20 > pp->osize)
+			return no_room();
 		s = 302;
 		memcpy(pp->obuf + len, "HTTP/1.1 302 Moved\r\n", 20);
 		len += 20;
 	} else if (havestatus == 0) {
-		if (len + 17 > pp->osize) {
-			log_d("convert_cgi_headers: no room to put OK line");
-			return -1;
-		}
+		if (len + 17 > pp->osize)
+			return no_room();
 		s = 200;
 		memcpy(pp->obuf + len, "HTTP/1.1 200 OK\r\n", 17);
 		len += 17;
@@ -268,10 +263,8 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 			pp->chunkit = 0;
 		}
 		tmpvaluelen = headers[status].len - (headers[status].value - headers[status].name);
-		if (len + tmpvaluelen + 11 > pp->osize) {
-			log_d("convert_cgi_headers: no room to put status line");
-			return -1;
-		}
+		if (len + tmpvaluelen + 11 > pp->osize)
+			return no_room();
 		memcpy(pp->obuf + len, "HTTP/1.1 ", 9);
 		len += 9;
 		memcpy(pp->obuf + len, headers[status].value, tmpvaluelen);
@@ -299,32 +292,35 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 		pp->pmax = ul;
 	} else if (pp->cn->r->protocol_minor == 0 && pp->nocontent == 0)
 		pp->cn->keepalive = 0;
+	l = sprintf(buf, "Server: %.30s\r\n", server_version);
+	if (len + l > pp->osize)
+		return no_room();
+	memcpy(pp->obuf + len, buf, l);
+	len += l;
+	l = sprintf(buf, "Date: %s\r\n", rfctime(current_time, gbuf));
+	if (len + l > pp->osize)
+		return no_room();
+	memcpy(pp->obuf + len, buf, l);
+	len += l;
 	if (pp->chunkit) {
-		if (nheaders == STUB_NHEADERS) {
-			log_d("convert_cgi_headers: too many header lines");
-			return -1;
-		}
-		headers[nheaders].len = sprintf(cbuf, "Transfer-Encoding: chunked");
-		headers[nheaders].name = cbuf;
-		headers[nheaders].namelen = 17;
-		headers[nheaders++].value = cbuf + 19;
+		l = sprintf(buf, "Transfer-Encoding: chunked\r\n");
+		if (len + l > pp->osize)
+			return no_room();
+		memcpy(pp->obuf + len, buf, l);
+		len += l;
 	}
 	for (i = 0; i < nheaders; i++) {
 		if (havestatus == 0 || i != status) {
-			if (len + headers[i].len + 2 > pp->osize) {
-				log_d("convert_cgi_headers: no room to put header");
-				return -1;
-			}
+			if (len + headers[i].len + 2 > pp->osize)
+				return no_room();
 			memcpy(pp->obuf + len, headers[i].name, headers[i].len);
 			len += headers[i].len;
 			pp->obuf[len++] = '\r';
 			pp->obuf[len++] = '\n';
 		}
 	}
-	if (len + 2 > pp->osize) {
-		log_d("convert_cgi_headers: no room to put trailing newline");
-		return -1;
-	}
+	if (len + 2 > pp->osize)
+		return no_room();
 	pp->obuf[len++] = '\r';
 	pp->obuf[len++] = '\n';
 	pp->otop = len;
