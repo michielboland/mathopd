@@ -240,9 +240,11 @@ int main(int argc, char *argv[])
 			die("open", "Cannot open PID file");
 	} else
 		pid_fd = -1;
-	dup2(null_fd, 0);
-	dup2(null_fd, 1);
-	dup2(null_fd, 2);
+	if (am_daemon) {
+		dup2(null_fd, 0);
+		dup2(null_fd, 1);
+		dup2(null_fd, 2);
+	}
 	close(null_fd);
 	if (am_daemon) {
 		if (fork())
