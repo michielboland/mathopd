@@ -20,7 +20,6 @@ How does Mathopd process a request?
       that has the AnyHost flag set
     If there is still no matching Virtual block after that,
     return an error.
-  An example is provided below.
 - Find a physical path as follows:
     Start with the last Control block defined within the matched
     Virtual block and scan upward until a match is found.
