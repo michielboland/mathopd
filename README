@@ -5,6 +5,9 @@ UN*X systems.
 
 Please read the file COPYING first before you do anything else.
 
+Version 1.5 of the software is currently in BETA stage. Please report
+any troubles, or feature requests, etc. to the mailing list.
+
 The src/ directory contains the source files for this
 software and a makefile to build everything. The makefile
 has instructions that will help you adjust it to build
