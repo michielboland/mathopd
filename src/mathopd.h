@@ -238,6 +238,13 @@ struct request {
 	size_t location_length;
 	size_t nheaders;
 	struct request_header *headers;
+	char *range_s;
+	char *if_range_s;
+	time_t if_range;
+	int range;
+	size_t range_floor;
+	size_t range_ceiling;
+	size_t range_suffix;
 };
 
 struct connection {
