@@ -73,16 +73,21 @@ static time_t timerfc(char *s)
 		{0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 },
 		{0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335 }
 	};
-	unsigned sec = 60, min = 60, hour = 24,
-		day = 32, mon, year = 1969;
+	unsigned sec, min, hour, day, mon, year;
 	char month[3];
 	register char c;
 	register unsigned n;
 	register char flag;
 	register char state;
-	register char isctime = 0;
+	register char isctime;
 	enum { D_START, D_END, D_MON, D_DAY, D_YEAR, D_HOUR, D_MIN, D_SEC };
 
+	sec = 60;
+	min = 60;
+	hour = 24;
+	day = 32;
+	year = 1969;
+	isctime = 0;
 	month[0] = '\0';
 	state = D_START;
 	n = 0;
@@ -94,14 +99,12 @@ static time_t timerfc(char *s)
 			if (c == ' ') {
 				state = D_MON;
 				isctime = 1;
-			}
-			else if (c == ',') state = D_DAY;
+			} else if (c == ',') state = D_DAY;
 			break;
 		case D_MON:
 			if (isalpha(c)) {
 				if (n < 3) month[n++] = c;
-			}
-			else {
+			} else {
 				if (n < 3) return -1;
 				n = 0;
 				state = isctime ? D_DAY : D_YEAR;
@@ -113,8 +116,7 @@ static time_t timerfc(char *s)
 			else if (isdigit(c)) {
 				flag = 0;
 				n = 10 * n + (c - '0');
-			}
-			else {
+			} else {
 				day = n;
 				n = 0;
 				state = isctime ? D_HOUR : D_MON;
@@ -192,18 +194,16 @@ static time_t timerfc(char *s)
 	--day;
 	if (sec >= 60 || min >= 60 || hour >= 60 || day >= 31 || year < 1970)
 		return -1;
-	return (sec + 60L *
-		(min + 60L *
-		 (hour + 24L *
-		  (day + daytab[year % 4 == 0][mon] +
-		   365L * (year - 1970L) + ((year - 1969L) >> 2)))));
+	return sec + 60L * (min + 60L * (hour + 24L * (
+		day + daytab[year % 4 == 0][mon] + 365L * (year - 1970L) + ((year - 1969L) >> 2))));
 }
 
 static char *rfctime(time_t t, char *buf)
 {
 	struct tm *tp;
 
-	if ((tp = gmtime(&t)) == 0) {
+	tp = gmtime(&t);
+	if (tp == 0) {
 		log(L_ERROR, "gmtime failed!?!?!?");
 		return 0;
 	}
@@ -214,10 +214,10 @@ static char *rfctime(time_t t, char *buf)
 static char *getline(struct pool *p)
 {
 	register char *s;
-	char *olds, *sp;
-	char *end = p->end;
+	char *olds, *sp, *end;
 	register int f;
 
+	end = p->end;
 	s = olds = sp = p->start;
 	f = 0;
 	while (s < end) {
@@ -266,53 +266,39 @@ static int output_headers(struct pool *p, struct request *r)
 	long cl;
 	char tmp_outbuf[2048], gbuf[40], *b;
 
-	log(L_DEBUG, "output_headers: started");
-
 	if (r->cn->assbackwards) {
 		log(L_WARNING, "old-style connection from %s", r->cn->ip);
 		return 0;
 	}
-
 	b = tmp_outbuf;
-
 	b += sprintf(b, "HTTP/%d.%d %s\r\n"
 		"Server: %s\r\n"
 		"Date: %s\r\n",
-		r->protocol_major,
-		r->protocol_minor,
-		r->status_line,
+		r->protocol_major, r->protocol_minor, r->status_line,
 		server_version,
 		rfctime(current_time, gbuf));
-
 	if (r->c) {
 		if (r->c->refresh)
 			b += sprintf(b, "Refresh: %d\r\n", r->c->refresh);
 		if (r->status == 401 && r->c->realm)
-			b += sprintf(b, "WWW-Authenticate: Basic realm="
-				"\"%s\"\r\n", r->c->realm);
+			b += sprintf(b, "WWW-Authenticate: Basic realm=\"%s\"\r\n", r->c->realm);
 	}
-
 	if (r->num_content >= 0) {
 		b += sprintf(b, "Content-type: %s\r\n", r->content_type);
 		cl = r->content_length;
 		if (cl >= 0)
 			b += sprintf(b, "Content-length: %ld\r\n", cl);
 		if (r->last_modified)
-			b += sprintf(b, "Last-Modified: %s\r\n",
-				rfctime(r->last_modified, gbuf));
+			b += sprintf(b, "Last-Modified: %s\r\n", rfctime(r->last_modified, gbuf));
 	}
-
 	if (r->location)
 		b += sprintf(b, "Location: %.512s\r\n", r->location);
-
 	if (r->cn->keepalive) {
 		if (r->protocol_minor == 0)
 			b += sprintf(b, "Connection: Keep-Alive\r\n");
 	} else if (r->protocol_minor)
 		b += sprintf(b, "Connection: Close\r\n");
-
 	b += sprintf(b, "\r\n");
-
 	return putstring(p, tmp_outbuf);
 }
 
@@ -320,11 +306,10 @@ static char *dirmatch(char *s, char *t)
 {
 	int n;
 
-	log(L_DEBUG, "dirmatch(\"%s\", \"%s\")", s, t);
-	if ((n = strlen(t)) == 0)
+	n = strlen(t);
+	if (n == 0)
 		return s;
-	return !strncmp(s, t, n) &&
-		(s[n] == '/' || s[n] == '\0' || s[n-1] == '~') ? s + n : 0;
+	return !strncmp(s, t, n) && (s[n] == '/' || s[n] == '\0' || s[n-1] == '~') ? s + n : 0;
 }
 
 static int evaluate_access(unsigned long ip, struct access *a)
@@ -336,24 +321,25 @@ static int evaluate_access(unsigned long ip, struct access *a)
 
 static int get_mime(struct request *r, const char *s)
 {
-	struct mime *m = r->c->mimes;
-	char *saved_type = 0;
-	int saved_class = 0;
+	struct mime *m;
+	char *saved_type;
+	int saved_class;
 	int l, le, lm;
 
+	saved_type = 0;
+	saved_class = 0;
 	lm = 0;
 	l = strlen(s);
+	m = r->c->mimes;
 	while (m) {
 		if (m->ext) {
 			le = strlen(m->ext);
-			if (le > lm && le <= l &&
-				!strcasecmp(s + l - le, m->ext)) {
+			if (le > lm && le <= l && !strcasecmp(s + l - le, m->ext)) {
 				lm = le;
 				saved_type = m->name;
 				saved_class = m->class;
 			}
-		}
-		else if (saved_type == 0) {
+		} else if (saved_type == 0) {
 			saved_type = m->name;
 			saved_class = m->class;
 		}
@@ -365,32 +351,31 @@ static int get_mime(struct request *r, const char *s)
 		r->num_content = lm;
 		return 0;
 	}
-	else
-		return -1;
+	return -1;
 }
 
 static int get_path_info(struct request *r)
 {
-	char *p = r->path_translated;
-	char *pa = r->path_args;
-	struct stat *s = &r->finfo;
-	char *end = p + strlen(p);
-	char *cp;
+	char *p, *pa, *end, *cp;
+	struct stat *s;
 	int rv;
 
+	s = &r->finfo;
+	p = r->path_translated;
+	end = p + strlen(p);
+	pa = r->path_args;
 	*pa = '\0';
 	cp = end;
-
 	while (cp > p && cp[-1] == '/')
 		--cp;
-
 	while (cp > p) {
-		*cp = '\0';
-		log(L_DEBUG, "  stat(\"%s\")", p);
+		if (cp != end)
+			*cp = '\0';
 		rv = stat(p, s);
 		if (cp != end)
 			*cp = '/';
-
+		if (debug)
+			log(L_DEBUG, "get_path_info: stat(\"%s\", ...) = %d; st_mode = %#o", p, rv, s->st_mode);
 		if (rv != -1) {
 			strcpy(pa, cp);
 			if (S_ISDIR(s->st_mode))
@@ -425,27 +410,29 @@ static int check_path(struct request *r)
 
 static int check_symlinks(struct request *r)
 {
-	char *p = r->path_translated;
-	struct control *c = r->c;
-	char b[PATHLEN];
+	char *p, *s, *t, b[PATHLEN];
+	struct control *c;
 	struct stat buf;
-	char *s, *t;
-	int flag = 1;
+	int flag, rv;
 
+	p = r->path_translated;
+	c = r->c;
 	if (c->symlinksok)
 		return 0;
 	strcpy(b, p);
 	t = b + (c->locations->name ? strlen(c->locations->name) : 0);
 	s = b + strlen(b);
+	flag = 1;
 	while (--s > t) {
 		if (*s == '/') {
 			*s = '\0';
 			flag = 1;
-		}
-		else if (flag) {
+		} else if (flag) {
 			flag = 0;
-			log(L_DEBUG, "  lstat(\"%s\")", b);
-			if (lstat(b, &buf) == -1) {
+			rv = lstat(b, &buf);
+			if (debug)
+				log(L_DEBUG, "check_symlinks: lstat(\"%s\", ...) = %d; st_mode = %#o", b, rv, buf.st_mode);
+			if (rv == -1) {
 				lerror("lstat");
 				return -1;
 			}
@@ -473,15 +460,20 @@ static int makedir(struct request *r)
 
 static int append_indexes(struct request *r)
 {
-	char *p = r->path_translated;
-	struct simple_list *i = r->c->index_names;
-	char *q = p + strlen(p);
+	char *p, *q;
+	struct simple_list *i;
+	int rv;
 
+	p = r->path_translated;
+	q = p + strlen(p);
 	r->isindex = 1;
+	i = r->c->index_names;
 	while (i) {
 		strcpy(q, i->name);
-		log(L_DEBUG, "  stat(\"%s\")", p);
-		if (stat(p, &r->finfo) != -1)
+		rv = stat(p, &r->finfo);
+		if (debug)
+			log(L_DEBUG, "append_indexes: stat(\"%s\", ...) = %d", p, rv);
+		if (rv != -1)
 			break;
 		i = i->next;
 	}
@@ -517,11 +509,11 @@ static int process_special(struct request *r)
 
 static int process_fd(struct request *r)
 {
-	if (r->path_args[0] && r->c->path_args_ok == 0) {
-		if (r->path_args[1] || r->isindex == 0) {
-			r->error_file = r->c->error_404_file;
-			return 404;
-		}
+	int fd, rv;
+
+	if (r->path_args[0] && r->c->path_args_ok == 0 && (r->path_args[1] || r->isindex == 0)) {
+		r->error_file = r->c->error_404_file;
+		return 404;
 	}
 	if (r->method == M_POST) {
 		r->error = fb_post_file;
@@ -534,9 +526,10 @@ static int process_fd(struct request *r)
 		return 304;
 	}
 	if (r->method == M_GET) {
-		int fd;
-
-		if ((fd = open(r->path_translated, O_RDONLY)) == -1) {
+		fd = open(r->path_translated, O_RDONLY);
+		if (debug)
+			log(L_DEBUG, "process_fd: open(\"%s\") = %d", r->path_translated, fd);
+		if (fd == -1) {
 			switch (errno) {
 			case EACCES:
 				r->error = fb_access;
@@ -551,7 +544,9 @@ static int process_fd(struct request *r)
 				return 500;
 			}
 		}
-		fcntl(fd, F_SETFD, FD_CLOEXEC);
+		rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
+		if (debug)
+			log(L_DEBUG, "process_fd: fcntl(%d, F_SETFD, FD_CLOEXEC) = %d", fd, rv);
 		r->cn->rfd = fd;
 	}
 	return 200;
@@ -559,27 +554,31 @@ static int process_fd(struct request *r)
 
 static int add_fd(struct request *r, const char *filename)
 {
-	int fd;
+	int fd, rv;
 	struct stat s;
-
-	log(L_DEBUG, "add_fd, filename=%s", filename ? filename : "NULL");
 
 	if (filename == 0)
 		return -1;
 	if (get_mime(r, filename) == -1)
 		return -1;
-	log(L_DEBUG, "open(\"%s\")", filename);
 	fd = open(filename, O_RDONLY);
+	if (debug)
+		log(L_DEBUG, "add_fd: open(\"%s\") = %d", filename, fd);
 	if (fd == -1)
 		return -1;
-	log(L_DEBUG, "fstat(%d)", fd);
-	fstat(fd, &s);
+	rv = fstat(fd, &s);
+	if (debug)
+		log(L_DEBUG, "add_fd: fstat(%d) = %d; st_mode = %#o", fd, rv, s.st_mode);
 	if (!S_ISREG(s.st_mode)) {
 		log(L_WARNING, "non-plain file %s", filename);
-		close(fd);
+		rv = close(fd);
+		if (debug)
+			log(L_DEBUG, "add_fd: close(%d) = rv", fd);
 		return -1;
 	}
-	fcntl(fd, F_SETFD, FD_CLOEXEC);
+	rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
+	if (debug)
+		log(L_DEBUG, "add_fd: fcntl(%d, F_SETFD, FD_CLOEXEC) = %d", fd, rv);
 	r->cn->rfd = fd;
 	r->content_length = s.st_size;
 	return 0;
@@ -609,9 +608,10 @@ static int hostmatch(const char *s, const char *t)
 
 static int find_vs(struct request *r)
 {
-	struct virtual *v = r->cn->s->children;
-	struct virtual *gv = 0;
+	struct virtual *v, *gv;
 
+	gv = 0;
+	v = r->cn->s->children;
 	while (v) {
 		if (v->host == 0)
 			gv = v;
@@ -646,13 +646,11 @@ static int check_realm(struct request *r)
 	a = r->authorization;
 	if (a == 0)
 		return -1;
-	log(L_DEBUG, "a='%s'", a);
 	if (strncasecmp(a, "basic", 5))
 		return -1;
 	a += 5;
 	while (isspace(*a))
 		++a;
-	log(L_DEBUG, "and now '%s'", a);
 	if (webuserok(a, r->c->userfile, r->user, sizeof r->user - 1))
 		return 0;
 	return -1;
@@ -660,7 +658,8 @@ static int check_realm(struct request *r)
 
 static int process_path(struct request *r)
 {
-	log(L_DEBUG, "process_path starting: find_vs,");
+	int rv;
+
 	switch (find_vs(r)) {
 	case -1:
 		r->error = se_no_virtual;
@@ -669,77 +668,62 @@ static int process_path(struct request *r)
 		r->error = se_no_virtual;
 		return 404;
 	}
-	log(L_DEBUG, " faketoreal,");
 	if ((r->c = faketoreal(r->path, r->path_translated, r, 1)) == 0) {
 		r->error = se_alias;
 		return 500;
 	}
-	log(L_DEBUG, " empty path check,");
 	if (r->path_translated[0] == 0) {
 		r->error = se_alias;
 		return 500;
 	}
-	log(L_DEBUG, " redirect check,");
 	if (r->path_translated[0] != '/') {
 		escape_url(r->path_translated, r->newloc);
 		r->location = r->newloc;
 		return 302;
 	}
-	log(L_DEBUG, " evaluate_access,");
-	if (evaluate_access(r->cn->peer.sin_addr.s_addr, r->c->accesses)
-		== DENY) {
+	if (evaluate_access(r->cn->peer.sin_addr.s_addr, r->c->accesses) == DENY) {
 		r->error = fb_active;
 		r->error_file = r->c->error_403_file;
 		return 403;
 	}
-	log(L_DEBUG, " check_realm");
 	if (check_realm(r) == -1) {
 		r->error_file = r->c->error_401_file;
 		return 401;
 	}
-	log(L_DEBUG, " check_path,");
 	if (check_path(r) == -1) {
 		r->error = br_bad_path_name;
 		return 400;
 	}
-	log(L_DEBUG, " get_path_info,");
 	if (get_path_info(r) == -1) {
 		r->error = se_get_path_info;
 		return 500;
 	}
-	log(L_DEBUG, " sanity check,");
 	if (r->c->locations == 0) {
 		log(L_ERROR, "raah... no locations found");
 		r->error_file = r->c->error_404_file;
 		return 404;
 	}
-	log(L_DEBUG, " ISDIR check,");
 	if (S_ISDIR(r->finfo.st_mode)) {
-		int rv;
-
 		if (r->path_args[0] != '/')
 			return makedir(r);
-		if ((rv = append_indexes(r)) != 0)
+		rv = append_indexes(r);
+		if (rv)
 			return rv;
 	}
-	log(L_DEBUG, " ISREG check,");
-	if (S_ISREG(r->finfo.st_mode) == 0) {
+	if (!S_ISREG(r->finfo.st_mode)) {
 		r->error = fb_not_plain;
 		r->error_file = r->c->error_403_file;
 		return 403;
 	}
-	log(L_DEBUG, " check_symlinks,");
 	if (check_symlinks(r) == -1) {
 		r->error = fb_symlink;
 		r->error_file = r->c->error_403_file;
 		return 403;
 	}
-	log(L_DEBUG, " get_mime,");
 	if (get_mime(r, r->path_translated) == -1) {
 		r->error = se_no_mime;
 		return 500;
 	}
-	log(L_DEBUG, " done.");
 	switch (r->class) {
 	case CLASS_FILE:
 		return process_fd(r);
@@ -756,13 +740,11 @@ static int get_method(char *p, struct request *r)
 {
 	if (p == 0)
 		return -1;
-
 	if (!strcmp(p, m_get)) {
 		r->method = M_GET;
 		r->method_s = m_get;
 		return 0;
 	}
-
 	if (!r->cn->assbackwards) {
 		if (!strcmp(p, m_head)) {
 			r->method = M_HEAD;
@@ -775,9 +757,7 @@ static int get_method(char *p, struct request *r)
 			return 0;
 		}
 	}
-
-	log(L_ERROR, "unknown method \"%s\" from %s", p, r->cn->ip);
-
+	log(L_ERROR, "unknown method \"%.32s\" from %s", p, r->cn->ip);
 	return -1;
 }
 
@@ -791,28 +771,23 @@ static int get_url(char *p, struct request *r)
 		log(L_ERROR, "url too long from %s", r->cn->ip);
 		return -1;
 	}
-
 	r->url = p;
-
 	s = strchr(p, '?');
 	if (s) {
 		r->args = s+1;
 		*s = '\0';
 	}
-
 	s = strchr(p, ';');
 	if (s) {
 		r->params = s + 1;
 		*s = '\0';
 	}
-
 	if (unescape_url(r->url, r->path) == -1) {
 		log(L_ERROR, "badly encoded url from %s", r->cn->ip);
 		return -1;
 	}
 	if (r->path[0] != '/')
 		return -1; /* this is wrong */
-
 	return 0;
 }
 
@@ -822,18 +797,17 @@ static int get_version(char *p, struct request *r)
 	char *s;
 
 	s = strchr(p, '.');
-	if (s == 0)
+	if (s == 0) {
+		log(L_ERROR, "illegal HTTP version (%.32s) from %s", p, r->cn->ip);
 		return -1;
-
+	}
 	*s++ = '\0';
 	x = atoi(p);
 	y = atoi(s);
 	if (x != 1 || y > 1) {
-		log(L_ERROR, "unsupported HTTP version (%d.%d) from %s",
-		    x, y, r->cn->ip);
+		log(L_ERROR, "unsupported HTTP version (%.32s.%.32s) from %s", p, s, r->cn->ip);
 		return -1;
 	}
-
 	r->protocol_major = x;
 	r->protocol_minor = y;
 	return 0;
@@ -877,43 +851,35 @@ static int process_headers(struct request *r)
 	r->error_file = 0;
 	r->user[0] = '\0';
 	r->servername = 0;
-
 	if ((l = getline(r->cn->input)) == 0) {
 		r->error = br_empty; /* can this happen? */
 		return 400;
 	}
-
 	m = strtok(l, whitespace);
 	if (get_method(m, r) == -1) {
 		r->error = ni_not_implemented;
 		return 501;
 	}
-
 	p = strtok(0, whitespace);
 	if (get_url(p, r) == -1) {
 		r->error = br_bad_url;
 		return 400;
 	}
-
 	if (r->cn->assbackwards)
 		r->protocol_minor = 9;
 	else {
 		p = strtok(0, whitespace);
 		if (p == 0 || strncmp(p, "HTTP/", 5)) {
-			log(L_ERROR, "bad protocol string \"%.32s\" from %s",
-			    p, r->cn->ip);
+			log(L_ERROR, "bad protocol string \"%.32s\" from %s", p, r->cn->ip);
 			r->error = br_bad_protocol;
 			return 400;
 		}
-			
 		if (get_version(p + 5, r) == -1) {
 			r->error = ni_version_not_supp;
 			return 505;
 		}
-
 		if (r->protocol_minor)
 			r->cn->keepalive = 1;
-
 		while ((l = getline(r->cn->input)) != 0) {
 			if ((s = strchr(l, ':')) == 0)
 				continue;
@@ -940,8 +906,7 @@ static int process_headers(struct request *r)
 						r->cn->keepalive = 0;
 				} else if (!strcasecmp(s, "Keep-Alive"))
 					r->cn->keepalive = 1;
-			}
-			else if (r->method == M_GET) {
+			} else if (r->method == M_GET) {
 				if (!strcasecmp(l, "If-modified-since")) {
 					r->ims = timerfc(s);
 					if (r->ims == (time_t) -1) {
@@ -949,8 +914,7 @@ static int process_headers(struct request *r)
 						return 400;
 					}
 				}
-			}
-			else if (r->method == M_POST) {
+			} else if (r->method == M_POST) {
 				if (!strcasecmp(l, "Content-type"))
 					r->in_content_type = s;
 				else if (!strcasecmp(l, "Content-length"))
@@ -963,15 +927,13 @@ static int process_headers(struct request *r)
 
 int prepare_reply(struct request *r)
 {
-	struct pool *p = r->cn->output;
-	char buf[PATHLEN];
-	int send_message = r->method != M_HEAD;
+	struct pool *p;
+	char *b, buf[PATHLEN];
+	int send_message;
 
-	log(L_DEBUG, "prepare_replay, status=%d", r->status);
-
+	send_message = r->method != M_HEAD;
 	if (r->status >= 400)
 		r->last_modified = 0;
-
 	switch (r->status) {
 	case 200:
 		r->status_line = "200 OK";
@@ -1033,66 +995,49 @@ int prepare_reply(struct request *r)
 			send_message = 0;
 	}
 	if (send_message) {
-		char *b = buf;
-
+		b = buf;
 		b += sprintf(b, "<title>%s</title>\n", r->status_line);
-
 		switch (r->status) {
 		case 302:
-			b += sprintf(b, "This document has moved to URL "
-				      "<a href=\"%s\">%s</a>.\n",
-				      r->location, r->location);
+			b += sprintf(b, "This document has moved to URL " "<a href=\"%s\">%s</a>.\n", r->location, r->location);
 			break;
 		case 401:
-			b += sprintf(b, "You need proper authorization to "
-				"use this resource.\n");
+			b += sprintf(b, "You need proper authorization to " "use this resource.\n");
 			break;
 		case 400:
 		case 405:
 		case 501:
 		case 505:
-			b += sprintf(b, "Your request was not understood "
-				      "or not allowed by this server.\n");
+			b += sprintf(b, "Your request was not understood or not allowed by this server.\n");
 			break;
 		case 403:
-			b += sprintf(b, "Access to this resource has been "
-				      "denied to you.\n");
+			b += sprintf(b, "Access to this resource has been denied to you.\n");
 			break;
 		case 404:
-			b += sprintf(b, "The resource requested could not be "
-				      "found on this server.\n");
+			b += sprintf(b, "The resource requested could not be found on this server.\n");
 			break;
 		case 503:
 			b += sprintf(b, "The server is temporarily busy.\n");
 			break;
 		default:
-			b += sprintf(b, "An internal server error has "
-				      "occurred.\n");
+			b += sprintf(b, "An internal server error has occurred.\n");
 			break;
 		}
-
-		if (r->c && r->c->admin) {
-			b += sprintf(b,
-				      "<p>Please contact the site "
-				      "administrator at <i>%s</i>.\n",
-				      r->c->admin);
-		}
+		if (r->c && r->c->admin)
+			b += sprintf(b, "<p>Please contact the site administrator at <i>%s</i>.\n", r->c->admin);
 		r->content_length = strlen(buf);
 		r->num_content = 0;
 		r->content_type = "text/html";
 	}
-
 	if (r->status >= 400 && r->method != M_GET && r->method != M_HEAD)
 		r->cn->keepalive = 0;
-
-	return (output_headers(p, r) == -1
-		|| (send_message && putstring(p, buf) == -1)) ? -1 : 0;
+	p = r->cn->output;
+	return (output_headers(p, r) == -1 || (send_message && putstring(p, buf) == -1)) ? -1 : 0;
 }
 
 static void log_request(struct request *r)
 {
-	struct connection *cn = r->cn;
-	char *ti;
+	struct connection *cn;
 	long cl;
 
 	if (r->path[0] == '\0') {
@@ -1104,11 +1049,8 @@ static void log_request(struct request *r)
 		cl = r->content_length;
 	if (cl < 0)
 		cl = 0;
-
-	ti = ctime(&current_time);
-	log(L_TRANS,
-		"%.24s\t%.15s\t%s\t%hu\t%s\t%s\t%s\t%.3s\t%ld\t%.128s\t%.128s",
-		ti ? ti : "???",
+	cn = r->cn;
+	log(L_TRANS, "%.15s\t%s\t%hu\t%s\t%s\t%s\t%.3s\t%ld\t%.128s\t%.128s",
 		r->user[0] ? r->user : "-",
 		cn->ip,
 		htons(cn->peer.sin_port),
@@ -1145,30 +1087,30 @@ int process_request(struct request *r)
 
 struct control *faketoreal(char *x, char *y, struct request *r, int update)
 {
-	unsigned long ip = r->cn->peer.sin_addr.s_addr;
+	unsigned long ip;
 	struct control *c;
-	char *s = 0;
+	char *s;
 
 	if (r->vs == 0) {
 		log(L_ERROR, "virtualhost not initialized!");
 		return 0;
 	}
+	ip = r->cn->peer.sin_addr.s_addr;
+	s = 0;
 	c = r->vs->controls;
 	while (c) {
-		if (c->locations
-		    && c->alias
-		    && (s = dirmatch(x, c->alias)) != 0
-		    && (c->clients == 0 ||
-			evaluate_access(ip, c->clients) == APPLY))
-			break;
+		if (c->locations && c->alias) {
+			s = dirmatch(x, c->alias);
+			if (s && (c->clients == 0 || evaluate_access(ip, c->clients) == APPLY))
+				break;
+		}
 		c = c->next;
 	}
 	if (c) {
 		if (update)
 			c->locations = c->locations->next;
 		strcpy(y, c->locations->name);
-		if (c->locations->name[0] == '/'
-		    || !c->path_args_ok)
+		if (c->locations->name[0] == '/' || !c->path_args_ok)
 			strcat(y, s);
 	}
 	return c;
