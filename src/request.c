@@ -616,7 +616,7 @@ static int process_path(struct request *r)
 	case -1:
 		r->error = se_no_virtual;
 		return 500;
-	case 0:
+	case 1:
 		r->error = se_no_virtual;
 		return 404;
 	}
