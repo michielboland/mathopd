@@ -69,9 +69,12 @@ static int add(const char *name, const char *value, size_t choplen, struct cgi_p
 	if (e == 0)
 		return -1;
 	cp->cgi_envp = e;
-	if (name == 0)
-		cp->cgi_envp[cp->cgi_envc] = 0;
-	else {
+	if (name == 0) {
+		if (value == 0)
+			cp->cgi_envp[cp->cgi_envc] = 0;
+		else if ((cp->cgi_envp[cp->cgi_envc] = strdup(value)) == 0)
+			return -1;
+	} else {
 		namelen = strlen(name);
 		valuelen = strlen(value);
 		if (choplen) {
@@ -264,6 +267,12 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 	e = r->c->exports;
 	while (e) {
 		if (add(e->name, getenv(e->name), 0, cp) == -1)
+			return -1;
+		e = e->next;
+	}
+	e = r->c->putenvs;
+	while (e) {
+		if (add(0, e->name, 0, cp) == -1)
 			return -1;
 		e = e->next;
 	}

@@ -158,6 +158,7 @@ struct control {
 	int run_scripts_as_owner;
 	int allow_dotfiles;
 	int user_directory;
+	struct simple_list *putenvs;
 };
 
 struct virtual {

@@ -123,6 +123,7 @@ static const char c_on[] =			"On";
 static const char c_path_args[] =		"PathArgs";
 static const char c_pid_file[] =		"PIDFile";
 static const char c_port[] =			"Port";
+static const char c_putenv[] =			"PutEnv";
 static const char c_query_string[] =		"QueryString";
 static const char c_realm[] =			"Realm";
 static const char c_referer[] =			"Referer";
@@ -614,6 +615,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->script_user = b->script_user;
 		a->run_scripts_as_owner = b->run_scripts_as_owner;
 		a->allow_dotfiles = b->allow_dotfiles;
+		a->putenvs = b->putenvs;
 	} else {
 		a->index_names = 0;
 		a->accesses = 0;
@@ -632,6 +634,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->script_user = 0;
 		a->run_scripts_as_owner = 0;
 		a->allow_dotfiles = 0;
+		a->putenvs = 0;
 	}
 	a->next = *as;
 	*as = a;
@@ -707,6 +710,8 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_flag(p, &a->allow_dotfiles);
 		else if (!strcasecmp(p->tokbuf, c_user_directory))
 			t = config_flag(p, &a->user_directory);
+		else if (!strcasecmp(p->tokbuf, c_putenv))
+			t = config_list(p, &a->putenvs);
 		else
 			t = e_keyword;
 		if (t)
