@@ -360,7 +360,8 @@ static void pipe_run(struct pipe_params *p)
 				case -1:
 					if (errno == EAGAIN)
 						break;
-					lerror("pipe_run: error reading from client");
+					if (errno != ECONNRESET && errno != EPIPE)
+						lerror("pipe_run: error reading from client");
 					p->error_condition = STUB_ERROR_CLIENT;
 					return;
 				case 0:
@@ -381,7 +382,8 @@ static void pipe_run(struct pipe_params *p)
 			case -1:
 				if (errno == EAGAIN)
 					break;
-				lerror("pipe_run: error writing to client");
+				if (errno != ECONNRESET && errno != EPIPE)
+					lerror("pipe_run: error writing to client");
 				p->error_condition = STUB_ERROR_CLIENT;
 				return;
 			default:
@@ -633,12 +635,11 @@ void cleanup_children(void)
 	p = children;
 	while (p) {
 		if (p->cn) {
-			if (p->error_condition) {
-				log_d("cleanup_children: error condition %d detected", p->error_condition);
+			if (p->error_condition)
 				close_child(p, HC_CLOSING);
-			} else {
+			else {
 				f = 0;
-				if (p->istate == 1 && p->ibp < p->isize && p->imax) /* see above */
+				if (p->istate == 1 && p->ibp < p->isize && p->imax)
 					f = 1;
 				if (p->otop > p->obp)
 					f = 1;
