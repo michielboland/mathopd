@@ -1300,7 +1300,7 @@ static int prepare_reply(struct request *r)
 		break;
 	case 302:
 		if (r->location)
-			if (pool_print(p, "Location: %.512s\r\n", r->location) == -1)
+			if (pool_print(p, "Location: %s\r\n", r->location) == -1)
 				return -1;
 		break;
 	case 401:
