@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 1999, 2000, 2001 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -157,14 +157,12 @@ static char *dnslookup(struct in_addr ia)
 		message = "h_addrtype != AF_INET";
 	else if (h->h_length != sizeof ia)
 		message = "h_length != sizeof (struct in_addr)";
-	else {
-		for (al = h->h_addr_list; *al; al++) {
+	else
+		for (al = h->h_addr_list; *al; al++)
 			if (memcmp(*al, &ia, sizeof ia) == 0) {
 				message = 0;
 				break;
 			}
-		}
-	}
 	if (message) {
 		log_d("dnslookup: %s, address=%s, name=%s", message, inet_ntoa(ia), tmp);
 		free(tmp);
@@ -203,14 +201,12 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 			return -1;
 		if (add("PATH_TRANSLATED", r->path_translated, 0, cp) == -1)
 			return -1;
-	} else {
-		if (r->path_args[0]) {
-			faketoreal(r->path_args, path_translated, r, 0);
-			if (add("PATH_INFO", r->path_args, 0, cp) == -1)
-				return -1;
-			if (add("PATH_TRANSLATED", path_translated, 0, cp) == -1)
-				return -1;
-		}
+	} else if (r->path_args[0]) {
+		faketoreal(r->path_args, path_translated, r, 0);
+		if (add("PATH_INFO", r->path_args, 0, cp) == -1)
+			return -1;
+		if (add("PATH_TRANSLATED", path_translated, 0, cp) == -1)
+			return -1;
 	}
 	if (add("QUERY_STRING", r->args, 0, cp) == -1)
 		return -1;
@@ -247,10 +243,8 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 	if (r->path_args[0]) {
 		if (add("SCRIPT_NAME", r->path, strlen(r->path_args), cp) == -1)
 			return -1;
-	} else {
-		if (add("SCRIPT_NAME", r->path, 0, cp) == -1)
-			return -1;
-	}
+	} else if (add("SCRIPT_NAME", r->path, 0, cp) == -1)
+		return -1;
 	if (add("SERVER_NAME", r->servername, 0, cp) == -1)
 		return -1;
 	sprintf(t, "%s", inet_ntoa(r->cn->sock.sin_addr));
@@ -265,10 +259,8 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 		sprintf(t, "HTTP/%d.%d", r->protocol_major, r->protocol_minor);
 		if (add("SERVER_PROTOCOL", t, 0, cp) == -1)
 			return -1;
-	} else {
-		if (add("SERVER_PROTOCOL", "HTTP/0.9", 0, cp) == -1)
-			return -1;
-	}
+	} else if (add("SERVER_PROTOCOL", "HTTP/0.9", 0, cp) == -1)
+		return -1;
 	e = r->c->exports;
 	while (e) {
 		if (add(e->name, getenv(e->name), 0, cp) == -1)
@@ -284,14 +276,13 @@ static int make_cgi_argv(struct request *r, char *b, struct cgi_parameters *cp)
 {
 	char *a, *w;
 
-	if (r->class == CLASS_EXTERNAL) {
+	if (r->class == CLASS_EXTERNAL)
 		if (add_argv(r->content_type, 0, 0, cp) == -1)
 			return -1;
-	}
 	if (add_argv(b, 0, 0, cp) == -1)
 		return -1;
 	a = r->args;
-	if (a && strchr(a, '=') == 0) {
+	if (a && strchr(a, '=') == 0)
 		do {
 			w = strchr(a, '+');
 			if (add_argv(a, w, 1, cp) == -1)
@@ -299,7 +290,6 @@ static int make_cgi_argv(struct request *r, char *b, struct cgi_parameters *cp)
 			if (w)
 				a = w + 1;
 		} while (w);
-	}
 	if (add_argv(0, 0, 0, cp) == -1)
 		return -1;
 	return 0;
