@@ -141,6 +141,7 @@ static const char e_memory[] =		"out of memory";
 static const char e_nodefault[] =	"DefaultName not set";
 static const char e_illegalport[] =	"Illegal port number";
 static const char e_unknown_host[] =	"unknown host";
+static const char e_noinput[] =		"no input";
 
 static const char t_close[] =		"unexpected closing brace";
 static const char t_eof[] =		"unexpected end of file";
@@ -167,13 +168,13 @@ static int default_log_column[] = {
 
 #define ALLOC(x) if (((x) = malloc(sizeof *(x))) == 0) return e_memory
 #define COPY(x, y) if (((x) = strdup(y)) == 0) return e_memory
-#define GETWORD() if (gettoken() != t_word) return err
-#define GETSTRING() if (gettoken() != t_string && err != t_word) return err
-#define GETOPEN() if (gettoken() != t_open) return err
+#define GETWORD(x) if (gettoken(x) != t_word) return err
+#define GETSTRING(x) if (gettoken(x) != t_string && err != t_word) return err
+#define GETOPEN(x) if (gettoken(x) != t_open) return err
 #define REQWORD() if (err != t_word) return err
 #define REQSTRING() if (err != t_string && err != t_word) return err
-#define NOTCLOSE() gettoken() != t_close
-#define NOTEOF() gettoken() != t_eof
+#define NOTCLOSE(x) gettoken(x) != t_close
+#define NOTEOF(x) gettoken(x) != t_eof
 
 #ifdef NEED_INET_ATON
 int inet_aton(const char *cp, struct in_addr *pin)
@@ -188,7 +189,7 @@ int inet_aton(const char *cp, struct in_addr *pin)
 }
 #endif
 
-static const char *gettoken(void)
+static const char *gettoken(FILE *f)
 {
 	int c;
 	char w;
@@ -200,7 +201,7 @@ static const char *gettoken(void)
 	err = e_help;
 	do {
 		w = 0;
-		if ((c = getc(stdin)) == EOF) {
+		if ((c = getc(f)) == EOF) {
 			state = 0;
 			err = t_eof;
 		} else if (c == '\n')
@@ -261,7 +262,7 @@ static const char *gettoken(void)
 			case '"':
 			case '{':
 			case '}':
-				ungetc(c, stdin);
+				ungetc(c, f);
 				state = 0;
 				break;
 			default:
@@ -287,20 +288,20 @@ static const char *gettoken(void)
 	return err;
 }
 
-static const char *config_string(char **a)
+static const char *config_string(FILE *f, char **a)
 {
-	GETSTRING();
+	GETSTRING(f);
 	COPY(*a, tokbuf);
 	return 0;
 }
 
-static const char *config_int(int *i)
+static const char *config_int(FILE *f, int *i)
 {
 	char *e;
 	unsigned long u;
 	int j;
 
-	GETWORD();
+	GETWORD(f);
 	u = strtoul(tokbuf, &e, 0);
 	if (*e || e == tokbuf)
 		return e_inval;
@@ -311,9 +312,9 @@ static const char *config_int(int *i)
 	return 0;
 }
 
-static const char *config_flag(int *i)
+static const char *config_flag(FILE *f, int *i)
 {
-	GETWORD();
+	GETWORD(f);
 	if (!strcasecmp(tokbuf, c_off))
 		*i = 0;
 	else if (!strcasecmp(tokbuf, c_on))
@@ -323,13 +324,13 @@ static const char *config_flag(int *i)
 	return 0;
 }
 
-static const char *config_address(char **a, struct in_addr *b)
+static const char *config_address(FILE *f, char **a, struct in_addr *b)
 {
 	struct in_addr ia;
 
 	if (*a)
 		return e_addr_set;
-	GETSTRING();
+	GETSTRING(f);
 	COPY(*a, tokbuf);
 	if (inet_aton(tokbuf, &ia) == 0)
 		return e_bad_addr;
@@ -337,13 +338,13 @@ static const char *config_address(char **a, struct in_addr *b)
 	return 0;
 }
 
-static const char *config_name(char **a, struct in_addr *b)
+static const char *config_name(FILE *f, char **a, struct in_addr *b)
 {
 	struct hostent *h;
 
 	if (*a)
 		return e_addr_set;
-	GETSTRING();
+	GETSTRING(f);
 	COPY(*a, tokbuf);
 	h = gethostbyname(tokbuf);
 	if (h == 0 || h->h_addrtype != AF_INET)
@@ -352,12 +353,12 @@ static const char *config_name(char **a, struct in_addr *b)
 	return 0;
 }
 
-static const char *config_list(struct simple_list **ls)
+static const char *config_list(FILE *f, struct simple_list **ls)
 {
 	struct simple_list *l;
 
-	GETOPEN();
-	while (NOTCLOSE()) {
+	GETOPEN(f);
+	while (NOTCLOSE(f)) {
 		REQSTRING();
 		ALLOC(l);
 		COPY(l->name, tokbuf);
@@ -367,7 +368,7 @@ static const char *config_list(struct simple_list **ls)
 	return 0;
 }
 
-static const char *config_log(int **colsp, int *numcolsp)
+static const char *config_log(FILE *f, int **colsp, int *numcolsp)
 {
 	int ml;
 	int *cols;
@@ -376,8 +377,8 @@ static const char *config_log(int **colsp, int *numcolsp)
 	ml = 0;
 	cols = *colsp;
 	numcols = *numcolsp;
-  	GETOPEN();
-	while (NOTCLOSE()) {
+  	GETOPEN(f);
+	while (NOTCLOSE(f)) {
 	  	REQWORD();
 		if (!strcasecmp(tokbuf, c_ctime))
 			ml = ML_CTIME;
@@ -423,17 +424,17 @@ static const char *config_log(int **colsp, int *numcolsp)
 	return 0;
 }
 
-static const char *config_mime(struct mime **ms, int class)
+static const char *config_mime(FILE *f, struct mime **ms, int class)
 {
 	struct mime *m;
 	char *name, *s;
 
-	GETOPEN();
-	while (NOTCLOSE()) {
+	GETOPEN(f);
+	while (NOTCLOSE(f)) {
 		REQSTRING();
 		COPY(name, tokbuf);
-		GETOPEN();
-		while (NOTCLOSE()) {
+		GETOPEN(f);
+		while (NOTCLOSE(f)) {
 			REQSTRING();
 			ALLOC(m);
 			m->class = class;
@@ -492,15 +493,15 @@ static unsigned long masks[] = {
 	0xffffffff
 };
 
-static const char *config_acccl(struct access **ls, int t)
+static const char *config_acccl(FILE *f, struct access **ls, int t)
 {
 	struct access *l;
 	struct in_addr ia;
 	char *sl, *e;
 	unsigned long sz;
 
-	GETOPEN();
-	while (NOTCLOSE()) {
+	GETOPEN(f);
+	while (NOTCLOSE(f)) {
 		REQWORD();
 		ALLOC(l);
 		l->next = *ls;
@@ -520,7 +521,7 @@ static const char *config_acccl(struct access **ls, int t)
 			else
 				return e_keyword;
 		}
-		GETWORD();
+		GETWORD(f);
 		sl = strchr(tokbuf, '/');
 		if (sl == 0)
 			return e_bad_network;
@@ -538,14 +539,14 @@ static const char *config_acccl(struct access **ls, int t)
 	return 0;
 }
 
-static const char *config_access(struct access **ls)
+static const char *config_access(FILE *f, struct access **ls)
 {
-	return config_acccl(ls, ALLOWDENY);
+	return config_acccl(f, ls, ALLOWDENY);
 }
 
-static const char *config_clients(struct access **ls)
+static const char *config_clients(FILE *f, struct access **ls)
 {
-	return config_acccl(ls, APPLYNOAPPLY);
+	return config_acccl(f, ls, APPLYNOAPPLY);
 }
 
 static void chopslash(char *s)
@@ -557,7 +558,7 @@ static void chopslash(char *s)
 		*t = 0;
 }
 
-static const char *config_control(struct control **as)
+static const char *config_control(FILE *f, struct control **as)
 {
 	const char *t = 0;
 	struct control *a, *b;
@@ -612,12 +613,12 @@ static const char *config_control(struct control **as)
 	}
 	a->next = *as;
 	*as = a;
-	GETOPEN();
-	while (NOTCLOSE()) {
+	GETOPEN(f);
+	while (NOTCLOSE(f)) {
 		REQWORD();
 		if (!strcasecmp(tokbuf, c_location)) {
 			ALLOC(l);
-			GETSTRING();
+			GETSTRING(f);
 			chopslash(tokbuf);
 			COPY(l->name, tokbuf);
 			if (a->locations) {
@@ -628,53 +629,53 @@ static const char *config_control(struct control **as)
 				a->locations = l;
 			}
 		} else if (!strcasecmp(tokbuf, c_alias)) {
-			GETSTRING();
+			GETSTRING(f);
 			chopslash(tokbuf);
 			COPY(a->alias, tokbuf);
 		} else if (!strcasecmp(tokbuf, c_path_args))
-			t = config_flag(&a->path_args_ok);
+			t = config_flag(f, &a->path_args_ok);
 		else if (!strcasecmp(tokbuf, c_index_names))
-			t = config_list(&a->index_names);
+			t = config_list(f, &a->index_names);
 		else if (!strcasecmp(tokbuf, c_access))
-			t = config_access(&a->accesses);
+			t = config_access(f, &a->accesses);
 		else if (!strcasecmp(tokbuf, c_clients))
-			t = config_clients(&a->clients);
+			t = config_clients(f, &a->clients);
 		else if (!strcasecmp(tokbuf, c_types))
-			t = config_mime(&a->mimes, CLASS_FILE);
+			t = config_mime(f, &a->mimes, CLASS_FILE);
 		else if (!strcasecmp(tokbuf, c_specials))
-			t = config_mime(&a->mimes, CLASS_SPECIAL);
+			t = config_mime(f, &a->mimes, CLASS_SPECIAL);
 		else if (!strcasecmp(tokbuf, c_external))
-			t = config_mime(&a->mimes, CLASS_EXTERNAL);
+			t = config_mime(f, &a->mimes, CLASS_EXTERNAL);
 		else if (!strcasecmp(tokbuf, c_admin))
-			t = config_string(&a->admin);
+			t = config_string(f, &a->admin);
 		else if (!strcasecmp(tokbuf, c_refresh))
-			t = config_int(&a->refresh);
+			t = config_int(f, &a->refresh);
 		else if (!strcasecmp(tokbuf, c_realm))
-			t = config_string(&a->realm);
+			t = config_string(f, &a->realm);
 		else if (!strcasecmp(tokbuf, c_userfile))
-			t = config_string(&a->userfile);
+			t = config_string(f, &a->userfile);
 		else if (!strcasecmp(tokbuf, c_error_401_file))
-			t = config_string(&a->error_401_file);
+			t = config_string(f, &a->error_401_file);
 		else if (!strcasecmp(tokbuf, c_error_403_file))
-			t = config_string(&a->error_403_file);
+			t = config_string(f, &a->error_403_file);
 		else if (!strcasecmp(tokbuf, c_error_404_file))
-			t = config_string(&a->error_404_file);
+			t = config_string(f, &a->error_404_file);
 		else if (!strcasecmp(tokbuf, c_do_crypt))
-			t = config_flag(&a->do_crypt);
+			t = config_flag(f, &a->do_crypt);
 		else if (!strcasecmp(tokbuf, c_child_log))
-			t = config_string(&a->child_filename);
+			t = config_string(f, &a->child_filename);
 		else if (!strcasecmp(tokbuf, c_dns))
-			t = config_int(&a->dns);
+			t = config_int(f, &a->dns);
 		else if (!strcasecmp(tokbuf, c_export))
-			t = config_list(&a->exports);
+			t = config_list(f, &a->exports);
 		else if (!strcasecmp(tokbuf, c_exact_match))
-			t = config_flag(&a->exact_match);
+			t = config_flag(f, &a->exact_match);
 		else if (!strcasecmp(tokbuf, c_script_user))
-			t = config_string(&a->script_user);
+			t = config_string(f, &a->script_user);
 		else if (!strcasecmp(tokbuf, c_run_scripts_as_owner))
-			t = config_flag(&a->run_scripts_as_owner);
+			t = config_flag(f, &a->run_scripts_as_owner);
 		else if (!strcasecmp(tokbuf, c_max_age))
-			t = config_int(&a->max_age);
+			t = config_int(f, &a->max_age);
 		else
 			t = e_keyword;
 		if (t)
@@ -707,7 +708,7 @@ static const char *config_vhost(struct virtual **vs, struct vserver *s, const ch
 	return 0;
 }
 
-static const char *config_virtual(struct vserver **vs, struct server *parent)
+static const char *config_virtual(FILE *f, struct vserver **vs, struct server *parent)
 {
 	const char *t = 0;
 	struct vserver *v;
@@ -719,18 +720,18 @@ static const char *config_virtual(struct vserver **vs, struct server *parent)
 	nameless = 1;
 	v->next = *vs;
 	*vs = v;
-	GETOPEN();
-	while (NOTCLOSE()) {
+	GETOPEN(f);
+	while (NOTCLOSE(f)) {
 		REQWORD();
 		if (!strcasecmp(tokbuf, c_host)) {
-			GETSTRING();
+			GETSTRING(f);
 			nameless = 0;
 			t = config_vhost(&parent->children, v, tokbuf);
 		} else if (!strcasecmp(tokbuf, c_nohost)) {
 			nameless = 0;
 			t = config_vhost(&parent->children, v, 0);
 		} else if (!strcasecmp(tokbuf, c_control))
-			t = config_control(&v->controls);
+			t = config_control(f, &v->controls);
 		else
 			t = e_keyword;
 		if (t)
@@ -739,7 +740,7 @@ static const char *config_virtual(struct vserver **vs, struct server *parent)
 	return nameless ? config_vhost(&parent->children, v, 0) : 0;
 }
 
-static const char *config_server(struct server **ss)
+static const char *config_server(FILE *f, struct server **ss)
 {
 	const char *t = 0;
 	struct server *s;
@@ -756,19 +757,19 @@ static const char *config_server(struct server **ss)
 	s->naccepts = 0;
 	s->nhandled = 0;
 	*ss = s;
-	GETOPEN();
-	while (NOTCLOSE()) {
+	GETOPEN(f);
+	while (NOTCLOSE(f)) {
 		REQWORD();
 		if (!strcasecmp(tokbuf, c_port))
-			t = config_int(&s->port);
+			t = config_int(f, &s->port);
 		else if (!strcasecmp(tokbuf, c_name))
-			t = config_name(&s->s_name, &s->addr);
+			t = config_name(f, &s->s_name, &s->addr);
 		else if (!strcasecmp(tokbuf, c_address))
-			t = config_address(&s->s_name, &s->addr);
+			t = config_address(f, &s->s_name, &s->addr);
 		else if (!strcasecmp(tokbuf, c_virtual))
-			t = config_virtual(&s->vservers, s);
+			t = config_virtual(f, &s->vservers, s);
 		else if (!strcasecmp(tokbuf, c_control))
-			t = config_control(&s->controls);
+			t = config_control(f, &s->controls);
 		else
 			t = e_keyword;
 		if (t)
@@ -810,23 +811,23 @@ static const char *fill_servernames(void)
 	return 0;
 }
 
-static const char *config_tuning(struct tuning *tp)
+static const char *config_tuning(FILE *f, struct tuning *tp)
 {
 	const char *t = 0;
 
-	GETOPEN();
-	while (NOTCLOSE()) {
+	GETOPEN(f);
+	while (NOTCLOSE(f)) {
 		REQWORD();
 		if (!strcasecmp(tokbuf, c_timeout))
-			t = config_int(&tp->timeout);
+			t = config_int(f, &tp->timeout);
 		else if (!strcasecmp(tokbuf, c_buf_size))
-			t = config_int(&tp->buf_size);
+			t = config_int(f, &tp->buf_size);
 		else if (!strcasecmp(tokbuf, c_input_buf_size))
-			t = config_int(&tp->input_buf_size);
+			t = config_int(f, &tp->input_buf_size);
 		else if (!strcasecmp(tokbuf, c_num_connections))
-			t = config_int(&tp->num_connections);
+			t = config_int(f, &tp->num_connections);
 		else if (!strcasecmp(tokbuf, c_accept_multi))
-			t = config_flag(&tp->accept_multi);
+			t = config_flag(f, &tp->accept_multi);
 		else
 			t = e_keyword;
 		if (t)
@@ -835,38 +836,38 @@ static const char *config_tuning(struct tuning *tp)
 	return 0;
 }
 
-static const char *config_main(void)
+static const char *config_main(FILE *f)
 {
 	const char *t = 0;
 
-	while (NOTEOF()) {
+	while (NOTEOF(f)) {
 		REQWORD();
 		if (!strcasecmp(tokbuf, c_root_directory))
-			t = config_string(&rootdir);
+			t = config_string(f, &rootdir);
 		else if (!strcasecmp(tokbuf, c_core_directory))
-			t = config_string(&coredir);
+			t = config_string(f, &coredir);
 		else if (!strcasecmp(tokbuf, c_default_name))
-			t = config_string(&fqdn);
+			t = config_string(f, &fqdn);
 		else if (!strcasecmp(tokbuf, c_umask))
-			t = config_int(&fcm);
+			t = config_int(f, &fcm);
 		else if (!strcasecmp(tokbuf, c_stayroot))
-			t = config_flag(&stayroot);
+			t = config_flag(f, &stayroot);
 		else if (!strcasecmp(tokbuf, c_user))
-			t = config_string(&user_name);
+			t = config_string(f, &user_name);
 		else if (!strcasecmp(tokbuf, c_pid))
-			t = config_string(&pid_filename);
+			t = config_string(f, &pid_filename);
 		else if (!strcasecmp(tokbuf, c_log))
-			t = config_string(&log_filename);
+			t = config_string(f, &log_filename);
 		else if (!strcasecmp(tokbuf, c_error))
-			t = config_string(&error_filename);
+			t = config_string(f, &error_filename);
 		else if (!strcasecmp(tokbuf, c_tuning))
-			t = config_tuning(&tuning);
+			t = config_tuning(f, &tuning);
 		else if (!strcasecmp(tokbuf, c_control))
-			t = config_control(&controls);
+			t = config_control(f, &controls);
 		else if (!strcasecmp(tokbuf, c_server))
-			t = config_server(&servers);
+			t = config_server(f, &servers);
 		else if (!strcasecmp(tokbuf, c_log_format))
-			t = config_log(&log_column, &log_columns);
+			t = config_log(f, &log_column, &log_columns);
 		else
 			t = e_keyword;
 		if (t)
@@ -892,12 +893,21 @@ static struct pool *new_pool(size_t s)
 	return p;
 }
 
-const char *config(void)
+const char *config(const char *config_filename)
 {
 	const char *s;
 	int n;
 	struct connection *cn;
+	FILE *config_file;
 
+	if (config_filename) {
+		config_file = fopen(config_filename, "r");
+		if (config_file == 0) {
+			fprintf(stderr, "Cannot open configuration file %s\n", config_filename);
+			return e_noinput;
+		}
+	} else
+		config_file = stdin;
 	tuning.buf_size = DEFAULT_BUF_SIZE;
 	tuning.input_buf_size = INPUT_BUF_SIZE;
 	tuning.num_connections = DEFAULT_NUM_CONNECTIONS;
@@ -908,8 +918,12 @@ const char *config(void)
 	log_columns = 0;
 	log_column = 0;
 	line = 1;
-	s = config_main();
+	s = config_main(config_file);
+	if (config_filename)
+		fclose(config_file);
 	if (s) {
+		if (config_filename)
+			fprintf(stderr, "In configuration file: %s\n", config_filename);
 		fprintf(stderr, "Error at token '%s' around line %d\n", tokbuf, line);
 		return s;
 	}
