@@ -133,7 +133,6 @@ static const char c_useragent[] =	"UserAgent";
 static const char c_userfile[] =	"UserFile";
 static const char c_version[] =		"Version";
 
-static const char e_addr_set[] =	"address already set";
 static const char e_bad_addr[] =	"bad address";
 static const char e_bad_alias[] =	"alias without matching location";
 static const char e_bad_mask[] =	"mask does not match address";
@@ -144,7 +143,6 @@ static const char e_keyword[] =		"unknown keyword";
 static const char e_memory[] =		"out of memory";
 static const char e_nodefault[] =	"DefaultName not set";
 static const char e_illegalport[] =	"Illegal port number";
-static const char e_unknown_host[] =	"unknown host";
 static const char e_noinput[] =		"no input";
 static const char e_unknown_user[] =	"unknown user";
 static const char e_unknown_group[] =	"unknown group";
@@ -327,32 +325,14 @@ static const char *config_flag(FILE *f, int *i)
 	return 0;
 }
 
-static const char *config_address(FILE *f, char **a, struct in_addr *b)
+static const char *config_address(FILE *f, struct in_addr *b)
 {
 	struct in_addr ia;
 
-	if (*a)
-		return e_addr_set;
 	GETSTRING(f);
-	COPY(*a, tokbuf);
 	if (inet_aton(tokbuf, &ia) == 0)
 		return e_bad_addr;
 	*b = ia;
-	return 0;
-}
-
-static const char *config_name(FILE *f, char **a, struct in_addr *b)
-{
-	struct hostent *h;
-
-	if (*a)
-		return e_addr_set;
-	GETSTRING(f);
-	COPY(*a, tokbuf);
-	h = gethostbyname(tokbuf);
-	if (h == 0 || h->h_addrtype != AF_INET)
-		return e_unknown_host;
-	b->s_addr = *(unsigned long *) h->h_addr;
 	return 0;
 }
 
@@ -804,9 +784,9 @@ static const char *config_server(FILE *f, struct server **ss)
 		if (!strcasecmp(tokbuf, c_port))
 			t = config_int(f, &s->port);
 		else if (!strcasecmp(tokbuf, c_name))
-			t = config_name(f, &s->s_name, &s->addr);
+			t = config_string(f, &s->s_name);
 		else if (!strcasecmp(tokbuf, c_address))
-			t = config_address(f, &s->s_name, &s->addr);
+			t = config_address(f, &s->addr);
 		else if (!strcasecmp(tokbuf, c_virtual))
 			t = config_virtual(f, &s->vservers, s);
 		else if (!strcasecmp(tokbuf, c_control))
