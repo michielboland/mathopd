@@ -779,11 +779,8 @@ static void reap_children(void)
 
 void httpd_main(void)
 {
-	int rv;
-	int n, t;
-	time_t hours;
-	int accepting;
-	time_t last_time;
+	int rv, n, t, accepting;
+	time_t hours, last_time;
 
 	accepting = 1;
 	last_time = current_time = startuptime = time(0);
