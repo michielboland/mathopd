@@ -487,7 +487,16 @@ static int append_indexes(struct request *r)
 		fd = open(p, O_RDONLY | O_NONBLOCK);
 		if (debug)
 			log_d("append_indexes: open(\"%s\") = %d", p, fd);
-		if (fd != -1) {
+		if (fd == -1) {
+			if (errno != ENOENT) {
+				log_d("append_indexes: cannot open %s", p);
+				lerror("open");
+				*q = 0;
+				r->error_file = r->c->error_404_file;
+				r->status = 404;
+				return -1;
+			}
+		} else {
 			if (assign_rfd(r, fd) == -1) {
 				close(fd);
 				return -1;
@@ -845,6 +854,8 @@ static int process_path_translated(struct request *r)
 		if (r->path_args[0] != '/')
 			return makedir(r);
 		if (append_indexes(r) == -1) {
+			if (r->status)
+				return 1;
 			if (r->path_args[1] == 0 && r->c->auto_index_command) {
 				if (r->method == M_POST) {
 					if (debug)
