@@ -209,6 +209,7 @@ static void read_connection(struct connection *cn)
 	if (nr == -1) {
 		switch (errno) {
 		default:
+			log(L_ERROR, "error peeking from %s", cn->ip);
 			lerror("recv");
 		case ECONNRESET:
 			cn->action = HC_CLOSING;
@@ -335,6 +336,7 @@ static void read_connection(struct connection *cn)
 	nr = recv(fd, p->end, i, 0);
 	if (nr != i) {
 		if (nr == -1)
+			log(L_ERROR, "error reading from %s", cn->ip);
 			lerror("recv");
 		cn->action = HC_CLOSING;
 		return;
