@@ -44,7 +44,6 @@ static const char rcsid[] = "$Id$";
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <poll.h>
 #include "mathopd.h"
 
 #ifndef TOKEN_LENGTH_INCREMENT
