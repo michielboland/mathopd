@@ -165,7 +165,6 @@ static const char t_eof[] =		"unexpected end of file";
 static const char t_open[] =		"unexpected opening brace";
 static const char t_string[] =		"unexpected string";
 static const char t_too_long[] =	"token too long";
-static const char t_word[] =		"unexpected word";
 
 static int default_log_column[] = {
 	ML_CTIME,
@@ -241,7 +240,7 @@ static const char *gettoken(struct configuration *p)
 				state = 3;
 				break;
 			default:
-				t = t_word;
+				t = t_string;
 				w = 1;
 				state = 4;
 				break;
@@ -301,7 +300,7 @@ static const char *config_string(struct configuration *p, char **a)
 {
 	const char *t;
 
-	if ((t = gettoken(p)) != t_string && t != t_word)
+	if ((t = gettoken(p)) != t_string)
 		return t;
 	if ((*a = strdup(p->tokbuf)) == 0)
 		return e_memory;
@@ -314,7 +313,7 @@ static const char *config_int(struct configuration *p, unsigned long *i)
 	unsigned long u;
 	const char *t;
 
-	if ((t = gettoken(p)) != t_word)
+	if ((t = gettoken(p)) != t_string)
 		return t;
 	u = strtoul(p->tokbuf, &e, 0);
 	if (*e || e == p->tokbuf)
@@ -327,7 +326,7 @@ static const char *config_flag(struct configuration *p, int *i)
 {
 	const char *t;
 
-	if ((t = gettoken(p)) != t_word)
+	if ((t = gettoken(p)) != t_string)
 		return t;
 	if (!strcasecmp(p->tokbuf, c_off))
 		*i = 0;
@@ -343,7 +342,7 @@ static const char *config_address(struct configuration *p, struct in_addr *b)
 	struct in_addr ia;
 	const char *t;
 
-	if ((t = gettoken(p)) != t_string && t != t_word)
+	if ((t = gettoken(p)) != t_string)
 		return t;
 	if (inet_aton(p->tokbuf, &ia) == 0)
 		return e_bad_addr;
@@ -359,7 +358,7 @@ static const char *config_list(struct configuration *p, struct simple_list **ls)
 	if ((t = gettoken(p)) != t_open)
 		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_string && t != t_word)
+		if (t != t_string)
 			return t;
 		if ((l = malloc(sizeof *l)) == 0)
 			return e_memory;
@@ -384,7 +383,7 @@ static const char *config_log(struct configuration *p, int **colsp, int *numcols
 	if ((t = gettoken(p)) != t_open)
 		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_word)
+		if (t != t_string)
 			return t;
 		if (!strcasecmp(p->tokbuf, c_ctime))
 			ml = ML_CTIME;
@@ -436,14 +435,14 @@ static const char *config_mime(struct configuration *p, struct mime **ms, int cl
 	if ((t = gettoken(p)) != t_open)
 		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_string && t != t_word)
+		if (t != t_string)
 			return t;
 		if ((name = strdup(p->tokbuf)) == 0)
 			return e_memory;
 		if ((t = gettoken(p)) != t_open)
 			return t;
 		while ((t = gettoken(p)) != t_close) {
-			if (t != t_string && t != t_word)
+			if (t != t_string)
 				return t;
 			if ((m = malloc(sizeof *m)) == 0)
 				return e_memory;
@@ -515,7 +514,7 @@ static const char *config_acccl(struct configuration *p, struct access **ls, int
 	if ((t = gettoken(p)) != t_open)
 		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_word)
+		if (t != t_string)
 			return t;
 		if ((l = malloc(sizeof *l)) == 0)
 			return e_memory;
@@ -536,7 +535,7 @@ static const char *config_acccl(struct configuration *p, struct access **ls, int
 			else
 				return e_keyword;
 		}
-		if ((t = gettoken(p)) != t_word)
+		if ((t = gettoken(p)) != t_string)
 			return t;
 		sl = strchr(p->tokbuf, '/');
 		if (sl == 0)
@@ -575,7 +574,7 @@ static const char *config_owners(struct configuration *p, struct file_owner **op
 	if ((t = gettoken(p)) != t_open)
 		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_word)
+		if (t != t_string)
 			return t;
 		if ((o = malloc(sizeof *o)) == 0)
 			return e_memory;
@@ -583,7 +582,7 @@ static const char *config_owners(struct configuration *p, struct file_owner **op
 		*op = o;
 		if (!strcasecmp(p->tokbuf, c_user)) {
 			o->type = FO_USER;
-			if ((t = gettoken(p)) != t_string && t != t_word)
+			if ((t = gettoken(p)) != t_string)
 				return t;
 			pw = getpwnam(p->tokbuf);
 			if (pw == 0)
@@ -591,7 +590,7 @@ static const char *config_owners(struct configuration *p, struct file_owner **op
 			o->user = pw->pw_uid;
 		} else if (!strcasecmp(p->tokbuf, c_group)) {
 			o->type = FO_GROUP;
-			if ((t = gettoken(p)) != t_string && t != t_word)
+			if ((t = gettoken(p)) != t_string)
 				return t;
 			gr = getgrnam(p->tokbuf);
 			if (gr == 0)
@@ -671,12 +670,12 @@ static const char *config_control(struct configuration *p, struct control **as)
 	if ((t = gettoken(p)) != t_open)
 		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_word)
+		if (t != t_string)
 			return t;
 		if (!strcasecmp(p->tokbuf, c_location)) {
 			if ((l = malloc(sizeof *l)) == 0)
 				return e_memory;
-			if ((t = gettoken(p)) != t_string && t != t_word)
+			if ((t = gettoken(p)) != t_string)
 				return t;
 			chopslash(p->tokbuf);
 			if ((l->name = strdup(p->tokbuf)) == 0)
@@ -690,7 +689,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 			}
 			continue;
 		} else if (!strcasecmp(p->tokbuf, c_alias)) {
-			if ((t = gettoken(p)) != t_string && t != t_word)
+			if ((t = gettoken(p)) != t_string)
 				return t;
 			chopslash(p->tokbuf);
 			if ((a->alias = strdup(p->tokbuf)) == 0)
@@ -788,10 +787,10 @@ static const char *config_virtual(struct configuration *p, struct vserver **vs, 
 	if ((t = gettoken(p)) != t_open)
 		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_word)
+		if (t != t_string)
 			return t;
 		if (!strcasecmp(p->tokbuf, c_host)) {
-			if ((t = gettoken(p)) != t_string && t != t_word)
+			if ((t = gettoken(p)) != t_string)
 				return t;
 			nameless = 0;
 			t = config_vhost(&parent->children, v, p->tokbuf);
@@ -830,7 +829,7 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	if ((t = gettoken(p)) != t_open)
 		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_word)
+		if (t != t_string)
 			return t;
 		if (!strcasecmp(p->tokbuf, c_port))
 			t = config_int(p, &s->port);
@@ -897,7 +896,7 @@ static const char *config_tuning(struct configuration *p, struct tuning *tp)
 	if ((t = gettoken(p)) != t_open)
 		return t;
 	while ((t = gettoken(p)) != t_close) {
-		if (t != t_word)
+		if (t != t_string)
 			return t;
 		if (!strcasecmp(p->tokbuf, c_timeout))
 			t = config_int(p, &tp->timeout);
@@ -922,7 +921,7 @@ static const char *config_main(struct configuration *p)
 	const char *t;
 
 	while ((t = gettoken(p)) != t_eof) {
-		if (t != t_word)
+		if (t != t_string)
 			return t;
 		if (!strcasecmp(p->tokbuf, c_root_directory))
 			t = config_string(p, &rootdir);
