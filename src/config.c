@@ -853,8 +853,6 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	s->children = virtuals;
 	s->vservers = vservers;
 	s->controls = controls;
-	s->naccepts = 0;
-	s->nhandled = 0;
 	s->backlog = DEFAULT_BACKLOG;
 	if ((t = gettoken(p)) != t_open)
 		return t;
