@@ -41,6 +41,7 @@
 #define IMAP_MAGIC_TYPE "Imagemap"
 #define REDIRECT_MAGIC_TYPE "Redirect"
 #define DUMMY_MAGIC_TYPE "Dummy"
+#define DUMP_MAGIC_TYPE "Dump"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -331,7 +332,7 @@ extern int process_cgi(struct request *);
 
 /* dump */
 
-extern void dump(void);
+extern int process_dump(struct request *);
 
 /* base64 */
 
