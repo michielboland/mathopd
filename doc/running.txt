@@ -116,6 +116,12 @@ if Mathopd cannot open a new accesslog for any reason, it will
 *still* continue to log to accesslog.old.) Something similar
 applies to the ErrorLog.
 
+There are two exceptions to the above: if the value of Log or
+ErrorLog is either "/dev/stdout" or "/dev/stderr", then the log
+will not be rotated: mathopd will not try to re-open these files.
+This is because /dev/stdout and /dev/stderr will be gone once
+the server has started up.
+
 The name of the Log, ErrorLog and ChildLog will be 'strftime-
 expanded'. This means that any occurrence of, say, '%Y' in the
 name will be expanded to the current (4-digit) year.
