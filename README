@@ -10,9 +10,9 @@ software and a makefile to build everything. The makefile
 has instructions that will help you adjust it to build
 the software on your specific platform.
 
-The doc/ directory contains documentation about running
+The doc/ directory contains some documentation about running
 this software. It also has detailed descriptions of all
 settings that can be configured.
 
 Michiel Boland
-May 2002
+August 2003
