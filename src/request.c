@@ -269,7 +269,7 @@ static int output_headers(struct pool *p, struct request *r)
 			b += sprintf(b, "Last-Modified: %s\r\n", rfctime(r->last_modified, gbuf));
 	}
 	if (r->location) {
-		if (r->location[0] == '/') {
+		if (r->location[0] == '/' && r->servername) {
 			port = r->cn->s->port;
 			if (port == 80)
 				b += sprintf(b, "Location: http://%s%.512s\r\n", r->servername, r->location);
@@ -601,13 +601,9 @@ static int find_vs(struct request *r)
 				break;
 			v = v->next;
 		}
-		tmp = r->cn->s->s_name;
-		if (tmp == 0)
-			return -1;
-		if (v == 0) {
-			log_d("No old-style server at %s", tmp);
+		if (v == 0)
 			return 1;
-		}
+		tmp = r->cn->s->s_name;
 	}
 	v->nrequests++;
 	r->vs = v;
