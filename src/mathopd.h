@@ -300,7 +300,6 @@ struct connection {
 	int logged;
 	struct timeval itv;
 	struct pipe_params pipe_params;
-	int eof;
 };
 
 struct connection_list {

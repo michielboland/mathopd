@@ -309,7 +309,6 @@ static int readfromclient(struct connection *p)
 			lerror("readfromclient");
 		case ECONNRESET:
 		case EPIPE:
-			p->eof = 1;
 			close_connection(p);
 			return -1;
 		case EAGAIN:
@@ -318,7 +317,6 @@ static int readfromclient(struct connection *p)
 		break;
 	case 0:
 		log_d("readfromclient: client went away while posting data");
-		p->eof = 1;
 		close_connection(p);
 		return -1;
 	default:

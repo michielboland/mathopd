@@ -290,7 +290,6 @@ static int accept_connection(struct server *s)
 			cn->peer = sa_remote;
 			cn->sock = sa_local;
 			cn->t = current_time;
-			cn->eof = 0;
 			cn->pollno = -1;
 			++stats.nconnections;
 			if (stats.nconnections > stats.maxconnections)
@@ -411,7 +410,6 @@ static int read_connection(struct connection *cn)
 			lerror("read");
 		case ECONNRESET:
 		case EPIPE:
-			cn->eof = 1;
 			close_connection(cn);
 			return -1;
 		case EAGAIN:
@@ -419,7 +417,6 @@ static int read_connection(struct connection *cn)
 		}
 	}
 	if (nr == 0) {
-		cn->eof = 1;
 		close_connection(cn);
 		return -1;
 	}
