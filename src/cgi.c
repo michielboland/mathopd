@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 1999 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999, 2000 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -48,15 +48,17 @@ static int add(const char *name, const char *value, size_t choplen)
 {
 	char *tmp;
 	size_t namelen, valuelen;
+	char **e;
 
 	if (name && value == 0)
 		return 0;
 	if (cgi_envc == 0)
-		cgi_envp = malloc(sizeof *cgi_envp);
+		e = malloc(sizeof *cgi_envp);
 	else
-		cgi_envp = realloc(cgi_envp, (cgi_envc + 1) * sizeof *cgi_envp);
-	if (cgi_envp == 0)
+		e = realloc(cgi_envp, (cgi_envc + 1) * sizeof *cgi_envp);
+	if (e == 0)
 		return -1;
+	cgi_envp = e;
 	if (name == 0)
 		cgi_envp[cgi_envc] = 0;
 	else {
@@ -83,29 +85,34 @@ static int add_argv(const char *a, const char *b, int decode)
 {
 	char *tmp;
 	size_t s;
+	char **e;
 
 	if (cgi_argc == 0)
-		cgi_argv = malloc(sizeof *cgi_argv);
+		e = malloc(sizeof *cgi_argv);
 	else
-		cgi_argv = realloc(cgi_argv, (cgi_argc + 1) * sizeof *cgi_argv);
-	if (cgi_argv == 0)
+		e = realloc(cgi_argv, (cgi_argc + 1) * sizeof *cgi_argv);
+	if (e == 0)
 		return -1;
-	if (a) {
+	cgi_argv = e;
+	if (a == 0)
+		cgi_argv[cgi_argc] = 0;
+	else {
 		s = b ? b - a : strlen(a);
 		tmp = malloc(s + 1);
 		if (tmp == 0)
 			return -1;
 		if (decode) {
-			if (unescape_url_n(a, tmp, s))
+			if (unescape_url_n(a, tmp, s)) {
+				free(tmp);
 				return -1;
+			}
 		} else {
 			memcpy(tmp, a, s);
 			tmp[s] = 0;
 		}
-	} else
-		tmp = 0;
-	cgi_argv[cgi_argc] = tmp;
-	++cgi_argc;
+		cgi_argv[cgi_argc] = tmp;
+	}
+	+cgi_argv;
 	return 0;
 }
 
