@@ -69,6 +69,8 @@ static time_t timerfc(char *s)
 	char isctime;
 	enum { D_START, D_END, D_MON, D_DAY, D_YEAR, D_HOUR, D_MIN, D_SEC };
 
+	if (debug)
+		log_d("D timerfc");
 	sec = 60;
 	min = 60;
 	hour = 24;
@@ -189,6 +191,8 @@ static char *rfctime(time_t t, char *buf)
 {
 	struct tm *tp;
 
+	if (debug)
+		log_d("D rfctime");
 	tp = gmtime(&t);
 	if (tp == 0) {
 		log_d("gmtime failed!?!?!?");
@@ -204,6 +208,8 @@ static char *getline(struct pool *p)
 	char *olds, *sp, *end;
 	int f;
 
+	if (debug)
+		log_d("D getline");
 	end = p->end;
 	s = p->start;
 	if (s >= end)
@@ -243,6 +249,8 @@ static int putstring(struct pool *p, char *s)
 {
 	size_t l;
 
+	if (debug)
+		log_d("D putstring");
 	l = strlen(s);
 	if (p->end + l > p->ceiling) {
 		log_d("no more room to put string!?!?");
@@ -259,6 +267,8 @@ static int output_headers(struct pool *p, struct request *r)
 	char tmp_outbuf[2048], gbuf[40], *b;
 	unsigned long port;
 
+	if (debug)
+		log_d("D output_headers");
 	if (r->cn->assbackwards)
 		return 0;
 	b = tmp_outbuf;
@@ -303,6 +313,8 @@ static char *dirmatch(char *s, char *t)
 {
 	size_t n;
 
+	if (debug)
+		log_d("D dirmatch");
 	n = strlen(t);
 	if (n == 0)
 		return s;
@@ -313,12 +325,16 @@ static char *exactmatch(char *s, char *t)
 {
 	size_t n;
 
+	if (debug)
+		log_d("D exactmatch");
 	n = strlen(t);
 	return !strncmp(s, t, n) && s[n] == '/' && s[n + 1] == 0 ? s + n : 0;
 }
 
 static int evaluate_access(unsigned long ip, struct access *a)
 {
+	if (debug)
+		log_d("D evaluate_access");
 	while (a && ((ip & a->mask) != a->addr))
 		a = a->next;
 	return a ? a->type : ALLOW;
@@ -331,6 +347,8 @@ static int get_mime(struct request *r, const char *s)
 	int saved_class;
 	int l, le, lm;
 
+	if (debug)
+		log_d("D get_mime");
 	saved_type = 0;
 	saved_class = 0;
 	lm = 0;
@@ -366,6 +384,8 @@ static int get_path_info(struct request *r)
 	int rv;
 	size_t m;
 
+	if (debug)
+		log_d("D get_path_info");
 	m = r->location_length;
 	if (m == 0)
 		return -1;
@@ -409,6 +429,8 @@ static int check_path(struct request *r)
 		s_forbidden,
 	} s;
 
+	if (debug)
+		log_d("D check_path");
 	p = r->path;
 	s = s_normal;
 	do {
@@ -452,6 +474,8 @@ static int makedir(struct request *r)
 {
 	char *buf, *e;
 
+	if (debug)
+		log_d("D makedir");
 	buf = r->newloc;
 	strcpy(buf, r->url);
 	e = buf + strlen(buf);
@@ -466,6 +490,8 @@ static int append_indexes(struct request *r)
 	char *p, *q;
 	struct simple_list *i;
 
+	if (debug)
+		log_d("D append_indexes");
 	p = r->path_translated;
 	q = p + strlen(p);
 	r->isindex = 1;
@@ -486,6 +512,8 @@ static int append_indexes(struct request *r)
 
 static int process_external(struct request *r)
 {
+	if (debug)
+		log_d("D process_external");
 	r->num_content = -1;
 	return process_cgi(r);
 }
@@ -494,6 +522,8 @@ static int process_special(struct request *r)
 {
 	const char *ct;
 
+	if (debug)
+		log_d("D process_special");
 	ct = r->content_type;
 	r->num_content = -1;
 	if (!strcasecmp(ct, CGI_MAGIC_TYPE))
@@ -512,6 +542,8 @@ static int process_fd(struct request *r)
 {
 	int fd;
 
+	if (debug)
+		log_d("D process_fd");
 	if (r->path_args[0] && r->c->path_args_ok == 0 && (r->path_args[1] || r->isindex == 0)) {
 		r->error_file = r->c->error_404_file;
 		return 404;
@@ -556,6 +588,8 @@ static int add_fd(struct request *r, const char *filename)
 	int fd;
 	struct stat s;
 
+	if (debug)
+		log_d("D add_fd");
 	if (filename == 0)
 		return -1;
 	if (get_mime(r, filename) == -1)
@@ -583,6 +617,8 @@ static int hostmatch(const char *s, const char *t)
 {
 	size_t l;
 
+	if (debug)
+		log_d("D hostmatch");
 	l = strlen(t);
 	if (strncasecmp(s, t, l))
 		return 0;
@@ -602,6 +638,8 @@ static int find_vs(struct request *r)
 	struct virtual *v;
 	char *tmp;
 
+	if (debug)
+		log_d("D find_vs");
 	v = r->cn->s->children;
 	if (r->host) {
 		while (v) {
@@ -634,6 +672,8 @@ static int check_realm(struct request *r)
 {
 	char *a;
 
+	if (debug)
+		log_d("D check_realm");
 	if (r == 0 || r->c == 0 || r->c->realm == 0 || r->c->userfile == 0)
 		return 0;
 	a = r->authorization;
@@ -655,6 +695,8 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 	struct control *c;
 	char *s;
 
+	if (debug)
+		log_d("D faketoreal");
 	if (r->vs == 0) {
 		log_d("virtualhost not initialized!");
 		return 0;
@@ -685,6 +727,8 @@ static int process_path(struct request *r)
 {
 	int rv;
 
+	if (debug)
+		log_d("D process_path");
 	switch (find_vs(r)) {
 	case -1:
 		return 500;
@@ -748,6 +792,8 @@ static int process_headers(struct request *r)
 	unsigned long x, y;
 	time_t i;
 
+	if (debug)
+		log_d("D process_headers");
 	while (1) {
 		l = getline(r->cn->input);
 		if (l == 0) {
@@ -894,6 +940,8 @@ int prepare_reply(struct request *r)
 	char *b, buf[PATHLEN];
 	int send_message;
 
+	if (debug)
+		log_d("D prepare_reply");
 	send_message = r->method != M_HEAD;
 	if (r->status >= 400)
 		r->last_modified = 0;
@@ -990,6 +1038,8 @@ int prepare_reply(struct request *r)
 
 static void init_request(struct request *r)
 {
+	if (debug)
+		log_d("D init_request");
 	r->vs = 0;
 	r->user_agent = 0;
 	r->referer = 0;
@@ -1030,6 +1080,8 @@ static void init_request(struct request *r)
 
 int process_request(struct request *r)
 {
+	if (debug)
+		log_d("D process_request");
 	init_request(r);
 	if ((r->status = process_headers(r)) == 0)
 		r->status = process_path(r);
