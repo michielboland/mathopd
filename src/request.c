@@ -1294,13 +1294,17 @@ void init_request(struct request *r)
 
 int process_request(struct request *r)
 {
-	if ((r->status = process_headers(r)) == 0)
-		r->status = process_path(r);
-	if (r->status > 0 && prepare_reply(r) == -1) {
-		log_d("cannot prepare reply for client");
-		return -1;
-	}
-	return r->status >= 0 ? 0 : -1;
+	int s;
+
+	r->status = s = process_headers(r);
+	if (s == 0)
+		r->status = s = process_path(r);
+	if (s > 0)
+		if (prepare_reply(r) == -1) {
+			log_d("cannot prepare reply for client");
+			return -1;
+		}
+	return s >= 0 ? 0 : -1;
 }
 
 int cgi_error(struct request *r)
