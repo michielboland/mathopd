@@ -126,15 +126,15 @@ static void fdump(FILE *f, struct request *r)
 		"Number of requests executed: %lu\n"
 		"\n",
 		(int) (current_time - startuptime),
-		nconnections, tuning.num_connections,
-		maxconnections,
+		stats.nconnections, tuning.num_connections,
+		stats.maxconnections,
 		numchildren,
-		nrequests);
+		stats.nrequests);
 	getrusage(RUSAGE_SELF, &ru);
 	fprintf(f, "CPU time used by this process: %11.2f user %11.2f system\n", ru.ru_utime.tv_sec + 1e-6 * ru.ru_utime.tv_usec, ru.ru_stime.tv_sec + 1e-6 * ru.ru_stime.tv_usec);
 	getrusage(RUSAGE_CHILDREN, &ru);
 	fprintf(f, "                     children: %11.2f user %11.2f system\n\n", ru.ru_utime.tv_sec + 1e-6 * ru.ru_utime.tv_usec, ru.ru_stime.tv_sec + 1e-6 * ru.ru_stime.tv_usec);
-	maxconnections = nconnections;
+	stats.maxconnections = stats.nconnections;
 	dump_servers(f, servers);
 	dump_connections(f, r ? r->cn : 0);
 	fprintf(f, "*** End of dump\n");

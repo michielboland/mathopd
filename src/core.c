@@ -61,12 +61,10 @@ static const char rcsid[] = "$Id$";
 typedef int socklen_t;
 #endif
 
-int nconnections;
-int maxconnections;
+struct statistics stats;
 time_t startuptime;
 time_t current_time;
 struct pollfd *pollfds;
-unsigned long nrequests;
 struct connection *connection_array;
 
 static struct connection_list free_connections;
@@ -191,7 +189,7 @@ int reinit_connection(struct connection *cn)
 {
 	char *s;
 
-	++nrequests;
+	++stats.nrequests;
 	log_request(cn->r);
 	cn->logged = 1;
 	if (cn->rfd != -1) {
@@ -212,10 +210,10 @@ int reinit_connection(struct connection *cn)
 void close_connection(struct connection *cn)
 {
 	if (cn->nread || cn->nwritten || cn->logged == 0) {
-		++nrequests;
+		++stats.nrequests;
 		log_request(cn->r);
 	}
-	--nconnections;
+	--stats.nconnections;
 	close(cn->fd);
 	if (cn->rfd != -1) {
 		close(cn->rfd);
@@ -326,9 +324,9 @@ static int accept_connection(struct server *s)
 			cn->sock = sa_local;
 			cn->t = current_time;
 			cn->pollno = -1;
-			++nconnections;
-			if (nconnections > maxconnections)
-				maxconnections = nconnections;
+			++stats.nconnections;
+			if (stats.nconnections > stats.maxconnections)
+				stats.maxconnections = stats.nconnections;
 			init_connection(cn);
 			cn->logged = 0;
 			cn->header_input.start = cn->header_input.middle = cn->header_input.end = cn->header_input.floor;
@@ -866,7 +864,7 @@ void httpd_main(void)
 			log_d("no more sockets to poll from");
 			break;
 		}
-		t = accepting ? (nconnections ? 60000 : INFTIM) : 1000;
+		t = accepting ? (stats.nconnections ? 60000 : INFTIM) : 1000;
 		rv = poll(pollfds, n, t);
 		current_time = time(0);
 		if (rv == -1) {

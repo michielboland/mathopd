@@ -321,6 +321,12 @@ struct tuning {
 	unsigned long script_buf_size;
 };
 
+struct statistics {
+	int nconnections;
+	int maxconnections;
+	unsigned long nrequests;
+};
+
 /* main */
 
 extern const char server_version[];
@@ -358,12 +364,10 @@ extern int init_buffers(void);
 
 /* core */
 
-extern int nconnections;
-extern int maxconnections;
+extern struct statistics stats;
 extern time_t startuptime;
 extern time_t current_time;
 extern struct pollfd *pollfds;
-extern unsigned long nrequests;
 extern struct connection *connection_array;
 extern void set_connection_state(struct connection *, enum connection_state);
 extern int reinit_connection(struct connection *);
