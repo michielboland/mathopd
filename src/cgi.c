@@ -222,12 +222,11 @@ static int make_cgi_argv(struct request *r, char *b)
 	return 0;
 }
 
-static int cgi_error(struct request *r, int code, const char *error)
+static int cgi_error(struct request *r, int code)
 {
 	struct pool *p;
 
 	r->status = code;
-	r->error = error;
 	if (prepare_reply(r) != -1) {
 		p = r->cn->output;
 		write(1, p->start, p->end - p->start);
@@ -338,55 +337,30 @@ static int set_uids(uid_t uid, gid_t gid)
 
 static int exec_cgi(struct request *r)
 {
-	uid_t e, u;
 	int rv;
 
-	e = geteuid();
-	if (debug)
-		log_d("exec_cgi: geteuid() = %d", e);
-	if (e == 0) {
-		log_d("I appear to be root!?");
-		_exit(-1);
-	}
 	rv = setuid(0);
 	if (debug)
 		log_d("exec_cgi: setuid(0) = %d", rv);
 	if (rv != -1) {
 		if (r->c->script_user) {
-			if (become_user(r->c->script_user) == -1) {
-				setuid(e);
-				return cgi_error(r, 403, "cannot set uids");
-			}
+			if (become_user(r->c->script_user) == -1)
+				return cgi_error(r, 403);
 		} else if (r->c->run_scripts_as_owner) {
-			if (set_uids(r->finfo.st_uid, r->finfo.st_gid) == -1) {
-				setuid(e);
-				return cgi_error(r, 403, "cannot set uids");
-			}
+			if (set_uids(r->finfo.st_uid, r->finfo.st_gid) == -1)
+				return cgi_error(r, 403);
 		} else {
-			setuid(e);
 			log_d("cannot run scripts withouth changing identity");
-			return cgi_error(r, 403, "script permission denied");
+			return cgi_error(r, 403);
 		}
 	}
-	e = geteuid();
-	if (debug) {
-		log_d("exec_cgi: geteuid() = %d", e);
-	}
-	u = getuid();
-	if (debug) {
-		log_d("exec_cgi: getuid() = %d", u);
-	}
-	if (e == 0 || u == 0) {
-		log_d("cannot run scripts as root");
-		return cgi_error(r, 403, "security check failed");
-	}
 	if (init_cgi_env(r) == -1)
-		return cgi_error(r, 500, "could not initialize CGI environment");
+		return cgi_error(r, 500);
 	log_d("executing %s", cgi_argv[0]);
 	if (execve(cgi_argv[0], (char **) cgi_argv, cgi_envp) == -1) {
 		log_d("could not execute %s", cgi_argv[0]);
 		lerror("execve");
-		return cgi_error(r, 500, "could not execute CGI program");
+		return cgi_error(r, 500);
 	}
 	return 0;
 }
