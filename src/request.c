@@ -828,7 +828,7 @@ static int process_path_translated(struct request *r)
 			return 1;
 		}
 	}
-	if (r->path_args[0] && r->c->path_info_ok == 0) {
+	if (r->path_args[0] && r->c->path_info_ok == 0 && r->isindex == 0) {
 		if (debug)
 			log_d("nonempty path_args while PathInfo is off");
 		r->error_file = r->c->error_404_file;
