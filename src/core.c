@@ -54,8 +54,12 @@ static void init_pool(struct pool *p)
 
 static void reinit_connection(struct connection *cn, int action)
 {
+	int rv;
+
 	if (cn->rfd != -1) {
-		close(cn->rfd);
+		rv = close(cn->rfd);
+		if (debug)
+			log(L_DEBUG, "reinit_connection: close(%d) = %d", cn->rfd, rv);
 		cn->rfd = -1;
 	}
 	init_pool(cn->input);
@@ -67,10 +71,16 @@ static void reinit_connection(struct connection *cn, int action)
 
 static void close_connection(struct connection *cn)
 {
+	int rv;
+
 	--nconnections;
-	close(cn->fd);
+	rv = close(cn->fd);
+	if (debug)
+		log(L_DEBUG, "close_connection: close(%d) = %d", cn->fd, rv);
 	if (cn->rfd != -1) {
-		close(cn->rfd);
+		rv = close(cn->rfd);
+		if (debug)
+			log(L_DEBUG, "close_connection: close(%d) = %d (rfd)", cn->rfd, rv);
 		cn->rfd = -1;
 	}
 	cn->state = HC_FREE;
@@ -79,10 +89,13 @@ static void close_connection(struct connection *cn)
 static void nuke_servers(void)
 {
 	struct server *s;
+	int rv;
 
 	s = servers;
 	while (s) {
-		close(s->fd);
+		rv = close(s->fd);
+		if (debug)
+			log(L_DEBUG, "nuke_servers: close(%d) = %d", s->fd, rv);
 		s->fd = -1;
 		s = s->next;
 	}
@@ -103,20 +116,31 @@ static void nuke_connections(void)
 static void accept_connection(struct server *s)
 {
 	struct sockaddr_in sa;
-	int lsa, fd;
+	int lsa, fd, rv;
 	struct connection *cn, *cw;
 
 	do {
 		lsa = sizeof sa;
 		fd = accept(s->fd, (struct sockaddr *) &sa, &lsa);
+		if (debug) {
+			if (fd == -1)
+				log(L_DEBUG, "accept_connection: accept(%d) = %d", s->fd, fd);
+			else
+				log(L_DEBUG, "accept_connection: accept(%d) = %d; addr=[%s], port=%d",
+					s->fd, fd, inet_ntoa(sa.sin_addr), htons(sa.sin_port));
+		}
 		if (fd == -1) {
 			if (errno != EAGAIN)
 				lerror("accept");
 			break;
 		}
 		s->naccepts++;
-		fcntl(fd, F_SETFD, FD_CLOEXEC);
-		fcntl(fd, F_SETFL, O_NONBLOCK);
+		rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
+		if (debug)
+			log(L_DEBUG, "accept_connection: fcntl(%d, F_SETFD, FD_CLOEXEC) = %d", fd, rv);
+		rv = fcntl(fd, F_SETFL, O_NONBLOCK);
+		if (debug)
+			log(L_DEBUG, "accept_connection: fcntl(%d, F_SETFL, O_NONBLOCK) = %d", fd, rv);
 		cn = connections;
 		cw = 0;
 		while (cn) {
@@ -132,7 +156,9 @@ static void accept_connection(struct server *s)
 		}
 		if (cn == 0) {
 			log(L_ERROR, "connection to %s dropped", inet_ntoa(sa.sin_addr));
-			close(fd);
+			rv = close(fd);
+			if (debug)
+				log(L_DEBUG, "accept_connection: close(%d) = %d", fd, rv);
 		} else {
 			s->nhandled++;
 			cn->state = HC_ACTIVE;
@@ -166,6 +192,8 @@ static int fill_connection(struct connection *cn)
 		return 0;
 	cn->r->content_length -= n;
 	m = read(cn->rfd, p->end, n);
+	if (debug)
+		log(L_DEBUG, "fill_connection: read(%d, %p, %d) = %d", cn->rfd, p->end, n, m);
 	if (m != n) {
 		if (m == -1)
 			lerror("read");
@@ -198,6 +226,8 @@ static void write_connection(struct connection *cn)
 		}
 		cn->t = current_time;
 		m = send(cn->fd, p->start, n, 0);
+		if (debug)
+			log(L_DEBUG, "write_connection: send(%d, %p, %d, 0) = %d", cn->fd, p->start, n, m);
 		if (m == -1) {
 			switch (errno) {
 			default:
@@ -233,6 +263,8 @@ static void read_connection(struct connection *cn)
 		return;
 	}
 	nr = recv(fd, p->end, i, MSG_PEEK);
+	if (debug)
+		log(L_DEBUG, "read_connection: recv(%d, %p, %d, MSG_PEEK) = %d", fd, p->end, i, nr);
 	if (nr == -1) {
 		switch (errno) {
 		default:
@@ -351,6 +383,8 @@ static void read_connection(struct connection *cn)
 		}
 	}
 	nr = recv(fd, p->end, i, 0);
+	if (debug)
+		log(L_DEBUG, "read_connection: recv(%d, %p, %d, 0) = %d", fd, p->end, i, nr);
 	if (nr != i) {
 		if (nr == -1)
 			log(L_ERROR, "error reading from %s", cn->ip);
@@ -497,7 +531,7 @@ void httpd_main(void)
 			init_logs();
 			if (first) {
 				first = 0;
-				log(L_LOG, "%s starting", server_version);
+				log(L_LOG, "*** %s starting", server_version);
 			}
 			else
 				log(L_LOG, "logs reopened");
@@ -584,11 +618,22 @@ void httpd_main(void)
 		}
 #endif
 #ifdef POLL
+		if (debug)
+			log(L_DEBUG, "httpd_main: poll(%d) ...", n);
 		rv = poll(pollfds, n, INFTIM);
 #else
+		if (debug)
+			log(L_DEBUG, "httpd_main: select(%d) ...", m + 1);
 		rv = select(m + 1, &rfds, &wfds, 0, 0);
 #endif
-		time(&current_time);
+		current_time = time(0);
+#ifdef POLL
+		if (debug)
+			log(L_DEBUG, "httpd_main: poll() = %d", rv);
+#else
+		if (debug)
+			log(L_DEBUG, "httpd_main: select() = %d", rv);
+#endif
 		if (rv == -1) {
 			if (errno != EINTR) {
 #ifdef POLL
@@ -644,5 +689,5 @@ void httpd_main(void)
 		}
 	}
 	dump();
-	log(L_LOG, "shutting down", my_pid);
+	log(L_LOG, "*** shutting down", my_pid);
 }
