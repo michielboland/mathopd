@@ -103,6 +103,7 @@ static const char c_error_log[] =		"ErrorLog";
 static const char c_error_401_file[] =		"Error401File";
 static const char c_error_404_file[] =		"Error404File";
 static const char c_exact_match[] =		"ExactMatch";
+static const char c_expire_interval[] =		"ExpireInterval";
 static const char c_export[] =			"Export";
 static const char c_external[] =		"External";
 static const char c_extra_headers[] =		"ExtraHeaders";
@@ -539,6 +540,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->extra_headers = b->extra_headers;
 		a->path_info_ok = b->path_info_ok;
 		a->auto_index_command = b->auto_index_command;
+		a->expire_interval = b->expire_interval;
 	} else {
 		a->index_names = 0;
 		a->mimes = 0;
@@ -559,6 +561,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->extra_headers = 0;
 		a->path_info_ok = 1;
 		a->auto_index_command = 0;
+		a->expire_interval = 0;
 	}
 	a->next = *as;
 	*as = a;
@@ -634,6 +637,8 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_flag(p, &a->path_info_ok);
 		else if (!strcasecmp(p->tokbuf, c_auto_index_command))
 			t = config_string(p, &a->auto_index_command);
+		else if (!strcasecmp(p->tokbuf, c_expire_interval))
+			t = config_int(p, &a->expire_interval);
 		else
 			t = e_keyword;
 		if (t)
