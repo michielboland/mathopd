@@ -447,13 +447,16 @@ int exec_cgi(struct request *r)
 		return -1;
 	}
 	cp = malloc(sizeof *cp);
-	if (cp == 0)
+	if (cp == 0) {
+		log_d("exec_cgi: out of memory");
 		return -1;
+	}
 	cp->cgi_envc = 0;
 	cp->cgi_envp = 0;
 	cp->cgi_argc = 0;
 	cp->cgi_argv = 0;
 	if (init_cgi_env(r, cp) == -1) {
+		log_d("exec_cgi: out of memory");
 		destroy_parameters(cp);
 		return -1;
 	}
