@@ -79,17 +79,20 @@ static int add_argv(const char *a, const char *b, int decode)
 		cgi_argv = realloc(cgi_argv, (cgi_argc + 1) * sizeof *cgi_argv);
 	if (cgi_argv == 0)
 		return -1;
-	s = b ? b - a : strlen(a);
-	tmp = malloc(s + 1);
-	if (tmp == 0)
-		return -1;
-	if (decode) {
-		if (unescape_url_n(a, tmp, s))
+	if (a) {
+		s = b ? b - a : strlen(a);
+		tmp = malloc(s + 1);
+		if (tmp == 0)
 			return -1;
-	} else {
-		memcpy(tmp, a, s);
-		tmp[s] = 0;
-	}
+		if (decode) {
+			if (unescape_url_n(a, tmp, s))
+				return -1;
+		} else {
+			memcpy(tmp, a, s);
+			tmp[s] = 0;
+		}
+	} else
+		tmp = 0;
 	cgi_argv[cgi_argc] = tmp;
 	++cgi_argc;
 	return 0;
@@ -182,7 +185,7 @@ static int cgi_error(struct request *r, int code, const char *error)
 	r->error = error;
 	if (prepare_reply(r) != -1) {
 		p = r->cn->output;
-		write(STDOUT_FILENO, p->start, p->end - p->start);
+		write(1, p->start, p->end - p->start);
 	}
 	return -1;
 }
