@@ -1,6 +1,6 @@
 BIN=mathopd
 CC=gcc
-CFLAGS=-O -Wall
+CFLAGS=-O -pipe -Wall
 CPPFLAGS=
 LDFLAGS=
 LDLIBS=-lcrypt
