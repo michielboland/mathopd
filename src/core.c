@@ -514,16 +514,14 @@ void httpd_main(void)
 		}
 		n = 0;
 		s = servers;
-		if (accepting) {
-			while (s) {
-				if (s->fd != -1) {
-					pollfds[n].events = POLLIN;
-					pollfds[n].fd = s->fd;
-					s->pollno = n++;
-				} else
-					s->pollno = -1;
-				s = s->next;
-			}
+		while (s) {
+			if (accepting && s->fd != -1) {
+				pollfds[n].events = POLLIN;
+				pollfds[n].fd = s->fd;
+				s->pollno = n++;
+			} else
+				s->pollno = -1;
+			s = s->next;
 		}
 		cn = connections;
 		while (cn) {
