@@ -77,7 +77,6 @@
 #define INPUT_BUF_SIZE 2048
 #define DEFAULT_NUM_CONNECTIONS 64
 #define DEFAULT_TIMEOUT 60
-#define DEFAULT_PORT 80
 #define DEFAULT_FILEMODE 0666
 #define DEFAULT_UMASK 022
 
@@ -184,7 +183,7 @@ struct control {
 	struct simple_list *locations;
 	struct access *clients;
 	char *admin;
-	int refresh;
+	unsigned long refresh;
 	char *realm;
 	char *userfile;
 	char *error_401_file;
@@ -196,7 +195,7 @@ struct control {
 	struct simple_list *exports;
 	char *script_user;
 	int run_scripts_as_owner;
-	int max_age;
+	unsigned long max_age;
 	struct file_owner *allowed_owners;
 };
 
@@ -220,7 +219,7 @@ struct vserver {
 
 struct server {
 	int fd;
-	int port;
+	unsigned long port;
 	struct in_addr addr;
 	char *s_name;
 	struct virtual *children;
@@ -303,10 +302,10 @@ struct connection {
 };
 
 struct tuning {
-	int buf_size;
-	int input_buf_size;
-	int num_connections;
-	int timeout;
+	unsigned long buf_size;
+	unsigned long input_buf_size;
+	unsigned long num_connections;
+	unsigned long timeout;
 	int accept_multi;
 };
 
@@ -322,7 +321,7 @@ extern volatile int gotsigquit;
 extern int numchildren;
 extern time_t startuptime;
 extern int debug;
-extern int fcm;
+extern unsigned long fcm;
 extern int stayroot;
 extern int my_pid;
 extern int fork_request(struct request *, int (*)(struct request *));
