@@ -82,7 +82,8 @@ void log_request(struct request *r)
 				s = r->user;
 			break;
 		case ML_ADDRESS:
-			s = r->cn->ip;
+			sprintf(tmp, "%s", inet_ntoa(r->cn->peer.sin_addr));
+			s = tmp;
 			break;
 		case ML_PORT:
 			sprintf(tmp, "%hu", ntohs(r->cn->peer.sin_port));
