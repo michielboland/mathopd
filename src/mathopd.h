@@ -98,8 +98,6 @@
 #define DEFAULT_PORT 80
 #define DEFAULT_FILEMODE 0666
 
-#define ERROR_FOOTER "<HR><ADDRESS>Mathopd</ADDRESS>"
-
 #define STRLEN 400
 #define PATHLEN (2 * STRLEN)
 
