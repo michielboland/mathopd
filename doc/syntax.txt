@@ -66,8 +66,6 @@ control-item:
 	"Alias" string
 	"PathArgs" flag
 	"IndexNames" string-block
-	"Access" access-block
-	"Clients" client-block
 	"Types" type-block
 	"Specials" type-block
 	"External" type-block
@@ -91,25 +89,19 @@ control-item:
 	"AutoIndexCommand" string
 
 server-item:
-	"Port" integer
-	"Address" address
+	"Port" string
+	"Address" string
 	"Virtual" virtual-block
 	"Control" control-block
 	"Backlog" integer
+	"Family" family
+	"Options" socket-option-block
 
 virtual-item:
 	"Host" string
 	"NoHost"
 	"Control" control-block
 	"AnyHost"
-
-access-item:
-	"Allow" network
-	"Deny" network
-
-client-item:
-	"Apply" network
-	"NoApply" network
 
 type-item:
 	string string-block
@@ -138,3 +130,10 @@ logformat-item:
 flag:
 	"On"
 	"Off"
+
+family:
+	"inet"
+	"inet6"
+
+socket-option-item:
+	"v6only" flag
