@@ -122,3 +122,5 @@ Time stamps in the log file, including the name of the logfile
 itself, can be set to GMT, rather than the local time.
 
 Mathopd will now rotate log files automatically every hour.
+
+The Redirect specialty has been removed.
