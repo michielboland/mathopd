@@ -41,6 +41,7 @@ static const char rcsid[] = "$Id$";
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <errno.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -572,8 +573,14 @@ static int process_fd(struct request *r)
 	if (fd == -1) {
 		log_d("cannot open %s", r->path_translated);
 		lerror("open");
-		r->error_file = r->c->error_404_file;
-		return 404;
+		switch (errno) {
+		case EMFILE:
+		case ENFILE:
+			return 503;
+		default:
+			r->error_file = r->c->error_404_file;
+			return 404;
+		}
 	}
 	if (fstat(fd, &r->finfo) == -1) {
 		lerror("fstat");
