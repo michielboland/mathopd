@@ -180,6 +180,7 @@ struct control {
 	char *alias;
 	int symlinksok;
 	int loglevel;
+	int path_args_ok;
 	struct simple_list *index_names;
 	struct access *accesses;
 	struct mime *mimes;
