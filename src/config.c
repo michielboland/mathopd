@@ -47,8 +47,8 @@ static const char rcsid[] = "$Id$";
 #include <poll.h>
 #include "mathopd.h"
 
-#ifndef TOKEN_LENGTH
-#define TOKEN_LENGTH 500
+#ifndef TOKEN_LENGTH_INCREMENT
+#define TOKEN_LENGTH_INCREMENT 32
 #endif
 
 struct tuning tuning;
@@ -204,6 +204,8 @@ static const char *gettoken(struct configuration *p)
 	size_t i;
 	char state;
 	const char *t;
+	char *newtokbuf;
+	size_t newtokbufsize;
 
 	i = 0;
 	state = 1;
@@ -288,8 +290,17 @@ static const char *gettoken(struct configuration *p)
 			if (i + 1 < p->size)
 				p->tokbuf[i++] = c;
 			else {
-				state = 0;
-				t = t_too_long;
+				newtokbufsize = p->size + TOKEN_LENGTH_INCREMENT;
+				newtokbuf = realloc(p->tokbuf, newtokbufsize);
+				fprintf(stderr, "realloc(%p, %d) = %p\n", p->tokbuf, newtokbufsize, newtokbuf);
+				if (newtokbuf == 0) {
+					state = 0;
+					t = e_memory;
+				} else {
+					p->size = newtokbufsize;
+					p->tokbuf = newtokbuf;
+					p->tokbuf[i++] = c;
+				}
 			}
 		}
 	} while (state);
@@ -939,7 +950,7 @@ const char *config(const char *config_filename)
 	p = malloc(sizeof *p);
 	if (p == 0)
 		return e_memory;
-	p->size = TOKEN_LENGTH;
+	p->size = TOKEN_LENGTH_INCREMENT;
 	p->tokbuf = malloc(p->size);
 	if (p->tokbuf == 0) {
 		free(p);
