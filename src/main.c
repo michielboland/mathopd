@@ -108,7 +108,7 @@ static void startup_server(struct server *s)
 	if (s->fd == -1)
 		die("socket", 0);
 	onoff = 1;
-	if (setsockopt(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &onoff, sizeof onoff) == -1)
+	if (setsockopt(s->fd, SOL_SOCKET, SO_REUSEADDR, &onoff, sizeof onoff) == -1)
 		die("setsockopt", "cannot set re-use flag");
 	o = s->options;
 	while (o) {
