@@ -113,7 +113,8 @@ enum {
 
 enum {
 	STUB_ERROR_CLIENT = 1,
-	STUB_ERROR_PIPE
+	STUB_ERROR_PIPE,
+	STUB_ERROR_RESTART
 };
 
 struct pool {
@@ -375,6 +376,7 @@ extern char *rfctime(time_t, char *);
 extern void init_request(struct request *);
 extern int process_request(struct request *);
 extern struct control *faketoreal(char *, char *, struct request *, int, int);
+extern int cgi_error(struct request *);
 
 /* imap */
 
