@@ -40,6 +40,7 @@ static const char rcsid[] = "$Id$";
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
@@ -88,6 +89,7 @@ static void init_connection(struct connection *cn)
 	cn->nread = 0;
 	cn->nwritten = 0;
 	cn->left = 0;
+	gettimeofday(&cn->itv, 0);
 }
 
 static void reinit_connection(struct connection *cn)
@@ -336,6 +338,7 @@ static void read_connection(struct connection *cn)
 		case 1:
 			switch (c) {
 			default:
+				gettimeofday(&cn->itv, 0);
 				state = 2;
 			case ' ':
 			case '\t':
