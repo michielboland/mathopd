@@ -246,8 +246,6 @@ static int putstring(struct pool *p, char *s)
 {
 	size_t l;
 
-	if (debug)
-		log_d("D putstring");
 	l = strlen(s);
 	if (p->end + l > p->ceiling) {
 		log_d("no more room to put string!?!?");
@@ -264,8 +262,6 @@ static int output_headers(struct pool *p, struct request *r)
 	char tmp_outbuf[2048], gbuf[40], *b;
 	unsigned long port;
 
-	if (debug)
-		log_d("D output_headers");
 	if (r->cn->assbackwards)
 		return 0;
 	b = tmp_outbuf;
@@ -310,8 +306,6 @@ static char *dirmatch(char *s, char *t)
 {
 	size_t n;
 
-	if (debug)
-		log_d("D dirmatch");
 	n = strlen(t);
 	if (n == 0)
 		return s;
@@ -322,16 +316,12 @@ static char *exactmatch(char *s, char *t)
 {
 	size_t n;
 
-	if (debug)
-		log_d("D exactmatch");
 	n = strlen(t);
 	return !strncmp(s, t, n) && s[n] == '/' && s[n + 1] == 0 ? s + n : 0;
 }
 
 static int evaluate_access(unsigned long ip, struct access *a)
 {
-	if (debug)
-		log_d("D evaluate_access");
 	while (a && ((ip & a->mask) != a->addr))
 		a = a->next;
 	return a ? a->type : ALLOW;
@@ -344,8 +334,6 @@ static int get_mime(struct request *r, const char *s)
 	int saved_class;
 	int l, le, lm;
 
-	if (debug)
-		log_d("D get_mime");
 	saved_type = 0;
 	saved_class = 0;
 	lm = 0;
@@ -381,8 +369,6 @@ static int get_path_info(struct request *r)
 	int rv;
 	size_t m;
 
-	if (debug)
-		log_d("D get_path_info");
 	m = r->location_length;
 	if (m == 0)
 		return -1;
@@ -399,6 +385,8 @@ static int get_path_info(struct request *r)
 		if (cp != end)
 			*cp = 0;
 		rv = stat(p, s);
+		if (debug)
+			log_d("get_path_info: stat(\"%s\") = %d", p, rv);
 		if (cp != end)
 			*cp = '/';
 		if (rv != -1) {
