@@ -34,7 +34,8 @@ config.c:
 	The "Virtual" keyword may now be used in a global context
 	as well.
 
-	The "ScriptTimeout" keyword has been added.
+	The "ScriptTimeout" and "ScriptBufSize" keywords have been
+        added to the Tuning block.
 
 	The "PathInfo" keyword has been added.
 
