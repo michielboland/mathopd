@@ -10,8 +10,17 @@ IPv6 support has been added. It is not clear yet how the Access
 and Clients functionality should be ported. Therefore Access and
 Clients has been temporarily disabled, as well as Error403File.
 
-The 'family' keyword has been added. This sets the address family
-for a particular server. It must be either 'inet' or 'inet6'.
+The following keywords have been added:
 
-The 'options' keyword starts a block that sets various socket
-options for a server. See config.txt for details.
+	ExpireInterval
+	Family
+	Options
+
+The following keywords have been removed:
+
+	Access
+	Allow
+	Apply
+	Clients
+	Deny
+	NoApply
