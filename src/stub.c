@@ -432,7 +432,7 @@ static int readfromclient(struct pipe_params *p)
 		p->imax -= r;
 		break;
 	}
-	return 0;
+	return r;
 }
 
 static int readfromchild(struct pipe_params *p)
@@ -481,7 +481,7 @@ static int readfromchild(struct pipe_params *p)
 		}
 		break;
 	}
-	return 0;
+	return r;
 }
 
 static int writetoclient(struct pipe_params *p)
@@ -518,7 +518,7 @@ static int writetoclient(struct pipe_params *p)
 			p->obp = p->otop = 0;
 		break;
 	}
-	return 0;
+	return r;
 }
 
 static int writetochild(struct pipe_params *p)
@@ -549,7 +549,7 @@ static int writetochild(struct pipe_params *p)
 			p->opp = p->ibp = 0;
 		break;
 	}
-	return 0;
+	return r;
 }
 
 static int scanlflf(struct pipe_params *p)
