@@ -346,15 +346,165 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 	return 0;
 }
 
+static int readfromclient(struct pipe_params *p)
+{
+	size_t bytestoread;
+	ssize_t r;
+
+	bytestoread = p->isize - p->ibp;
+	if (bytestoread > p->imax)
+		bytestoread = p->imax;
+	if (bytestoread == 0) {
+		log_d("readfromclient: bytestoread is zero!");
+		p->error_condition = STUB_ERROR_CLIENT;
+		return -1;
+	}
+	r = recv(p->cfd, p->ibuf + p->ibp, bytestoread, 0);
+	switch (r) {
+	case -1:
+		switch (errno) {
+		default:
+			lerror("readfromclient");
+		case ECONNRESET:
+		case EPIPE:
+			p->error_condition = STUB_ERROR_CLIENT;
+			return -1;
+		case EAGAIN:
+			break;
+		}
+		break;
+	case 0:
+		log_d("readfromclient: client went away while posting data");
+		p->error_condition = STUB_ERROR_CLIENT;
+		return -1;
+	default:
+		p->t = current_time;
+		p->cn->nread += r;
+		p->ibp += r;
+		p->imax -= r;
+		break;
+	}
+	return 0;
+}
+
+static int readfromchild(struct pipe_params *p)
+{
+	size_t bytestoread;
+	ssize_t r;
+
+	bytestoread = p->psize - p->ipp;
+	if (p->haslen && bytestoread > p->pmax)
+		bytestoread = p->pmax;
+	if (bytestoread == 0) {
+		log_d("readfromchild: bytestoread is zero!");
+		p->error_condition = STUB_ERROR_PIPE;
+		return -1;
+	}
+	r = recv(p->pfd, p->pbuf + p->ipp, bytestoread, 0);
+	switch (r) {
+	case -1:
+		switch (errno) {
+		default:
+			lerror("readfromchild");
+		case ECONNRESET:
+		case EPIPE:
+			p->error_condition = STUB_ERROR_PIPE;
+			return -1;
+		case EAGAIN:
+			break;
+		}
+		break;
+	case 0:
+		if (p->state != 2) {
+			log_d("readfromchild: premature end of script headers");
+			p->error_condition = STUB_ERROR_RESTART;
+			return -1;
+		}
+		if (p->haslen) {
+			log_d("readfromchild: script went away (pmax=%d)", p->pmax);
+			p->error_condition = STUB_ERROR_PIPE;
+			return -1;
+		}
+		p->t = current_time;
+		p->pstate = 2;
+		break;
+	default:
+		p->t = current_time;
+		p->ipp += r;
+		if (p->haslen) {
+			p->pmax -= r;
+			if (p->pmax == 0)
+				p->pstate = 2;
+		}
+		break;
+	}
+	return 0;
+}
+
+static int writetoclient(struct pipe_params *p)
+{
+	ssize_t r;
+
+	r = send(p->cfd, p->obuf + p->obp, p->otop - p->obp, 0);
+	switch (r) {
+	case -1:
+		switch (errno) {
+		case EAGAIN:
+			break;
+		default:
+			lerror("pipe_run: error writing to client");
+		case EPIPE:
+		case ECONNRESET:
+			p->error_condition = STUB_ERROR_CLIENT;
+			return -1;
+		}
+		break;
+	default:
+		p->t = current_time;
+		p->cn->nwritten += r;
+		p->obp += r;
+		if (p->obp == p->otop)
+			p->obp = p->otop = 0;
+		break;
+	}
+	return 0;
+}
+
+static int writetochild(struct pipe_params *p)
+{
+	ssize_t r;
+
+	r = send(p->pfd, p->ibuf + p->opp, p->ibp - p->opp, 0);
+	switch (r) {
+	case -1:
+		switch (errno) {
+		case EAGAIN:
+			break;
+		default:
+			lerror("pipe_run: error writing to script");
+		case EPIPE:
+		case ECONNRESET:
+			p->error_condition = STUB_ERROR_PIPE;
+			return -1;
+		}
+		break;
+	default:
+		p->t = current_time;
+		p->opp += r;
+		if (p->opp == p->ibp)
+			p->opp = p->ibp = 0;
+		break;
+	}
+	return 0;
+}
+
 static void pipe_run(struct pipe_params *p)
 {
 	short revents;
 	char c;
-	ssize_t r;
 	size_t room;
 	size_t bytestocopy;
 	int convert_result;
-	size_t bytestoread;
 	char chunkbuf[16];
 	size_t chunkheaderlen;
 	char buf[60];
@@ -373,39 +523,8 @@ static void pipe_run(struct pipe_params *p)
 			return;
 		}
 		if (revents & POLLIN) {
-			bytestoread = p->isize - p->ibp;
-			if (bytestoread > p->imax)
-				bytestoread = p->imax;
-			if (bytestoread == 0) {
-				log_d("pipe_run: nothing to read from client!");
-				p->error_condition = STUB_ERROR_CLIENT;
+			if (readfromclient(p) == -1)
 				return;
-			}
-			r = recv(p->cfd, p->ibuf + p->ibp, bytestoread, 0);
-			switch (r) {
-			case -1:
-				switch (errno) {
-				default:
-					lerror("pipe_run: error reading from client");
-				case ECONNRESET:
-				case EPIPE:
-					p->error_condition = STUB_ERROR_CLIENT;
-					return;
-				case EAGAIN:
-					break;
-				}
-				break;
-			case 0:
-				log_d("pipe_run: client went away while posting data");
-				p->error_condition = STUB_ERROR_CLIENT;
-				return;
-			default:
-				p->t = current_time;
-				p->cn->nread += r;
-				p->ibp += r;
-				p->imax -= r;
-				break;
-			}
 		}
 	}
 	if (p->ppollno != -1) {
@@ -421,52 +540,8 @@ static void pipe_run(struct pipe_params *p)
 			return;
 		}
 		if (revents & POLLIN) {
-			bytestoread = p->psize - p->ipp;
-			if (p->haslen && bytestoread > p->pmax)
-				bytestoread = p->pmax;
-			if (bytestoread == 0) {
-				log_d("pipe_run: nothing to read from pipe");
-				p->error_condition = STUB_ERROR_PIPE;
+			if (readfromchild(p) == -1)
 				return;
-			}
-			r = recv(p->pfd, p->pbuf + p->ipp, bytestoread, 0);
-			switch (r) {
-			case -1:
-				switch (errno) {
-				default:
-					lerror("pipe_run: error reading from script");
-				case ECONNRESET:
-				case EPIPE:
-					p->error_condition = STUB_ERROR_PIPE;
-					return;
-				case EAGAIN:
-					break;
-				}
-				break;
-			case 0:
-				if (p->state != 2) {
-					log_d("pipe_run: premature end of script headers");
-					p->error_condition = STUB_ERROR_RESTART;
-					return;
-				}
-				if (p->haslen) {
-					log_d("pipe_run: script went away");
-					p->error_condition = STUB_ERROR_PIPE;
-					return;
-				}
-				p->t = current_time;
-				p->pstate = 2;
-				break;
-			default:
-				p->t = current_time;
-				p->ipp += r;
-				if (p->haslen) {
-					p->pmax -= r;
-					if (p->pmax == 0)
-						p->pstate = 2;
-				}
-				break;
-			}
 		}
 	}
 	if (p->ipp && p->state != 2) {
@@ -561,51 +636,12 @@ static void pipe_run(struct pipe_params *p)
 			p->pstate = 3;
 	}
 	if (p->otop > p->obp) {
-		r = send(p->cfd, p->obuf + p->obp, p->otop - p->obp, 0);
-		switch (r) {
-		case -1:
-			switch (errno) {
-			case EAGAIN:
-				break;
-			default:
-				lerror("pipe_run: error writing to client");
-			case EPIPE:
-			case ECONNRESET:
-				p->error_condition = STUB_ERROR_CLIENT;
-				return;
-			}
-			break;
-		default:
-			p->t = current_time;
-			p->cn->nwritten += r;
-			p->obp += r;
-			if (p->obp == p->otop)
-				p->obp = p->otop = 0;
-			break;
-		}
+		if (writetoclient(p) == -1)
+			return;
 	}
 	if (p->ibp > p->opp) {
-		r = send(p->pfd, p->ibuf + p->opp, p->ibp - p->opp, 0);
-		switch (r) {
-		case -1:
-			switch (errno) {
-			case EAGAIN:
-				break;
-			default:
-				lerror("pipe_run: error writing to script");
-			case EPIPE:
-			case ECONNRESET:
-				p->error_condition = STUB_ERROR_PIPE;
-				return;
-			}
-			break;
-		default:
-			p->t = current_time;
-			p->opp += r;
-			if (p->opp == p->ibp)
-				p->opp = p->ibp = 0;
-			break;
-		}
+		if (writetochild(p) == -1)
+			return;
 	}
 }
 
