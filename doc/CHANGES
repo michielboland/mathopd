@@ -83,6 +83,10 @@ request.c:
 	other than 'chunked'. If Content-Length is sent in addition to
 	Transfer-Encoding, ignore the content-length.
 
+	Return 411 error for POST requests without Content-Length.
+	(Thus for the time being we refuse POST requests with a chunked
+	message body.)
+
 stub.c:
 
 	New file. This file is imported from the phpstub program. This
