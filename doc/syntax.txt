@@ -58,6 +58,7 @@ tuning-item:
 	"NumHeaders" integer
 	"ScriptTimeout" integer
 	"ScriptBufSize" integer
+	"ScriptLoWat" integer
 
 control-item:
 	"Location" string
