@@ -297,6 +297,7 @@ static int accept_connection(struct server *s)
 	return 0;
 }
 
+#if ! (defined LINUX_SENDFILE || defined FREEBSD_SENDFILE)
 static int fill_connection(struct connection *cn)
 {
 	struct pool *p;
@@ -305,13 +306,7 @@ static int fill_connection(struct connection *cn)
 
 	if (cn->rfd == -1)
 		return 0;
-#if defined LINUX_SENDFILE || defined FREEBSD_SENDFILE
-	if (set_nopush(cn->fd, 1) == -1) {
-		lerror("set_nopush");
-		return -1;
-	}
-	return 0;
-#endif
+
 	p = &cn->output;
 	poolleft = p->ceiling - p->end;
 	fileleft = cn->left;
@@ -333,6 +328,7 @@ static int fill_connection(struct connection *cn)
 	cn->file_offset += n;
 	return n;
 }
+#endif
 
 static void end_request(struct connection *cn)
 {
@@ -589,10 +585,19 @@ static int scan_request(struct connection *cn)
 			return 0;
 		}
 		cn->left = cn->rfd == -1 ? 0 : cn->r->content_length;
+#if defined LINUX_SENDFILE || defined FREEBSD_SENDFILE
+		if (cn->rfd != -1)
+			if (set_nopush(cn->fd, 1) == -1) {
+				lerror("set_nopush");
+				close_connection(cn);
+				return -1;
+			}
+#else
 		if (fill_connection(cn) == -1) {
 			close_connection(cn);
 			return -1;
 		}
+#endif
 		set_connection_state(cn, HC_WRITING);
 	}
 	return 0;
