@@ -474,7 +474,7 @@ static int process_special(struct request *r)
 
 static int process_fd(struct request *r)
 {
-	int fd, rv;
+	int fd;
 
 	if (r->path_args[0] && r->c->path_args_ok == 0 && (r->path_args[1] || r->isindex == 0)) {
 		r->error_file = r->c->error_404_file;
@@ -482,29 +482,45 @@ static int process_fd(struct request *r)
 	}
 	if (r->method == M_POST)
 		return 405;
+	fd = open(r->path_translated, O_RDONLY | O_NONBLOCK);
+	if (fd == -1) {
+		log_d("cannot open %s", r->path_translated);
+		lerror("open");
+		r->error_file = r->c->error_404_file;
+		return 404;
+	}
+	if (fstat(fd, &r->finfo) == -1) {
+		lerror("fstat");
+		close(fd);
+		return 500;
+	}
+	if (!S_ISREG(r->finfo.st_mode)) {
+		log_d("process_fd: non-regular file %s", r->path_translated);
+		close(fd);
+		r->error_file = r->c->error_404_file;
+		return 404;
+	}
+/*
+ * XXX: do more sanity checks here
+ */
 	r->content_length = r->finfo.st_size;
 	r->last_modified = r->finfo.st_mtime;
 	if (r->last_modified <= r->ims) {
+		close(fd);
 		r->num_content = -1;
 		return 304;
 	}
 	if (r->method == M_GET) {
-		fd = open(r->path_translated, O_RDONLY);
-		if (fd == -1) {
-			log_d("cannot open %s", r->path_translated);
-			lerror("open");
-			r->error_file = r->c->error_404_file;
-			return 404;
-		}
-		rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
+		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		r->cn->rfd = fd;
-	}
+	} else
+		close(fd);
 	return 200;
 }
 
 static int add_fd(struct request *r, const char *filename)
 {
-	int fd, rv;
+	int fd;
 	struct stat s;
 
 	if (filename == 0)
@@ -514,13 +530,17 @@ static int add_fd(struct request *r, const char *filename)
 	fd = open(filename, O_RDONLY);
 	if (fd == -1)
 		return -1;
-	rv = fstat(fd, &s);
-	if (!S_ISREG(s.st_mode)) {
-		log_d("non-plain file %s", filename);
-		rv = close(fd);
+	if (fstat(fd, &s) == -1) {
+		lerror("fstat");
+		close(fd);
 		return -1;
 	}
-	rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
+	if (!S_ISREG(s.st_mode)) {
+		log_d("non-plain file %s", filename);
+		close(fd);
+		return -1;
+	}
+	fcntl(fd, F_SETFD, FD_CLOEXEC);
 	r->cn->rfd = fd;
 	r->content_length = s.st_size;
 	return 0;
@@ -893,7 +913,7 @@ int prepare_reply(struct request *r)
 		break;
 	}
 	if (r->error_file) {
-		if (add_fd(r, r->error_file) != -1)
+		if (send_message && add_fd(r, r->error_file) != -1)
 			send_message = 0;
 	}
 	if (send_message) {
