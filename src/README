@@ -11,4 +11,13 @@ We are currently at 1.3b9. Changes to the last beta:
 	to denote a virtual host that is used when no Host:
 	header is sent by the client.
 
+To-Do:
+
+	Handle and send 'chunked' data.
+	Get rid of MSG_PEEK hack.
+	Keep track of data sent and received via children.
+	Pass all HTTP headers to children, combining multiple
+	headers (e.g. Cookie) if necessary.
+	Do CGI properly.
+
 Michiel Boland <boland@diva.nl>
