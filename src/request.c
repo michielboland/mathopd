@@ -212,7 +212,7 @@ static char *getline(struct pool *p, int fold)
 	char *s, *olds, *sp, *end;
 	int f;
 
-	end = p->end;
+	end = p->middle;
 	s = p->start;
 	if (s >= end)
 		return 0;
