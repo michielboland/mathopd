@@ -14,12 +14,7 @@
  *      disclaimer in the documentation and/or other materials
  *      provided with the distribution.
  *
- *   3. All advertising materials mentioning features or use of
- *      this software must display the following acknowledgement:
- *
- *   This product includes software developed by Michiel Boland.
- *
- *   4. The name of the author may not be used to endorse or promote
+ *   3. The name of the author may not be used to endorse or promote
  *      products derived from this software without specific prior
  *      written permission.
  *
@@ -36,6 +31,8 @@
  *   IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *   THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+/* Mysterons */
 
 #include "mathopd.h"
 
