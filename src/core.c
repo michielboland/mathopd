@@ -637,7 +637,7 @@ void httpd_main(void)
 	while (gotsigterm == 0) {
 		if (gotsighup) {
 			gotsighup = 0;
-			init_logs();
+			init_logs(0);
 			if (debug)
 				log_d("logs reopened");
 		}
@@ -689,7 +689,7 @@ void httpd_main(void)
 			last_time = current_time;
 			if (current_time / 3600 != hours) {
 				hours = current_time / 3600;
-				init_logs();
+				init_logs(0);
 				if (debug)
 					log_d("logs rotated");
 			}

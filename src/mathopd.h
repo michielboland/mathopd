@@ -421,7 +421,7 @@ extern void sanitize_host(char *);
 extern int init_log_buffer(size_t);
 extern void log_request(struct request *);
 extern int open_log(const char *);
-extern int init_logs(void);
+extern int init_logs(int);
 extern void log_d(const char *, ...);
 extern void lerror(const char *);
 

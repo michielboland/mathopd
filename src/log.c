@@ -54,6 +54,7 @@ static const char rcsid[] = "$Id$";
 
 static int log_fd = -1;
 static int error_fd = -1;
+static int tee_fd = -1;
 static char *log_buffer;
 static size_t log_buffer_size;
 
@@ -241,8 +242,13 @@ static int init_log_d(char *name, int *fdp)
 	return 0;
 }
 
-int init_logs(void)
+int init_logs(int tee)
 {
+	if (tee && tee_fd == -1) {
+		tee_fd = dup(2);
+		if (tee_fd == -1)
+			return -1;
+	}
 	return init_log_d(error_filename, &error_fd) == -1 || init_log_d(log_filename, &log_fd) == -1 ? -1 : 0;
 }
 
@@ -255,7 +261,7 @@ void log_d(const char *fmt, ...)
 	size_t l;
 	struct tm *tp;
 
-	if (error_fd == -1)
+	if (error_fd == -1 && tee_fd == -1)
 		return;
 	va_start(ap, fmt);
 	saved_errno = errno;
@@ -271,6 +277,10 @@ void log_d(const char *fmt, ...)
 	log_line[l++] = '\n';
 	if (error_fd != -1 && write(error_fd, log_line, l) == -1)
 		gotsigterm = 1;
+	if (tee_fd != -1 && write(tee_fd, log_line, l) == -1) {
+		close(tee_fd);
+		tee_fd = -1;
+	}
 	errno = saved_errno;
 	va_end(ap);
 }

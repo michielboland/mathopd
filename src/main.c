@@ -147,7 +147,7 @@ static void sighandler(int sig)
 
 int main(int argc, char *argv[])
 {
-	int c, i, n, version, pid_fd, null_fd;
+	int c, i, n, version, pid_fd, null_fd, tee;
 	struct server *s;
 	char buf[10];
 	struct rlimit rl;
@@ -159,7 +159,8 @@ int main(int argc, char *argv[])
 	am_daemon = 1;
 	version = 0;
 	config_filename = 0;
-	while ((c = getopt(argc, argv, "ndvf:")) != EOF) {
+	tee = 0;
+	while ((c = getopt(argc, argv, "ndvf:t")) != EOF) {
 		switch(c) {
 		case 'n':
 			am_daemon = 0;
@@ -176,8 +177,11 @@ int main(int argc, char *argv[])
 			else
 				die(0, "You may not specify more than one configuration file.");
 			break;
+		case 't':
+			tee = 1;
+			break;
 		default:
-			die(0, "usage: %s [ -ndv ] [ -f configuration_file ]", progname);
+			die(0, "usage: %s [ -ndvt ] [ -f configuration_file ]", progname);
 			break;
 		}
 	}
@@ -249,7 +253,7 @@ int main(int argc, char *argv[])
 			die("open", "Cannot open PID file");
 	} else
 		pid_fd = -1;
-	if (init_logs() == -1)
+	if (init_logs(tee) == -1)
 		die("open", "Cannot open log files");
 	if (am_daemon) {
 		dup2(null_fd, 0);
