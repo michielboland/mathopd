@@ -729,18 +729,52 @@ static const char *config_sockopts(struct configuration *p, struct server_sockop
 	struct server_sockopts *s;
 	const char *t;
 	int l, n, o, *op;
+	unsigned long u;
+	enum {
+		SO_FLAG,
+		SO_INT,
+	} what;
 
 	if ((t = gettoken(p)) != t_open)
 		return t;
 	while ((t = gettoken(p)) != t_close) {
+#ifdef SO_RCVBUF
+		if (!strcasecmp(p->tokbuf, "rcvbuf")) {
+			l = SOL_SOCKET;
+			n = SO_RCVBUF;
+			what = SO_INT;
+		} else
+#endif
+#ifdef SO_SNDBUF
+		if (!strcasecmp(p->tokbuf, "sndbuf")) {
+			l = SOL_SOCKET;
+			n = SO_SNDBUF;
+			what = SO_INT;
+		} else
+#endif
+#ifdef SO_KEEPALIVE
+		if (!strcasecmp(p->tokbuf, "keepalive")) {
+			l = SOL_SOCKET;
+			n = SO_KEEPALIVE;
+			what = SO_FLAG;
+		} else
+#endif
 #ifdef IPV6_V6ONLY
 		if (!strcasecmp(p->tokbuf, "v6only")) {
 			l = IPPROTO_IPV6;
 			n = IPV6_V6ONLY;
+			what = SO_FLAG;
 		} else
 #endif
 			return "unknown socket option";
-		t = config_flag(p, &o);
+		switch (what) {
+		case SO_FLAG:
+			t = config_flag(p, &o);
+			break;
+		case SO_INT:
+			t = config_int(p, &u);
+			break;
+		}
 		if (t)
 			return t;
 		s = malloc(sizeof *s);
@@ -749,7 +783,14 @@ static const char *config_sockopts(struct configuration *p, struct server_sockop
 		op = malloc(sizeof *op);
 		if (op == 0)
 			return e_memory;
-		*op = o;
+		switch (what) {
+		case SO_FLAG:
+			*op = o;
+			break;
+		case SO_INT:
+			*op = (int) u;
+			break;
+		}
 		s->ss_level = l;
 		s->ss_optname = n;
 		s->ss_optval = op;
