@@ -332,12 +332,13 @@ static int assign_rfd(struct request *r, int fd)
 	}
 	close_rfd(r);
 	r->cn->rfd = fd;
+	return 0;
 }
 
 static int get_path_info(struct request *r)
 {
 	char *p, *pa, *end, *cp, *start, *cds;
-	int fd, rv, first;
+	int fd, first;
 	size_t m;
 
 	m = r->location_length;
@@ -466,7 +467,7 @@ static int append_indexes(struct request *r)
 {
 	char *p, *q;
 	struct simple_list *i;
-	int fd, rv;
+	int fd;
 
 	p = r->path_translated;
 	q = p + strlen(p);
