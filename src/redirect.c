@@ -37,38 +37,41 @@
 
 static const char rcsid[] = "$Id$";
 
-#include <stdio.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <string.h>
 #include "mathopd.h"
 
 int process_redirect(struct request *r)
 {
-	char buf[STRLEN];
 	char *c;
-	FILE *fp;
+	int fd;
+	ssize_t l;
 
 	if (r->method != M_GET && r->method != M_HEAD)
 		return 405;
-	fp = fopen(r->path_translated, "r");
-	if (fp == 0) {
-		log_d("cannot open redirect file %s", r->path_translated);
-		lerror("fopen");
+	fd = open(r->path_translated, O_RDONLY | O_NONBLOCK);
+	if (fd == -1) {
+		log_d("process_redirect: cannot open %s", r->path_translated);
+		lerror("open");
 		return 500;
 	}
-	if (fgets(buf, STRLEN, fp) == 0) {
-		fclose(fp);
-		log_d("failed to read from redirect file");
+	l = read(fd, r->newloc, PATHLEN - 1);
+	if (l == -1) {
+		log_d("process_redirect: cannot read %s", r->path_translated);
+		lerror("read");
+		close(fd);
 		return 500;
 	}
-	fclose(fp);
-	c = strchr(buf, '\n');
-	if (c)
-		*c = 0;
-	else {
-		log_d("redirect url too long");
+	r->newloc[l] = 0;
+	close(fd);
+	c = strchr(r->newloc, '\n');
+	if (c == 0) {
+		log_d("process_redirect: no newline in %s", r->path_translated);
 		return 500;
 	}
-	escape_url(buf, r->newloc);
+	*c = 0;
 	r->location = r->newloc;
 	return 302;
 }
