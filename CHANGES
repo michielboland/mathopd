@@ -78,9 +78,6 @@ files rather than mathopd.h.
 
 Added REMOTE_USER CGI variable.
 
-Added check for file descriptors greater then FD_SETSIZE
-if select() is used.
-
 Modified get_path_info to not search path the beginning
 of the assigned server directory.
 
@@ -105,3 +102,5 @@ character would be converted to '%3f'.
 
 The server now emits an error message if it cannot open
 any log files.
+
+Support for select() has been removed in favour of poll().
