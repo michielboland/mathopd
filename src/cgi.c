@@ -42,7 +42,6 @@ static int add_argv(const char *a)
 
 static int make_cgi_envp(struct request *r)
 {
-	struct server *sv = r->cn->s;
 	char t[16];
 	struct simple_list *e = exports;
 	unsigned long ia;
@@ -59,7 +58,7 @@ static int make_cgi_envp(struct request *r)
 
 	cgi_envc = 0;
 	cgi_envp = 0;
-	sprintf(t, "%d", sv->port);
+	sprintf(t, "%d", r->cn->s->port);
 	addr = r->cn->ip;
 	ia = r->cn->peer.sin_addr.s_addr;
 
@@ -84,7 +83,8 @@ static int make_cgi_envp(struct request *r)
 	}
 	ADD("REQUEST_METHOD", r->method_s);
 	ADD("SCRIPT_NAME", r->path);
-	ADD("SERVER_NAME", r->vs->host ? r->vs->host : sv->name);
+	ADD("SERVER_NAME", r->servername);
+	ADD("SERVER_ADDR", r->iphost); /* non-standard */
 	ADD("SERVER_PORT", t);
 	ADD("SERVER_SOFTWARE", server_version);
 
