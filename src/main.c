@@ -173,8 +173,6 @@ int main(int argc, char *argv[])
 	if (getrlimit(RLIMIT_NOFILE, &rl) == -1)
 		die("getrlimit", 0);
 	n = rl.rlim_cur = rl.rlim_max;
-	if (debug)
-		fprintf(stderr, "Number of fds available: %d\n", n);
 	setrlimit(RLIMIT_NOFILE, &rl);
 	for (i = 3; i < n; i++)
 		close(i);
@@ -295,8 +293,6 @@ int fork_request(struct request *r, int (*f)(struct request *))
 			efd = fd;
 		else {
 			efd = open(child_filename, O_WRONLY | O_CREAT | O_APPEND, DEFAULT_FILEMODE);
-			if (debug)
-				log_d("fork_request: open(\"%s\", ...) = %d", child_filename, efd);
 			if (efd == -1) {
 				log_d("cannot open child log %s", child_filename);
 				lerror("open");
@@ -304,36 +300,18 @@ int fork_request(struct request *r, int (*f)(struct request *))
 			}
 		}
 		rv = dup2(fd, 0);
-		if (debug)
-			log_d("fork_request: dup2(%d, 0) = %d", fd, rv);
 		rv = dup2(fd, 1);
-		if (debug)
-			log_d("fork_request: dup2(%d, 1) = %d", fd, rv);
 		rv = dup2(efd, 2);
-		if (debug)
-			log_d("fork_request: dup2(%d, 2) = %d", efd, rv);
 		rv = fcntl(0, F_SETFL, 0);
-		if (debug)
-			log_d("fork_request: fcntl(0, F_SETFL, 0) = %d", rv);
 		rv = fcntl(1, F_SETFL, 0);
-		if (debug)
-			log_d("fork_request: fcntl(1, F_SETFL, 0) = %d", rv);
 		if (efd == fd) {
 			rv = fcntl(2, F_SETFL, 0);
-			if (debug)
-				log_d("fork_request: fcntl(2, F_SETFL, 0) = %d", rv);
 		}
 		rv = close(fd);
-		if (debug)
-			log_d("fork_request: close(%d) = %d", fd, rv);
 		if (efd != fd) {
 			rv = close(efd);
-			if (debug)
-				log_d("fork_request: close(%d) = %d", efd, rv);
 		}
 		rv = f(r);
-		if (debug)
-			log_d("fork_request: _exit(%d)", rv);
 		_exit(rv);
 		break;
 	case -1:
