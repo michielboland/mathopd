@@ -908,14 +908,15 @@ static struct pool *new_pool(size_t s)
 	struct pool *p;
 
 	p = malloc(sizeof *p);
-	if (p) {
-		t = malloc(s);
-		if (t) {
-			p->floor = t;
-			p->ceiling = t + s;
-		} else
-			return 0;
+	if (p == 0)
+		return 0;
+	t = malloc(s);
+	if (t == 0) {
+		free(p);
+		return 0;
 	}
+	p->floor = t;
+	p->ceiling = t + s;
 	return p;
 }
 
