@@ -385,8 +385,6 @@ static int get_path_info(struct request *r)
 		if (cp != end)
 			*cp = 0;
 		rv = stat(p, s);
-		if (debug)
-			log_d("get_path_info: stat(\"%s\") = %d", p, rv);
 		if (cp != end)
 			*cp = '/';
 		if (rv != -1) {
@@ -414,8 +412,6 @@ static int check_path(struct request *r)
 		s_forbidden,
 	} s;
 
-	if (debug)
-		log_d("D check_path");
 	p = r->path;
 	s = s_normal;
 	do {
@@ -459,8 +455,6 @@ static int makedir(struct request *r)
 {
 	char *buf, *e;
 
-	if (debug)
-		log_d("D makedir");
 	buf = r->newloc;
 	strcpy(buf, r->url);
 	e = buf + strlen(buf);
@@ -475,8 +469,6 @@ static int append_indexes(struct request *r)
 	char *p, *q;
 	struct simple_list *i;
 
-	if (debug)
-		log_d("D append_indexes");
 	p = r->path_translated;
 	q = p + strlen(p);
 	r->isindex = 1;
@@ -497,8 +489,6 @@ static int append_indexes(struct request *r)
 
 static int process_external(struct request *r)
 {
-	if (debug)
-		log_d("D process_external");
 	r->num_content = -1;
 	return process_cgi(r);
 }
@@ -507,8 +497,6 @@ static int process_special(struct request *r)
 {
 	const char *ct;
 
-	if (debug)
-		log_d("D process_special");
 	ct = r->content_type;
 	r->num_content = -1;
 	if (!strcasecmp(ct, CGI_MAGIC_TYPE))
@@ -527,8 +515,6 @@ static int process_fd(struct request *r)
 {
 	int fd;
 
-	if (debug)
-		log_d("D process_fd");
 	if (r->path_args[0] && r->c->path_args_ok == 0 && (r->path_args[1] || r->isindex == 0)) {
 		r->error_file = r->c->error_404_file;
 		return 404;
@@ -573,8 +559,6 @@ static int add_fd(struct request *r, const char *filename)
 	int fd;
 	struct stat s;
 
-	if (debug)
-		log_d("D add_fd");
 	if (filename == 0)
 		return -1;
 	if (get_mime(r, filename) == -1)
@@ -602,8 +586,6 @@ static int hostmatch(const char *s, const char *t)
 {
 	size_t l;
 
-	if (debug)
-		log_d("D hostmatch");
 	l = strlen(t);
 	if (strncasecmp(s, t, l))
 		return 0;
@@ -622,8 +604,6 @@ static int find_vs(struct request *r)
 {
 	struct virtual *v, *d;
 
-	if (debug)
-		log_d("D find_vs");
 	d = 0;
 	v = r->cn->s->children;
 	if (r->host)
@@ -663,8 +643,6 @@ static int check_realm(struct request *r)
 {
 	char *a;
 
-	if (debug)
-		log_d("D check_realm");
 	if (r == 0 || r->c == 0 || r->c->realm == 0 || r->c->userfile == 0)
 		return 0;
 	a = r->authorization;
@@ -686,8 +664,6 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 	struct control *c;
 	char *s;
 
-	if (debug)
-		log_d("D faketoreal");
 	if (r->vs == 0) {
 		log_d("virtualhost not initialized!");
 		return 0;
@@ -718,8 +694,6 @@ static int process_path(struct request *r)
 {
 	int rv;
 
-	if (debug)
-		log_d("D process_path");
 	switch (find_vs(r)) {
 	case -1:
 		return 500;
@@ -783,8 +757,6 @@ static int process_headers(struct request *r)
 	unsigned long x, y;
 	time_t i;
 
-	if (debug)
-		log_d("D process_headers");
 	while (1) {
 		l = getline(r->cn->input);
 		if (l == 0) {
@@ -931,8 +903,6 @@ int prepare_reply(struct request *r)
 	char *b, buf[PATHLEN];
 	int send_message;
 
-	if (debug)
-		log_d("D prepare_reply");
 	send_message = r->method != M_HEAD;
 	if (r->status >= 400)
 		r->last_modified = 0;
@@ -1029,8 +999,6 @@ int prepare_reply(struct request *r)
 
 static void init_request(struct request *r)
 {
-	if (debug)
-		log_d("D init_request");
 	r->vs = 0;
 	r->user_agent = 0;
 	r->referer = 0;
@@ -1071,8 +1039,6 @@ static void init_request(struct request *r)
 
 int process_request(struct request *r)
 {
-	if (debug)
-		log_d("D process_request");
 	init_request(r);
 	if ((r->status = process_headers(r)) == 0)
 		r->status = process_path(r);
