@@ -359,6 +359,7 @@ extern int numchildren;
 extern int debug;
 extern unsigned long fcm;
 extern int stayroot;
+extern int amroot;
 extern int my_pid;
 extern pid_t spawn(const char *, char *const[], char *const[], int, int, uid_t, gid_t, const char *);
 

@@ -67,6 +67,7 @@ int numchildren;
 int debug;
 unsigned long fcm; /* should be mode_t */
 int stayroot;
+int amroot;
 int my_pid;
 
 static int am_daemon;
@@ -236,6 +237,7 @@ int main(int argc, char *argv[])
 		if (stayroot) {
 			if (seteuid(server_uid) == -1)
 				die("seteuid", 0);
+			amroot = 1;
 		} else {
 			if (setuid(server_uid) == -1)
 				die("setuid", 0);
