@@ -763,6 +763,8 @@ static int childisfinished(struct pipe_params *p)
 		return 0;
 	if (p->otop)
 		return 0;
+	if (p->ipp)
+		return 0;
 	if (p->istate == 1 && p->imax)
 		return 0;
 	return 1;
