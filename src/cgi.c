@@ -192,18 +192,23 @@ static int cgi_error(struct request *r, int code, const char *error)
 
 static int init_cgi_env(struct request *r)
 {
-	char *dir, *base;
+	char *p, *b;
+	int rv;
 
-	dir = r->path_translated;
-	base = strrchr(dir, '/');
-	if (base == '\0')
+	p = r->path_translated;
+	b = strrchr(p, '/');
+	if (b == '\0')
 		return -1;
-	*base++ = '\0';
+	*b = '\0';
+	rv = chdir(p);
+	if (debug)
+		log_d("chdir(\"%s\") = %d", p, rv);
+	*b = '/';
+	if (rv == -1)
+		return -1;
 	if (make_cgi_envp(r) == -1)
 		return -1;
-	if (make_cgi_argv(r, base) == -1)
-		return -1;
-	if (chdir(dir) == -1)
+	if (make_cgi_argv(r, p) == -1)
 		return -1;
 	return 0;
 }
@@ -212,6 +217,7 @@ static int exec_cgi(struct request *r)
 {
 	if (init_cgi_env(r) == -1)
 		return cgi_error(r, 500, "could not initialize CGI environment");
+	log_d("executing %s", cgi_argv[0]);
 	if (execve(cgi_argv[0], (char **) cgi_argv, cgi_envp) == -1) {
 		log_d("could not execute %s", cgi_argv[0]);
 		lerror("execve");
