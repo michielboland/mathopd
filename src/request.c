@@ -1372,6 +1372,7 @@ static int prepare_reply(struct request *r)
 	struct simple_list *h;
 	const char *status_line;
 	char *cl_start, *cl_end;
+	time_t et;
 
 	if (r->forked)
 		return 0;
@@ -1441,10 +1442,16 @@ static int prepare_reply(struct request *r)
 	} else if (r->protocol_minor)
 		if (pool_print(p, "Connection: close\r\n") == -1)
 			return -1;
-	if (r->c && r->status == 200)
+	if (r->c && r->status == 200) {
+		if (r->c->expire_interval) {
+			et = current_time + r->c->expire_interval;
+			if (pool_print(p, "Expires: %s\r\n", rfctime(et, gbuf)) == -1)
+				return -1;
+		}
 		for (h = r->c->extra_headers; h; h = h->next)
 			if (pool_print(p, "%s\r\n", h->name) == -1)
 				return -1;
+	}
 	if (pool_print(p, "\r\n") == -1)
 		return -1;
 	p->middle = p->end;
