@@ -314,14 +314,10 @@ static int fill_connection(struct connection *cn)
 	p = &cn->output;
 	poolleft = p->ceiling - p->end;
 	fileleft = cn->left;
-	if (debug)
-		log_d("fileleft = %d", fileleft);
 	n = fileleft > poolleft ? poolleft : (int) fileleft;
 	if (n <= 0)
 		return 0;
 	cn->left -= n;
-	if (debug)
-		log_d("left decreased to %d", cn->left);
 	m = read(cn->rfd, p->end, n);
 	if (debug)
 		log_d("fill_connection: %d %d %d %d", cn->rfd, p->end - p->floor, n, m);
@@ -568,8 +564,6 @@ static int scan_request(struct connection *cn)
 			return 0;
 		}
 		cn->left = cn->rfd == -1 ? 0 : cn->r->content_length;
-		if (debug)
-			log_d("initial left: %d", cn->left);
 		if (fill_connection(cn) == -1) {
 			close_connection(cn);
 			return -1;
@@ -792,22 +786,22 @@ static void dump_pollfds(int n, int r)
 	char *buf, *b;
 	int i;
 
-	buf = malloc(6 * n + 10);
+	buf = malloc(5 * n + 10);
 	if (buf == 0)
 		return;
 	if (r == 0) {
 		b = buf + sprintf(buf, "fds:     ");
 		for (i = 0; i < n; i++)
-			b += sprintf(b, " %5d", pollfds[i].fd);
+			b += sprintf(b, " %4d", pollfds[i].fd);
 		log_d(buf);
 		b = buf + sprintf(buf, "events:  ");
 		for (i = 0; i < n; i++)
-			b += sprintf(b, " %5hd", pollfds[i].events);
+			b += sprintf(b, " %4hd", pollfds[i].events);
 		log_d(buf);
 	} else {
 		b = buf + sprintf(buf, "revents: ");
 		for (i = 0; i < n; i++)
-			b += sprintf(b, " %5hd", pollfds[i].revents);
+			b += sprintf(b, " %4hd", pollfds[i].revents);
 		log_d(buf);
 	}
 	free(buf);
