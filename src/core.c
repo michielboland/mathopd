@@ -237,17 +237,11 @@ static void close_connections(void)
 
 static struct connection *find_connection(void)
 {
-	struct connection *c;
-
 	if (free_connections.head)
 		return free_connections.head;
-	if (waiting_connections.tail == 0)
-		return 0;
-	c = waiting_connections.tail;
-	if (debug)
-		log_d("clobbering connection to %s[%hu]", inet_ntoa(c->peer.sin_addr), ntohs(c->peer.sin_port));
-	close_connection(c);
-	return c;
+	if (tuning.clobber)
+		return waiting_connections.tail;
+	return 0;
 }
 
 static int accept_connection(struct server *s)
@@ -258,7 +252,8 @@ static int accept_connection(struct server *s)
 	struct connection *cn;
 
 	do {
-		if (free_connections.head == 0 && waiting_connections.head == 0)
+		cn = find_connection();
+		if (cn == 0)
 			return 0;
 		l = sizeof sa_remote;
 		fd = accept(s->fd, (struct sockaddr *) &sa_remote, &l);
@@ -279,26 +274,25 @@ static int accept_connection(struct server *s)
 			close(fd);
 			break;
 		}
-		cn = find_connection();
-		if (cn == 0) {
-			log_d("connection to %s[%hu] dropped", inet_ntoa(sa_remote.sin_addr), ntohs(sa_remote.sin_port));
-			close(fd);
-		} else {
-			cn->s = s;
-			cn->fd = fd;
-			cn->rfd = -1;
-			cn->peer = sa_remote;
-			cn->sock = sa_local;
-			cn->t = current_time;
-			cn->pollno = -1;
-			++stats.nconnections;
-			if (stats.nconnections > stats.maxconnections)
-				stats.maxconnections = stats.nconnections;
-			init_connection(cn);
-			cn->logged = 0;
-			cn->header_input.start = cn->header_input.middle = cn->header_input.end = cn->header_input.floor;
-			set_connection_state(cn, HC_WAITING);
+		if (cn->connection_state != HC_FREE) {
+			if (debug)
+				log_d("clobbering connection to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
+			close_connection(cn);
 		}
+		cn->s = s;
+		cn->fd = fd;
+		cn->rfd = -1;
+		cn->peer = sa_remote;
+		cn->sock = sa_local;
+		cn->t = current_time;
+		cn->pollno = -1;
+		++stats.nconnections;
+		if (stats.nconnections > stats.maxconnections)
+			stats.maxconnections = stats.nconnections;
+		init_connection(cn);
+		cn->logged = 0;
+		cn->header_input.start = cn->header_input.middle = cn->header_input.end = cn->header_input.floor;
+		set_connection_state(cn, HC_WAITING);
 	} while (tuning.accept_multi);
 	return 0;
 }
@@ -846,7 +840,7 @@ void httpd_main(void)
 			internal_dump();
 		}
 		n = 0;
-		if (accepting && (free_connections.head || waiting_connections.head))
+		if (accepting && find_connection())
 			n = setup_server_pollfds(n);
 		n = setup_connection_pollfds(n);
 		n = setup_child_pollfds(n, forked_connections.head);

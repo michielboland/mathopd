@@ -93,6 +93,7 @@ static const char c_bytes_read[] =		"BytesRead";
 static const char c_bytes_written[] =		"BytesWritten";
 static const char c_child_log[] =		"ChildLog";
 static const char c_clients[] =			"Clients";
+static const char c_clobber[] =			"Clobber";
 static const char c_content_length[] =		"ContentLength";
 static const char c_control[] =			"Control";
 static const char c_core_directory[] =		"CoreDirectory";
@@ -906,6 +907,8 @@ static const char *config_tuning(struct configuration *p, struct tuning *tp)
 			t = config_int(p, &tp->script_timeout);
 		else if (!strcasecmp(p->tokbuf, c_script_buf_size))
 			t = config_int(p, &tp->script_buf_size);
+		else if (!strcasecmp(p->tokbuf, c_clobber))
+			t = config_flag(p, &tp->clobber);
 		else
 			t = e_keyword;
 		if (t)
@@ -1001,6 +1004,7 @@ const char *config(const char *config_filename)
 	tuning.num_headers = DEFAULT_NUM_HEADERS;
 	tuning.script_timeout = DEFAULT_SCRIPT_TIMEOUT;
 	tuning.script_buf_size = DEFAULT_SCRIPT_BUF_SIZE;
+	tuning.clobber = 1;
 	fcm = DEFAULT_UMASK;
 	stayroot = 0;
 	log_columns = 0;
