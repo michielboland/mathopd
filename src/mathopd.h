@@ -302,7 +302,6 @@ extern volatile int gotsigterm;
 extern volatile int gotsighup;
 extern volatile int gotsigusr1;
 extern volatile int gotsigusr2;
-extern volatile int gotsigwinch;
 extern volatile int gotsigchld;
 extern volatile int gotsigquit;
 extern int numchildren;
