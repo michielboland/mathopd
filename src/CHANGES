@@ -70,10 +70,6 @@ can be used as follows:
 In this example, files that get retrieved for www.an.example
 must be owned by either user foo, user bar or group foo.
 
-Note that mathopd maps the usernames and groupnames
-at startup, so if you somehow change the userid or groupid
-in /etc/passwd or /etc/group you must restart the server.
-
 AllowedOwners is inheritable.
 
 If you have want to allow access regardless of file
@@ -104,3 +100,17 @@ This appears to make more sense.
 
 SCRIPT_NAME is now just the pure script name, without
 extra info past a trailing slash.
+
+The base64decode function now uses a macro rather than
+a kludgy function.
+
+System header files are included in individual source
+files rather than mathopd.h.
+
+Added REMOTE_USER CGI variable.
+
+Added check for file descriptors greater then FD_SETSIZE
+if select() is used.
+
+Modified get_path_info to not search path the beginning
+of the assigned server directory.
