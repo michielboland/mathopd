@@ -911,6 +911,7 @@ static int process_headers(struct request *r)
 	time_t i;
 	size_t n;
 	int multiple_range;
+	unsigned long cl;
 
 	l = getline(r->cn->input, 0);
 	if (l == 0)
@@ -1047,10 +1048,11 @@ static int process_headers(struct request *r)
 	}
 	s = r->in_content_length;
 	if (s) {
-		if (*s == '-' || (n = strtoul(s, &u, 10), u == s || *u || n == ULONG_MAX)) {
+		if (*s == '-' || (cl = strtoul(s, &u, 10), u == s || *u || cl >= UINT_MAX)) {
 			log_d("bad Content-Length from client: \"%s\"", s);
 			return 400;
 		}
+		r->in_mblen = cl;
 	}
 	if (r->method == M_GET) {
 		s = r->ims_s;
