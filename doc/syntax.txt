@@ -60,6 +60,7 @@ tuning-item:
 	"ScriptBufSize" integer
 	"Clobber" flag
 	"Wait" integer
+	"NumProcesses" integer
 
 control-item:
 	"Location" string

@@ -575,6 +575,18 @@ Desc:    This keyword has a dual purpose.
          number of headers that a CGI script can send. It is an error for
          a script to send more than this number of headers.
 
+Keyword: NumProcesses
+Where:   Tuning
+Type:    Integer
+Default: 1
+Desc:    This keyword controls the number of processes that will be created.
+         The idea is that this number can be set to the number of (logical)
+         CPUs in a multi-processor system, in order to increase performance.
+
+         If the value of NumProcesses is greater than one, the value recorded
+         in the PIDfile is not a process ID, but a negative number, indicating
+         the process group for all mathopd processes.
+
 Keyword: Options
 Where:   Server
 Desc:    The Options keyword sets so-called socket options for a particular
@@ -616,7 +628,8 @@ Keyword: PIDFile
 Where:   Global
 Type:    String
 Desc:    The PIDFile keyword specifies a file in which the server will
-         record its process ID, for tracking purposes.
+         record its process ID, for tracking purposes. If more than one
+         process is started, the negative of the process group is recorded.
 
 Keyword: PathArgs
 Where:   Control
