@@ -411,6 +411,7 @@ static int read_connection(struct connection *cn)
 			lerror("read");
 		case ECONNRESET:
 		case EPIPE:
+			cn->eof = 1;
 			close_connection(cn);
 			return -1;
 		case EAGAIN:
@@ -418,6 +419,7 @@ static int read_connection(struct connection *cn)
 		}
 	}
 	if (nr == 0) {
+		cn->eof = 1;
 		close_connection(cn);
 		return -1;
 	}
