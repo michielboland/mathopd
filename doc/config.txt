@@ -176,6 +176,42 @@ Type:    String
 Keyword: ExactMatch
 Where:   Control
 Type:    Flag
+Desc:    The ExactMatch causes an Alias to be used only if it matches the
+         request-URI exactly. This is rather a hack. It was originally
+         designed to disallow users more than one html page per web site.
+         The way this is done is as follows
+
+           Control {
+             IndexNames { index.html }
+             Types {
+               text/html { html htm }
+           [...]
+          
+           Virtual {
+             Host www.another.example
+             Control {
+               Alias /
+               Location /var/www/www.another.example
+               Specials {
+                 Dummy { html htm }
+               }
+             }
+             Control {
+               Alias /
+               Location /var/www/www.another.example
+               ExactMatch On
+             }
+         
+         Now if someone requests http://www.another.example/, the alias
+         will match exactly, so the control block at the bottom will be
+         in effect. On the other hand, if a request is made for, say,
+         http://www.another.example/foo.html, the alias will not match
+         exactly, so the second control block from the bottom will be used.
+         This control block overrides the type declaration for html and htm
+         extensions, effectively hiding these files, even if they were to
+         exist physically. Note that files with extensions other than html
+         and htm are processed normally, so that you can for example still
+         have things like images on your home page.
 
 Keyword: Export
 Where:   Control
