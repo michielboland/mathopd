@@ -476,7 +476,9 @@ void httpd_main(void)
 	int n;
 	short r;
 	time_t hours;
+	int accepting;
 
+	accepting = 1;
 	current_time = startuptime = time(0);
 	hours = current_time / 3600;
 	log_d("*** %s starting", server_version);
@@ -511,14 +513,16 @@ void httpd_main(void)
 		}
 		n = 0;
 		s = servers;
-		while (s) {
-			if (s->fd != -1) {
-				pollfds[n].events = POLLIN;
-				pollfds[n].fd = s->fd;
-				s->pollno = n++;
-			} else
-				s->pollno = -1;
-			s = s->next;
+		if (accepting) {
+			while (s) {
+				if (s->fd != -1) {
+					pollfds[n].events = POLLIN;
+					pollfds[n].fd = s->fd;
+					s->pollno = n++;
+				} else
+					s->pollno = -1;
+				s = s->next;
+			}
 		}
 		cn = connections;
 		while (cn) {
@@ -538,11 +542,19 @@ void httpd_main(void)
 				cn->pollno = -1;
 			cn = cn->next;
 		}
-		if (n == 0) {
-			log_d("no more sockets to poll from");
-			break;
+		if (accepting) {
+			if (n == 0) {
+				log_d("no more sockets to poll from");
+				break;
+			}
+			rv = poll(pollfds, n, INFTIM);
+		} else {
+			if (n == 0)
+				rv = poll(pollfds, 0, 1000);
+			else
+				rv = poll(pollfds, n, INFTIM);
+			accepting = 1;
 		}
-		rv = poll(pollfds, n, INFTIM);
 		current_time = time(0);
 		if (rv == -1) {
 			if (errno != EINTR) {
@@ -562,7 +574,8 @@ void httpd_main(void)
 			while (s) {
 				if (s->pollno != -1) {
 					if (pollfds[s->pollno].revents & POLLIN)
-						accept_connection(s);
+						if (accept_connection(s) == -1)
+							accepting = 0;
 				}
 				s = s->next;
 			}
