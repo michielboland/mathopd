@@ -977,29 +977,39 @@ static int parse_http_version(struct request *r)
 	return 0;
 }
 
-static int parse_connection_header(struct request *r, const char *s)
+static const char *header_list_next(const char *s, size_t *lp)
 {
 	const char *c;
 	size_t l;
 
+	while (*s == ',' || *s == ' ')
+		++s;
+	c = strchr(s, ',');
+	l = c == 0 ? strlen(s) : c - s;
+	while (l > 0 && s[l - 1] == ' ')
+		--l;
+	if (debug)
+		log_d("header_list_next: \"%.*s\"", l, s);
+	*lp = l;
+	return s;
+}
+
+static int parse_connection_header(struct request *r, const char *s)
+{
+	size_t l;
+
 	if (strchr(s, '"'))
 		return -1;
-	do {
-		c = strchr(s, ',');
-		l = c == 0 ? strlen(s) : c - s;
-		while (l > 0 && s[l - 1] == ' ')
-			--l;
-		if (debug)
-			log_d("parse_connection_header: \"%.*s\"", l, s);
+	while (1) {
+		s = header_list_next(s, &l);
+		if (l == 0)
+			break;
 		if (strncasecmp(s, "keep-alive", l) == 0)
 			r->cn->keepalive = 1;
 		else if (strncasecmp(s, "close", l) == 0)
 			r->cn->keepalive = 0;
-		if (c)
-			while (*c == ',' || *c == ' ')
-				++c;
-		s = c;
-	} while (s && *s);
+		s += l;
+	}
 	return 0;
 }
 
