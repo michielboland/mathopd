@@ -636,9 +636,10 @@ void log_socket_error(int fd, const char *s)
 
 	errno_save = errno;
 	l = sizeof e;
-	getsockopt(fd, SOL_SOCKET, SO_ERROR, &e, &l);
-	errno = e;
-	lerror(s);
+	if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &e, &l) != -1) {
+		errno = e;
+		lerror(s);
+	}
 	errno = errno_save;
 }
 
