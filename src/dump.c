@@ -63,16 +63,23 @@ static void dump_servers(FILE *f, struct server *s)
 
 static void dump_connections(FILE *f, struct connection *cn)
 {
-	int ncrd, ncwr, ncwt;
+	int ncrd, ncwr, ncwt, i;
 
 	ncrd = 0;
 	ncwr = 0;
 	ncwt = 0;
+	i = -1;
 	fprintf(f, "Connections:\n");
 	while (cn) {
-		if (cn->state == HC_FREE)
+		if (++i == 50) {
+			putc('\n', f);
+			i = 0;
+		}
+		switch (cn->state) {
+		case HC_FREE:
 			putc('.', f);
-		else {
+			break;
+		case HC_ACTIVE:
 			switch (cn->action) {
 			case HC_READING:
 				putc('r', f);
@@ -90,6 +97,13 @@ static void dump_connections(FILE *f, struct connection *cn)
 				putc('?', f);
 				break;
 			}
+			break;
+		case HC_FORKED:
+			putc('F', f);
+			break;
+		default:
+			putc('#', f);
+			break;
 		}
 		cn = cn->next;
 	}
