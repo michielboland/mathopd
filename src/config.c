@@ -723,7 +723,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_list(p, &a->putenvs);
 		else if (!strcasecmp(p->tokbuf, c_extra_headers))
 			t = config_list(p, &a->extra_headers);
-		else if (!strcasecmp(p->tokbuf, c_path_args))
+		else if (!strcasecmp(p->tokbuf, c_path_info))
 			t = config_flag(p, &a->path_info_ok);
 		else
 			t = e_keyword;
