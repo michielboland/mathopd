@@ -8,7 +8,7 @@
 
 #include "mathopd.h"
 
-STRING(server_version) = "Mathopd/1.1b7";
+STRING(server_version) = "Mathopd/1.1b8";
 
 volatile int gotsigterm;
 volatile int gotsighup;
@@ -96,6 +96,7 @@ int main(int argc, char *argv[])
 {
 	int c;
 	int daemon = 1;
+	int version = 0;
 	int i, pid_fd, n;
 	struct server *s;
 	char buf[10];
@@ -105,7 +106,7 @@ int main(int argc, char *argv[])
 
 	progname = argv[0];
 
-	while ((c = getopt(argc, argv, "nd")) != EOF) {
+	while ((c = getopt(argc, argv, "ndv")) != EOF) {
 		switch(c) {
 		case 'n':
 			daemon = 0;
@@ -113,10 +114,18 @@ int main(int argc, char *argv[])
 		case 'd':
 			debug = 1;
 			break;
+		case 'v':
+			version = 1;
+			break;
 		default:
-			die(0, "usage: %s [ -nd ]", progname);
+			die(0, "usage: %s [ -ndv ]", progname);
 			break;
 		}
+	}
+
+	if (version) {
+		fprintf(stderr, "%s\n", server_version);
+		return 0;
 	}
 
 	umask(0);
