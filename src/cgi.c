@@ -177,61 +177,91 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 
 	cp->cgi_envc = 0;
 	cp->cgi_envp = 0;
-	if (add("CONTENT_LENGTH", r->in_content_length, 0, cp) == -1) return -1;
-	if (add("CONTENT_TYPE", r->in_content_type, 0, cp) == -1) return -1;
-	if (add("HTTP_AUTHORIZATION", r->authorization, 0, cp) == -1) return -1;
-	if (add("HTTP_COOKIE", r->cookie, 0, cp) == -1) return -1;
-	if (add("HTTP_HOST", r->host, 0, cp) == -1) return -1;
-	if (add("HTTP_FROM", r->from, 0, cp) == -1) return -1;
-	if (add("HTTP_REFERER", r->referer, 0, cp) == -1) return -1;
-	if (add("HTTP_USER_AGENT", r->user_agent, 0, cp) == -1) return -1;
-	if (r->user && r->user[0])
-		if (add("REMOTE_USER", r->user, 0, cp) == -1) return -1;
+	if (add("CONTENT_LENGTH", r->in_content_length, 0, cp) == -1)
+		return -1;
+	if (add("CONTENT_TYPE", r->in_content_type, 0, cp) == -1)
+		return -1;
+	if (add("HTTP_AUTHORIZATION", r->authorization, 0, cp) == -1)
+		return -1;
+	if (add("HTTP_COOKIE", r->cookie, 0, cp) == -1)
+		return -1;
+	if (add("HTTP_HOST", r->host, 0, cp) == -1)
+		return -1;
+	if (add("HTTP_FROM", r->from, 0, cp) == -1)
+		return -1;
+	if (add("HTTP_REFERER", r->referer, 0, cp) == -1)
+		return -1;
+	if (add("HTTP_USER_AGENT", r->user_agent, 0, cp) == -1)
+		return -1;
+	if (r->user && r->user[0]) {
+		if (add("REMOTE_USER", r->user, 0, cp) == -1)
+			return -1;
+	}
 	if (r->class == CLASS_EXTERNAL) {
-		if (add("PATH_INFO", r->path, 0, cp) == -1) return -1;
-		if (add("PATH_TRANSLATED", r->path_translated, 0, cp) == -1) return -1;
+		if (add("PATH_INFO", r->path, 0, cp) == -1)
+			return -1;
+		if (add("PATH_TRANSLATED", r->path_translated, 0, cp) == -1)
+			return -1;
 	} else {
 		if (r->path_args[0]) {
 			faketoreal(r->path_args, path_translated, r, 0);
-			if (add("PATH_INFO", r->path_args, 0, cp) == -1) return -1;
-			if (add("PATH_TRANSLATED", path_translated, 0, cp) == -1) return -1;
+			if (add("PATH_INFO", r->path_args, 0, cp) == -1)
+				return -1;
+			if (add("PATH_TRANSLATED", path_translated, 0, cp) == -1)
+				return -1;
 		}
 	}
-	if (add("QUERY_STRING", r->args, 0, cp) == -1) return -1;
+	if (add("QUERY_STRING", r->args, 0, cp) == -1)
+		return -1;
 	sprintf(t, "%s", inet_ntoa(r->cn->peer.sin_addr));
-	if (add("REMOTE_ADDR", t, 0, cp) == -1) return -1;
+	if (add("REMOTE_ADDR", t, 0, cp) == -1)
+		return -1;
 	sprintf(t, "%hu", ntohs(r->cn->peer.sin_port));
-	if (add("REMOTE_PORT", t, 0, cp) == -1) return -1;
+	if (add("REMOTE_PORT", t, 0, cp) == -1)
+		return -1;
 	if (r->c->dns) {
 		tmp = dnslookup(r->cn->peer.sin_addr);
 		if (tmp) {
-			if (add("REMOTE_HOST", tmp, 0, cp) == -1) return -1;
+			if (add("REMOTE_HOST", tmp, 0, cp) == -1)
+				return -1;
 			free(tmp);
 		}
 	}
-	if (add("REQUEST_METHOD", r->method_s, 0, cp) == -1) return -1;
+	if (add("REQUEST_METHOD", r->method_s, 0, cp) == -1)
+		return -1;
 	if (r->path_args[0]) {
 		if (add("SCRIPT_NAME", r->path, strlen(r->path_args), cp) == -1)
 			return -1;
-	} else
-		if (add("SCRIPT_NAME", r->path, 0, cp) == -1) return -1;
-	if (add("SERVER_NAME", r->servername, 0, cp) == -1) return -1;
+	} else {
+		if (add("SCRIPT_NAME", r->path, 0, cp) == -1)
+			return -1;
+	}
+	if (add("SERVER_NAME", r->servername, 0, cp) == -1)
+		return -1;
 	sprintf(t, "%s", inet_ntoa(r->cn->sock.sin_addr));
-	if (add("SERVER_ADDR", t, 0, cp) == -1) return -1;
+	if (add("SERVER_ADDR", t, 0, cp) == -1)
+		return -1;
 	sprintf(t, "%hu", ntohs(r->cn->sock.sin_port));
-	if (add("SERVER_PORT", t, 0, cp) == -1) return -1;
-	if (add("SERVER_SOFTWARE", server_version, 0, cp) == -1) return -1;
+	if (add("SERVER_PORT", t, 0, cp) == -1)
+		return -1;
+	if (add("SERVER_SOFTWARE", server_version, 0, cp) == -1)
+		return -1;
 	if (r->protocol_major) {
 		sprintf(t, "HTTP/%d.%d", r->protocol_major, r->protocol_minor);
-		if (add("SERVER_PROTOCOL", t, 0, cp) == -1) return -1;
-	} else
-		if (add("SERVER_PROTOCOL", "HTTP/0.9", 0, cp) == -1) return -1;
+		if (add("SERVER_PROTOCOL", t, 0, cp) == -1)
+			return -1;
+	} else {
+		if (add("SERVER_PROTOCOL", "HTTP/0.9", 0, cp) == -1)
+			return -1;
+	}
 	e = r->c->exports;
 	while (e) {
-		if (add(e->name, getenv(e->name), 0, cp) == -1) return -1;
+		if (add(e->name, getenv(e->name), 0, cp) == -1)
+			return -1;
 		e = e->next;
 	}
-	if (add(0, 0, 0, cp) == -1) return -1;
+	if (add(0, 0, 0, cp) == -1)
+		return -1;
 	return 0;
 }
 
@@ -241,19 +271,24 @@ static int make_cgi_argv(struct request *r, char *b, struct cgi_parameters *cp)
 
 	cp->cgi_argc = 0;
 	cp->cgi_argv = 0;
-	if (r->class == CLASS_EXTERNAL)
-		if (add_argv(r->content_type, 0, 0, cp) == -1) return -1;
-	if (add_argv(b, 0, 0, cp) == -1) return -1;
+	if (r->class == CLASS_EXTERNAL) {
+		if (add_argv(r->content_type, 0, 0, cp) == -1)
+			return -1;
+	}
+	if (add_argv(b, 0, 0, cp) == -1)
+		return -1;
 	a = r->args;
 	if (a && strchr(a, '=') == 0) {
 		do {
 			w = strchr(a, '+');
-			if (add_argv(a, w, 1, cp) == -1) return -1;
+			if (add_argv(a, w, 1, cp) == -1)
+				return -1;
 			if (w)
 				a = w + 1;
 		} while (w);
 	}
-	if (add_argv(0, 0, 0, cp) == -1) return -1;
+	if (add_argv(0, 0, 0, cp) == -1)
+		return -1;
 	return 0;
 }
 
