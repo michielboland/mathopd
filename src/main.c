@@ -321,6 +321,7 @@ int fork_request(struct request *r, int (*f)(struct request *))
 	switch (pid) {
 	case 0:
 		my_pid = getpid();
+		setpgid(0, my_pid);
 		close(p[0]);
 		dup2(p[1], 0);
 		dup2(p[1], 1);
@@ -342,6 +343,7 @@ int fork_request(struct request *r, int (*f)(struct request *))
 	default:
 		if (debug)
 			log_d("fork_request: child process %d created", pid);
+		setpgid(pid, pid);
 		close(p[1]);
 		fcntl(p[0], F_SETFL, O_NONBLOCK);
 		init_child(pp, r, p[0]);
