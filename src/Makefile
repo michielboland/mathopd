@@ -15,7 +15,7 @@ SBINDIR = $(PREFIX)/sbin
 # CPPFLAGS = -DHAVE_CRYPT_H
 
 OBJS = base64.o cgi.o config.o core.o dump.o imap.o log.o main.o \
-	redirect.o request.o util.o stub.o
+	redirect.o request.o util.o stub.o select.o
 DEPENDS = mathopd.h Makefile
 
 # Uncomment the following if your system does not support the poll() function
