@@ -251,6 +251,7 @@ static void write_connection(struct connection *cn)
 			default:
 				log_d("error sending to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
 				lerror("send");
+			case ECONNRESET:
 			case EPIPE:
 				cn->action = HC_CLOSING;
 			case EAGAIN:
@@ -286,6 +287,7 @@ static void read_connection(struct connection *cn)
 			log_d("error peeking from %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
 			lerror("recv");
 		case ECONNRESET:
+		case EPIPE:
 			cn->action = HC_CLOSING;
 		case EAGAIN:
 			return;
