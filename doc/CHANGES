@@ -1,4 +1,4 @@
-Changes between Mathopd 1.4 and Mathopd 1.5b3
+Changes between Mathopd 1.4 and Mathopd 1.5b4
 
 cgi.c:
 
@@ -27,8 +27,8 @@ mathopd.h:
 	members to request structure; num_headers to tuning.
 	Added extra_headers to control.
 	Added range_s, if_range_s, if_range, range, range_floor,
-	range_ceiling, range_suffix, range_total, ius_s and
-	ius to request.
+	range_ceiling, range_suffix, range_total, ius_s, ius
+	and rhost to request.
 
 	Removed: cookie from request structure.
 
@@ -48,3 +48,13 @@ request.c:
 
 	Return 412 error for GET requests with If-Unmodified-Since header
 	if applicable.
+
+	Do not fold the Request-Line. That is, if the first line after
+	the Request-Line ("GET / HTTP/1.1") starts with a space, do not
+	treat it as a continuation of the Request-Line.
+
+	Return a 400 rather than 404 error if a virtual server cannot be
+	found. This is required by RFC2616. 
+
+	Allow requests with an absolute URI in the Request-Line
+	("GET http://localhost/ HTTP/1.1").
