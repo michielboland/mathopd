@@ -95,6 +95,8 @@ off_t sendfile_connection(struct connection *cn)
 
 int set_nopush(int sock, int onoff)
 {
+	if (debug)
+		log_d("set_nopush: %d %d", sock, onoff);
 	return setsockopt(sock, IPPROTO_TCP, TCP_NOPUSH, &onoff, sizeof onoff);
 }
 
