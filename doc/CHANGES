@@ -25,6 +25,9 @@ config.c:
 	The "Name" keyword has been removed since it no longer
 	has any function.
 
+	The "Virtual" keyword may now be used in a global context
+	as well.
+
 core.c:
 
 	If connections are active, call poll() with a timeout

@@ -899,6 +899,8 @@ Where:   LogFormat
 Desc:    The HTTP version requested by the client.
 
 Keyword: Virtual
-Where:   Server
+Where:   Server, Global
 Type:    Block
 Desc:    The 'Virtual' keyword starts a virtual server block.
+         Virtual blocks can be declared globally or inside a server block.
+         Global virtual blocks are inherited by all servers that follow.

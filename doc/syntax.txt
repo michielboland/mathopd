@@ -47,6 +47,7 @@ configuration-item:
 	"Server" server-block
 	"LogFormat" logformat-block
 	"LogGMT" flag
+	"Virtual" virtual-block
 
 tuning-item:
 	"Timeout" integer
