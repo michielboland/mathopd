@@ -36,28 +36,139 @@
 
 #include "mathopd.h"
 
-static void dump_children(struct virtual *v)
+static int dump_children(int fd, struct virtual *v)
 {
+	int l;
+	char buf[80];
+
 	while (v) {
-		log_d("VHB %s %lu %lu", v->fullname, v->nrequests, v->nwritten);
+		l = sprintf(buf, "VHB %s %lu %lu\n", v->fullname, v->nrequests, v->nwritten);
+		if (write(fd, buf, l) == -1) {
+			lerror("write");
+			return -1;
+		}
 		v = v->next;
 	}
+	return 0;
 }
 
-static void dump_servers(struct server *s)
+static int dump_servers(int fd, struct server *s)
 {
+	int l;
+	char buf[80];
+
 	while (s) {
-		log_d("SAH %s:%d %lu %lu", inet_ntoa(s->addr), s->port, s->naccepts, s->nhandled);
-		dump_children(s->children);
+		l = sprintf(buf, "SAH %s:%d %lu %lu\n", inet_ntoa(s->addr), s->port, s->naccepts, s->nhandled);
+		if (write(fd, buf, l) == -1) {
+			lerror("write");
+			return -1;
+		}
+		if (dump_children(fd, s->children) == -1)
+			return -1;
 		s = s->next;
 	}
+	return 0;
 }
 
-void dump(void)
+static int dump(int fd)
 {
-	log_d("*** Start of dump");
-	log_d("SCM %lu %lu %d", startuptime, current_time, maxconnections);
+	int l;
+	char buf[80];
+
+	l = sprintf(buf, "*** Start of dump\n");
+	if (write(fd, buf, l) == -1) {
+		lerror("write");
+		return -1;
+	}
+	l = sprintf(buf, "SCM %lu %lu %d\n", startuptime, current_time, maxconnections);
+	if (write(fd, buf, l) == -1) {
+		lerror("write");
+		return -1;
+	}
 	maxconnections = nconnections;
-	dump_servers(servers);
-	log_d("*** End of dump");
+	if (dump_servers(fd, servers) == -1)
+		return -1;
+	l = sprintf(buf, "*** End of dump\n");
+	if (write(fd, buf, l) == -1) {
+		lerror("write");
+		return -1;
+	}
+	return 0;
+}
+
+static int do_dump(int fd, const char *name, struct request *r)
+{
+	int rv;
+
+	rv = remove(name);
+	if (debug)
+		log_d("do_dump: remove(\"%s\") = %d", name, rv);
+	if (rv == -1) {
+		log_d("do_dump: cannot remove temporary file %s", name);
+		lerror("remove");
+		return -1;
+	}
+	rv = fcntl(fd, F_SETFD, FD_CLOEXEC);
+	if (debug)
+		log_d("do_dump: fcntl(%d, F_SETFD, FD_CLOEXEC = %d", fd, rv);
+	if (rv == -1) {
+		log_d("do_dump: failed to set FD_CLOEXEC flag !?!?!?");
+		lerror("fcntl");
+		return -1;
+	}
+	if (dump(fd) == -1) {
+		log_d("do_dump: failed to dump to file %s", name);
+		return -1;
+	}
+	rv = fstat(fd, &r->finfo);
+	if (debug)
+		log_d("do_dump: fstat(%d, ...) = %d", fd, rv);
+	if (rv == -1) {
+		lerror("fstat");
+		return -1;
+	}
+	return 0;
+}
+
+int process_dump(struct request *r)
+{
+	int fd, rv;
+	char tmpbuf[32];
+
+	if (r->method != M_GET && r->method != M_HEAD)
+		return 405;
+	if (r->path_args[0]) {
+		log_d("process_dump: no crap");
+		r->error_file = r->c->error_404_file;
+		return 404;
+	}
+	strcpy(tmpbuf, "/tmp/mathop-dump.XXXXXXXX");
+	fd = mkstemp(tmpbuf);
+	if (fd == -1) {
+		lerror("mkstemp");
+		return 500;
+	}
+	if (debug)
+		log_d("process_dump: mkstemp(\"%s\") = %d", tmpbuf, fd);
+	if (do_dump(fd, tmpbuf, r) == -1) {
+		rv = close(fd);
+		if (debug)
+			log_d("process_dump: close(%d) = %d", fd, rv);
+		return 500;
+	}
+	r->content_length = r->finfo.st_size;
+	r->last_modified = r->finfo.st_mtime;
+	if (r->method == M_GET) {
+		rv = lseek(fd, 0, SEEK_SET);
+		if (debug)
+			log_d("process_dump: lseek(%d, 0, SEEK_SET) = %d", fd, rv);
+		r->cn->rfd = fd;
+	} else {
+		rv = close(fd);
+		if (debug)
+			log_d("process_dump: close(%d) = %d", fd, rv);
+	}
+	r->content_type = "text/plain";
+	r->num_content = 0;
+	return 200;
 }
