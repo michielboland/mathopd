@@ -39,12 +39,10 @@ static const char rcsid[] = "$Id$";
 
 #include <string.h>
 #include <stdio.h>
-#ifdef MATHOPD_CRYPT
 #ifdef HAVE_CRYPT_H
 #include <crypt.h>
 #else
 #include <unistd.h>
-#endif
 #endif
 #include "mathopd.h"
 
@@ -120,17 +118,13 @@ static int base64decode(const char *encoded, char *decoded)
 
 static int pwok(const char *good, const char *guess, int do_crypt)
 {
-#ifdef MATHOPD_CRYPT
 	char *cs;
 
-#endif
 	if (do_crypt == 0)
 		return strcmp(good, guess) == 0;
-#ifdef MATHOPD_CRYPT
 	cs = crypt(guess, good);
 	if (cs)
 		return strcmp(good, cs) == 0;
-#endif
 	return 0;
 }
 
