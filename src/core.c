@@ -430,6 +430,7 @@ void log(int type, const char *fmt, ...)
 	va_list args;
 	char log_line[2*PATHLEN];
 	int l, fd, saved_errno;
+	char *ti;
 
 	switch (type) {
 	case L_TRANS:
@@ -444,8 +445,10 @@ void log(int type, const char *fmt, ...)
 	if (fd == -1)
 		return;
 	saved_errno = errno;
+	ti = ctime(&current_time);
+	l = sprintf(log_line, "%.24s\t", ti ? ti : "???");
 	va_start(args, fmt);
-	l = vsprintf(log_line, fmt, args);
+	l += vsprintf(log_line + l, fmt, args);
 	va_end(args);
 	log_line[l] = '\n';
 	write(fd, log_line, l + 1);
