@@ -374,10 +374,7 @@ static int readfromchild(struct connection *p)
 	case 0:
 		if (p->pipe_params.state != 2) {
 			log_d("readfromchild: premature end of script headers (ipp=%d)", p->script_input.end - p->script_input.floor);
-			if (cgi_error(p->r) == -1)
-				close_connection(p);
-			else
-				set_connection_state(p, HC_WRITING);
+			cgi_error(p->r);
 			return -1;
 		}
 		if (p->pipe_params.haslen) {
@@ -496,10 +493,7 @@ static int scanlflf(struct connection *p)
 	}
 	if (p->pipe_params.state == 2) {
 		if (convert_cgi_headers(p, &p->r->status) == -1) {
-			if (cgi_error(p->r) == -1)
-				close_connection(p);
-			else
-				set_connection_state(p, HC_WRITING);
+			cgi_error(p->r);
 			return -1;
 		}
 		if (p->pipe_params.nocontent)
@@ -518,10 +512,7 @@ static int scanlflf(struct connection *p)
 		}
 	} else if (p->script_input.start == p->script_input.ceiling) {
 		log_d("scanlflf: buffer full");
-		if (cgi_error(p->r) == -1)
-			close_connection(p);
-		else
-			set_connection_state(p, HC_WRITING);
+		cgi_error(p->r);
 		return -1;
 	}
 	return 0;

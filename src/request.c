@@ -1302,6 +1302,15 @@ int process_request(struct request *r)
 
 int cgi_error(struct request *r)
 {
+	int rv;
+
 	r->status = 500;
-	return prepare_reply(r);
+	rv = prepare_reply(r);
+	if (rv == -1) {
+		log_d("prepare_reply failed in cgi_error");
+		close_connection(r->cn);
+		return -1;
+	}
+	set_connection_state(r->cn, HC_WRITING);
+	return rv;
 }
