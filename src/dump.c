@@ -164,7 +164,7 @@ static int do_dump(int fd, const char *name, struct request *r)
 
 int process_dump(struct request *r)
 {
-	int fd, rv;
+	int fd;
 	char tmpbuf[32];
 
 	if (r->method != M_GET && r->method != M_HEAD)
@@ -180,16 +180,16 @@ int process_dump(struct request *r)
 		return 500;
 	}
 	if (do_dump(fd, tmpbuf, r) == -1) {
-		rv = close(fd);
+		close(fd);
 		return 500;
 	}
 	r->content_length = r->finfo.st_size;
 	r->last_modified = r->finfo.st_mtime;
 	if (r->method == M_GET) {
-		rv = lseek(fd, 0, SEEK_SET);
+		lseek(fd, 0, SEEK_SET);
 		r->cn->rfd = fd;
 	} else {
-		rv = close(fd);
+		close(fd);
 	}
 	r->content_type = "text/plain";
 	r->num_content = 0;
