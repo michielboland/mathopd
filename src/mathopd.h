@@ -342,7 +342,7 @@ extern int process_imap(struct request *);
 
 /* cgi */
 
-extern int process_cgi(struct request *);
+extern int exec_cgi(struct request *);
 
 /* dump */
 

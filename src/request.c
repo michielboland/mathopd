@@ -498,6 +498,11 @@ static int append_indexes(struct request *r)
 	return 0;
 }
 
+static int process_cgi(struct request *r)
+{
+	return fork_request(r, exec_cgi);
+}
+
 static int process_external(struct request *r)
 {
 	r->num_content = -1;

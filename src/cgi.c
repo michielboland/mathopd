@@ -423,7 +423,7 @@ static void destroy_parameters(struct cgi_parameters *cp)
 	free(cp);
 }
 
-static int exec_cgi(struct request *r)
+int exec_cgi(struct request *r)
 {
 	struct cgi_parameters *cp;
 	uid_t u;
@@ -461,9 +461,4 @@ static int exec_cgi(struct request *r)
 	lerror("execve");
 	destroy_parameters(cp);
 	return -1;
-}
-
-int process_cgi(struct request *r)
-{
-	return fork_request(r, exec_cgi);
 }
