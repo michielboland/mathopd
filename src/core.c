@@ -494,36 +494,23 @@ static int run_servers(void)
 	return 0;
 }
 
-static void log_socket_error(int fd, const char *s)
-{
-	int e, errno_save;
-	socklen_t l;
-
-	errno_save = errno;
-	l = sizeof e;
-	getsockopt(fd, SOL_SOCKET, SO_ERROR, &e, &l);
-	errno = e;
-	lerror(s);
-	errno = errno_save;
-}
-
 static void run_connections(void)
 {
 	struct connection *cn;
 	short r;
-	char buf[50];
 
 	cn = connections;
 	while (cn) {
 		if (cn->pollno != -1) {
 			r = pollfds[cn->pollno].revents;
-			if (r & POLLIN)
+			if (r & POLLHUP)
+				cn->action = HC_CLOSING;
+			else if (r & POLLIN)
 				read_connection(cn);
 			else if (r & POLLOUT)
 				write_connection(cn);
 			else if (r) {
-				sprintf(buf, "error to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
-				log_socket_error(cn->fd, buf);
+				log_d("poll: unexpected event %hd", r);
 				cn->action = HC_CLOSING;
 			}
 		}
