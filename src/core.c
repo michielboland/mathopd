@@ -872,13 +872,13 @@ void httpd_main(void)
 				if (debug)
 					log_d("logs rotated");
 			}
+			cleanup_connections();
 		}
 		if (rv) {
 			if (accepting && run_servers() == -1)
 				accepting = 0;
 			run_connections();
 		}
-		cleanup_connections();
 	}
 	log_d("*** shutting down");
 }
