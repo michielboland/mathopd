@@ -122,6 +122,7 @@ static int separate(const char *s, struct token *t, int m)
 	int c, i, j, n, state;
 
 	i = 0;
+	j = 0;
 	n = 0;
 	state = 0;
 	while (n < m) {
@@ -168,6 +169,7 @@ static int separate(const char *s, struct token *t, int m)
 		}
 		++i;
 	}
+	return n;
 }
 
 static int f_process_imap(struct request *r, FILE *fp)
@@ -177,7 +179,7 @@ static int f_process_imap(struct request *r, FILE *fp)
 	point testpoint, pointarray[MAXVERTS];
 	long dist, mindist;
 	int i, k, l, line, sawpoint, text;
-	char *t, *u, *v, *w, *url;
+	char *t, *u, *url;
 	const char *status;
 
 	testpoint.x = 0;
