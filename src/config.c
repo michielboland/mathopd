@@ -530,15 +530,6 @@ static const char *config_clients(FILE *f, struct access **ls)
 	return config_acccl(f, ls, APPLYNOAPPLY);
 }
 
-static void chopslash(char *s)
-{
-	char *t;
-
-	t = s + strlen(s);
-	while (--t >= s && *t == '/')
-		*t = 0;
-}
-
 static const char *config_owners(FILE *f, struct file_owner **op)
 {
 	struct file_owner *o;
@@ -571,6 +562,15 @@ static const char *config_owners(FILE *f, struct file_owner **op)
 			return e_keyword;
 	}
 	return 0;
+}
+
+static void chopslash(char *s)
+{
+	char *t;
+
+	t = s + strlen(s);
+	while (--t >= s && *t == '/')
+		*t = 0;
 }
 
 static const char *config_control(FILE *f, struct control **as)
