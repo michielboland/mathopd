@@ -693,6 +693,13 @@ Desc:    Some file extensions can be treated specially if they are
            Redirect
            Dump
 
+         If a specialty is defined with a name that is not one of the
+         above four, a file that matches that specialty is treated as
+         if it did not exist. (See the `Dummy' example in the description
+         of the ExactMatch keyword.)
+
+         A very brief description of the four specialties follows.
+
          For a description of CGI, see cgi.txt.
          An imagemap is a fairly ancient concept. It is generally not
          used anymore but it is kept around for historical reasons.
