@@ -17,7 +17,6 @@ int cern = 0;
 char *pid_filename;
 char *log_filename;
 char *error_filename;
-char *agent_filename;
 char *child_filename;
 
 char *admin;
@@ -44,7 +43,6 @@ static struct control *controls;
 static STRING(c_access) =		"Access";
 static STRING(c_address) =		"Address";
 static STRING(c_admin) =		"Admin";
-static STRING(c_agent) =		"AgentLog";
 static STRING(c_alias) =		"Alias";
 static STRING(c_allow) =		"Allow";
 static STRING(c_apply) =		"Apply";
@@ -596,8 +594,6 @@ static const char *config_main(void)
 			t = config_string(&log_filename);
 		else if (strceq(tokbuf, c_error))
 			t = config_string(&error_filename);
-		else if (strceq(tokbuf, c_agent))
-			t = config_string(&agent_filename);
 		else if (strceq(tokbuf, c_child_log))
 			t = config_string(&child_filename);
 		else if (strceq(tokbuf, c_export))
