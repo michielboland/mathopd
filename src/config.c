@@ -706,7 +706,7 @@ void config(void)
 		die(0, "%s", s);
 
 #ifdef POLL
-	pollfds = malloc((num_connections + num_servers)
+	pollfds = malloc((tuning.num_connections + num_servers)
 					   * sizeof (struct pollfd));
 	if (pollfds == 0)
 		die(0, e_memory);
