@@ -14,7 +14,6 @@ time_t current_time;
 
 static int log_file = -1;
 static int error_file = -1;
-static int agent_file = -1;
 
 #ifdef NEED_STRERROR
 const char *strerror(int err)
@@ -387,7 +386,6 @@ static void init_logs(void)
 {
 	init_log(log_filename, &log_file);
 	init_log(error_filename, &error_file);
-	init_log(agent_filename, &agent_file);
 }
 
 
@@ -401,9 +399,6 @@ void log(int type, const char *fmt, ...)
 	switch (type) {
 	case L_TRANS:
 		fd = log_file;
-		break;
-	case L_AGENT:
-		fd = agent_file;
 		break;
 	case L_DEBUG:
 		if (debug == 0)
