@@ -172,6 +172,7 @@ static int dump(int fd, struct request *r)
 		lerror("dup");
 		return -1;
 	}
+	fcntl(fd2, F_SETFD, FD_CLOEXEC);
 	f = fdopen(fd2, "a+");
 	if (f == 0) {
 		log_d("dump: failed to associate stream with descriptor %d", fd2);

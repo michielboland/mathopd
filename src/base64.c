@@ -191,6 +191,7 @@ int webuserok(const char *authorization, const char *userfilename, char *usernam
 		log_d("cannot open userfile %s", userfilename);
 		return 0;
 	}
+	fcntl(fd, F_SETFD, FD_CLOEXEC);
 	f = fdopen(fd, "r");
 	if (f == 0) {
 		log_d("webuserok: fdopen failed");

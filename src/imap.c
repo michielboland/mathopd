@@ -318,6 +318,7 @@ int process_imap(struct request *r)
 		lerror("open");
 		return 500;
 	}
+	fcntl(fd, F_SETFD, FD_CLOEXEC);
 	fp = fdopen(fd, "r");
 	if (fp == 0) {
 		log_d("process_imap: fdopen failed");
