@@ -62,6 +62,13 @@
 #define STRLEN 400
 #define PATHLEN (2 * STRLEN)
 
+#define tvtodouble(tv) \
+	((tv).tv_sec + 1e-6 * (tv).tv_usec)
+
+#define tvdiff(tv1, tv2) \
+	(((tv1).tv_sec + 1e-6 * (tv1).tv_usec) - \
+	((tv2).tv_sec + 1e-6 * (tv2).tv_usec))
+
 enum {
 	ALLOW,
 	DENY,
