@@ -574,11 +574,10 @@ void httpd_main(void)
 		if (rv) {
 			s = servers;
 			while (s) {
-				if (s->pollno != -1) {
+				if (s->pollno != -1)
 					if (pollfds[s->pollno].revents & POLLIN)
 						if (accept_connection(s) == -1)
 							accepting = 0;
-				}
 				s = s->next;
 			}
 			cn = connections;
