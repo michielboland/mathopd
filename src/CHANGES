@@ -1,4 +1,4 @@
-CHANGES between mathopd-1.3pl2 and mathopd-1.4b4
+CHANGES between mathopd-1.3pl2 and mathopd-1.4b5
 
 A ScriptUser can be defined in a control block. Mathopd will
 change its identity to that of the ScriptUser right before
