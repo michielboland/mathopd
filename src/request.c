@@ -282,10 +282,10 @@ static int output_headers(struct pool *p, struct request *r)
 	if (r->c && r->c->realm && r->status == 401)
 		b += sprintf(b, "WWW-Authenticate: Basic realm=\"%s\"\r\n", r->c->realm);
 	if (r->num_content >= 0) {
-		b += sprintf(b, "Content-type: %s\r\n", r->content_type);
+		b += sprintf(b, "Content-Type: %s\r\n", r->content_type);
 		cl = r->content_length;
 		if (cl >= 0)
-			b += sprintf(b, "Content-length: %ld\r\n", cl);
+			b += sprintf(b, "Content-Length: %ld\r\n", cl);
 		if (r->last_modified)
 			b += sprintf(b, "Last-Modified: %s\r\n", rfctime(r->last_modified, gbuf));
 	}
@@ -1026,9 +1026,9 @@ static int process_headers(struct request *r)
 			r->ims_s = s;
 		else if (!strcasecmp(l, "If-Unmodified-Since"))
 			r->ius_s = s;
-		else if (!strcasecmp(l, "Content-type"))
+		else if (!strcasecmp(l, "Content-Type"))
 			r->in_content_type = s;
-		else if (!strcasecmp(l, "Content-length"))
+		else if (!strcasecmp(l, "Content-Length"))
 			r->in_content_length = s;
 		else if (!strcasecmp(l, "Range")) {
 			if (r->range_s)
