@@ -395,7 +395,7 @@ int process_cgi(struct request *r)
 		fcntl(efd, F_SETFD, FD_CLOEXEC);
 	} else
 		efd = -1;
-	pid = spawn(c.cgi_argv[0], (char **) c.cgi_argv, c.cgi_envp, p[1], efd, u, g, r->curdir);
+	pid = spawn(c.cgi_argv[0], c.cgi_argv, c.cgi_envp, p[1], efd, u, g, r->curdir);
 	if (efd != -1)
 		close(efd);
 	close(p[1]);
