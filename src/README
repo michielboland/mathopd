@@ -5,8 +5,22 @@ Mathopd in a production environment, and you are not the same
 person as the author, you should stay away from this code, and
 use that stable version instead.
 
-No changes have been made yet, apart from the fact that the RCS
-release for all source files has been incremented.
-
-Cheers
-Michiel
+Differences between 1.2pl6 and 1.3b1: (not much, really)
+ 
+  - support for poll() has been removed. This is not because I
+    do not like poll(), on the contrary, but I do not like the
+    mess it has created in the code. I decided that either
+    select() or poll() had to go. Since poll() is not quite
+    so common I'm afraid we're now stuck with select() for a
+    while.
+ 
+  - support for encrypted userfiles is back again. This should
+    not be a problem unless people start distributing binary
+    releases with crypto hooks to or from places where this is
+    not allowed. Since I do not make any binary distributions
+    myself, I do not really consider this a problem for *me*.
+    If you feel this is not correct, contact me immediately and
+    we'll see what needs to be fixed. Until then, crypto is back
+    in.
+ 
+Michiel Boland <boland@diva.nl>
