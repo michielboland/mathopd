@@ -25,8 +25,8 @@ DEPENDS = mathopd.h Makefile
 # Uncomment the following if your system does not have the socklen_t type
 # CPPFLAGS += -DNEED_SOCKLEN_T
 
-# Comment the following if your system does not have a working vfork() function
-CPPFLAGS += -DHAVE_VFORK
+# Unomment the following if your system has a working vfork() function
+# CPPFLAGS += -DHAVE_VFORK
 
 all: $(BIN)
 install: $(BIN)
