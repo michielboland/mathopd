@@ -47,6 +47,7 @@ static const char c_core_directory[] =	"CoreDirectory";
 static const char c_default_name[] =	"DefaultName";
 static const char c_deny[] =		"Deny";
 static const char c_error[] =		"ErrorLog";
+static const char c_error_401_file[] =	"Error401File";
 static const char c_exact[] =		"Exact";
 static const char c_export[] =		"Export";
 static const char c_group[] =		"Group";
@@ -62,6 +63,7 @@ static const char c_on[] =		"On";
 static const char c_path_args[] =	"PathArgs";
 static const char c_pid[] =		"PIDFile";
 static const char c_port[] =		"Port";
+static const char c_realm[] =		"Realm";
 static const char c_refresh[] =		"Refresh";
 static const char c_root_directory[] =	"RootDirectory";
 static const char c_server[] =		"Server";
@@ -400,6 +402,8 @@ static const char *config_control(struct control **as)
 		a->loglevel = b->loglevel;
 		a->admin = b->admin;
 		a->refresh = b->refresh;
+		a->realm = b->realm;
+		a->error_401_file = b->error_401_file;
 	}
 	else {
 		a->index_names = 0;
@@ -410,6 +414,8 @@ static const char *config_control(struct control **as)
 		a->loglevel = 0;
 		a->admin = 0;
 		a->refresh = 0;
+		a->realm = 0;
+		a->error_401_file = 0;
 	}
 	a->next = *as;
 	*as = a;
@@ -454,6 +460,10 @@ static const char *config_control(struct control **as)
 			t = config_string(&a->admin);
 		else if (!strcasecmp(tokbuf, c_refresh))
 			t = config_int(&a->refresh);
+		else if (!strcasecmp(tokbuf, c_realm))
+			t = config_string(&a->realm);
+		else if (!strcasecmp(tokbuf, c_error_401_file))
+			t = config_string(&a->error_401_file);
 		else
 			t = e_keyword;
 		if (t)
