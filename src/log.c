@@ -71,6 +71,19 @@ int init_log_buffer(size_t size)
 	return 0;
 }
 
+static void tvdiff(const struct timeval *t1, const struct timeval *t2, struct timeval *r)
+{
+	long u;
+
+	r->tv_sec = t1->tv_sec - t2->tv_sec;
+	u = t1->tv_usec - t2->tv_usec;
+	if (u < 0) {
+		u += 1000000;
+		--r->tv_sec;
+	}
+	r->tv_usec = u;
+}
+
 void log_request(struct request *r)
 {
 	const char *s;
@@ -81,7 +94,7 @@ void log_request(struct request *r)
 	char *b;
 	static int l1, l2;
 	struct tm *tp;
-	struct timeval tv;
+	struct timeval tv, dtv;
 	time_t rounded_time;
 
 	if (log_fd == -1)
@@ -175,11 +188,12 @@ void log_request(struct request *r)
 			s = r->args;
 			break;
 		case ML_TIME_TAKEN:
-			sprintf(tmp, "%.6f", (tv.tv_sec + 1e-6 * tv.tv_usec) - (r->cn->itv.tv_sec + 1e-6 * r->cn->itv.tv_usec));
+			tvdiff(&tv, &r->cn->itv, &dtv);
+			sprintf(tmp, "%ld.%06ld", dtv.tv_sec, dtv.tv_usec);
 			s = tmp;
 			break;
 		case ML_MICRO_TIME:
-			sprintf(tmp, "%.6f", tv.tv_sec + 1e-6 * tv.tv_usec);
+			sprintf(tmp, "%ld.%06ld", tv.tv_sec, tv.tv_usec);
 			s = tmp;
 			break;
 		}
