@@ -58,3 +58,41 @@ if mathopd is started with the -n flag.
 ASCII NUL characters are not allowed in HTTP
 headers, as these might upset the various
 string-handling routines.
+
+A new AllowedOwners keyword has been added. It
+can be used as follows:
+
+ Virtual {
+  Host www.an.example
+  Control {
+   AllowedOwners {
+    User foo
+    User bar
+    Group foo
+   }
+  }
+  Control {
+   Alias /
+   ...
+
+In this example, files that get retrieved for www.an.example
+must be owned by either user foo, user bar or group foo.
+
+Note that mathopd maps the usernames and groupnames
+at startup, so if you somehow change the userid or groupid
+in /etc/passwd or /etc/group you must restart the server.
+
+AllowedOwners is inheritable.
+
+If you have want to allow access regardless of file
+ownership, use
+
+  Control {
+   AllowedOwners {
+    *
+   }
+  }
+
+You do not normally have to do this though, since
+ownership is not checked if the allowed owner list
+is empty. (hm)
