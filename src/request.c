@@ -1341,13 +1341,18 @@ int process_request(struct request *r)
 	int s, n;
 
 	s = process_headers(r);
-	if (s == -1)
+	switch (s) {
+	case -1:
 		return -1;
-	if (s) {
+	case 0:
+		break;
+	default:
 		s = process_path(r);
+		if (s != 1)
+			break;
 		n = 0;
 		do {
-			if (s && r->error_file) {
+			if (r->error_file) {
 				r->location_length = sprintf(r->path_translated, "%.*s", PATHLEN - 1, r->error_file);
 				r->error_file = 0;
 			}
