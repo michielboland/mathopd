@@ -247,6 +247,7 @@ struct request {
 	char *ius_s;
 	time_t ius;
 	char rhost[STRLEN];
+	int forked;
 };
 
 struct connection {
