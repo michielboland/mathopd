@@ -337,6 +337,8 @@ int fork_request(struct request *r, int (*f)(struct request *))
 		break;
 	case -1:
 		lerror("fork");
+		close(p[0]);
+		close(p[1]);
 		return 503;
 	default:
 		if (debug)
