@@ -300,6 +300,7 @@ extern const char *config(const char *);
 
 extern int log_columns;
 extern int *log_column;
+extern int log_gmt;
 
 extern struct pollfd *pollfds;
 

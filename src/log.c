@@ -80,6 +80,7 @@ void log_request(struct request *r)
 	char *b;
 	static int l1, l2;
 	int rok;
+	struct tm *tp;
 
 	if (log_file == -1)
 		return;
@@ -105,7 +106,11 @@ void log_request(struct request *r)
 		s = 0;
 		switch (log_column[i]) {
 		case ML_CTIME:
-			s = ctime(&current_time);
+			if (log_gmt)
+				tp = gmtime(&current_time);
+			else
+				tp = localtime(&current_time);
+			s = asctime(tp);
 			l = 24;
 			break;
 		case ML_USERNAME:
@@ -210,7 +215,10 @@ static int init_log_d(char *name, int *fdp)
 		n = name;
 		if (strchr(name, '%')) {
 			current_time = time(0);
-			tp = localtime(&current_time);
+			if (log_gmt)
+				tp = gmtime(&current_time);
+			else
+				tp = localtime(&current_time);
 			if (tp) {
 				if (strftime(converted_name, PATHLEN - 1, name, tp))
 					n = converted_name;
@@ -244,12 +252,17 @@ void log_d(const char *fmt, ...)
 	int m, n, saved_errno;
 	char *ti;
 	size_t l;
+	struct tm *tp;
 
 	if (error_file == -1 && am_daemon)
 		return;
 	va_start(ap, fmt);
 	saved_errno = errno;
-	ti = ctime(&current_time);
+	if (log_gmt)
+		tp = gmtime(&current_time);
+	else
+		tp = localtime(&current_time);
+	ti = asctime(tp);
 	l = sprintf(log_line, "%.24s [%d] ", ti, my_pid);
 	m = sizeof log_line - l - 1;
 	n = vsnprintf(log_line + l, m, fmt, ap);

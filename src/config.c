@@ -68,6 +68,7 @@ struct pollfd *pollfds;
 
 int log_columns;
 int *log_column;
+int log_gmt;
 
 struct configuration {
 	FILE *config_file;
@@ -114,6 +115,7 @@ static const char c_input_buf_size[] =		"InputBufSize";
 static const char c_location[] =		"Location";
 static const char c_log[] =			"Log";
 static const char c_log_format[] =		"LogFormat";
+static const char c_log_gmt[] =			"LogGMT";
 static const char c_method[] =			"Method";
 static const char c_name[] =			"Name";
 static const char c_no_apply[] =		"NoApply";
@@ -897,6 +899,8 @@ static const char *config_main(struct configuration *p)
 			t = config_server(p, &servers);
 		else if (!strcasecmp(p->tokbuf, c_log_format))
 			t = config_log(p, &log_column, &log_columns);
+		else if (!strcasecmp(p->tokbuf, c_log_gmt))
+			t = config_flag(p, &log_gmt);
 		else
 			t = e_keyword;
 		if (t)
@@ -958,6 +962,7 @@ const char *config(const char *config_filename)
 	stayroot = 0;
 	log_columns = 0;
 	log_column = 0;
+	log_gmt = 0;
 	p->line = 1;
 	s = config_main(p);
 	if (config_filename)
