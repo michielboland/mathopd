@@ -559,7 +559,7 @@ void httpd_main(void)
 		if (rv) {
 			s = servers;
 			while (s) {
-				if (s->fd != -1) {
+				if (s->pollno != -1) {
 					if (pollfds[s->pollno].revents & POLLIN)
 						accept_connection(s);
 				}
