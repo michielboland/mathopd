@@ -57,8 +57,6 @@ int nconnections;
 int maxconnections;
 time_t startuptime;
 time_t current_time;
-int log_file;
-int error_file;
 
 static void init_pool(struct pool *p)
 {
@@ -457,27 +455,19 @@ void httpd_main(void)
 {
 	struct server *s;
 	struct connection *cn;
-	int first;
 	int error;
 	int rv;
 	int n;
 	short r;
 
 	current_time = startuptime = time(0);
-	first = 1;
 	error = 0;
-	log_file = -1;
-	error_file = -1;
+	log_d("*** %s starting", server_version);
 	while (gotsigterm == 0) {
 		if (gotsighup) {
 			gotsighup = 0;
-			if (init_logs() == -1)
-				break;
-			if (first) {
-				first = 0;
-				log_d("*** %s starting", server_version);
-			} else
-				log_d("logs reopened");
+			init_logs();
+			log_d("logs reopened");
 		}
 		if (gotsigusr1) {
 			gotsigusr1 = 0;

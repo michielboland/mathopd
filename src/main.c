@@ -249,6 +249,8 @@ int main(int argc, char *argv[])
 			die("open", "Cannot open PID file");
 	} else
 		pid_fd = -1;
+	if (init_logs() == -1)
+		die("open", "Cannot open log files");
 	if (am_daemon) {
 		dup2(null_fd, 0);
 		dup2(null_fd, 1);
@@ -277,7 +279,7 @@ int main(int argc, char *argv[])
 		write(pid_fd, buf, strlen(buf));
 		close(pid_fd);
 	}
-	gotsighup = 1;
+	gotsighup = 0;
 	gotsigterm = 0;
 	gotsigusr1 = 0;
 	gotsigusr2 = 0;

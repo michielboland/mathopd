@@ -50,6 +50,9 @@ static const char rcsid[] = "$Id$";
 #include <errno.h>
 #include "mathopd.h"
 
+static int log_file = -1;
+static int error_file = -1;
+
 void log_request(struct request *r)
 {
 	const char *s;
@@ -183,6 +186,7 @@ static int init_log_d(char *name, int *fdp)
 	char converted_name[PATHLEN], *n;
 	struct tm *tp;
 
+	dup2(*fdp, *fdp);
 	if (name) {
 		n = name;
 		if (strchr(name, '%')) {
