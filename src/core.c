@@ -910,16 +910,10 @@ int init_connections(size_t n)
 		cn = connection_array + i;
 		if ((cn->r = malloc(sizeof *cn->r)) == 0)
 			return -1;
-		if (tuning.num_headers == 0) {
+		if (tuning.num_headers == 0)
 			cn->r->headers = 0;
-			cn->pipe_params.cgi_headers = 0;
-		}
-		else {
-			if ((cn->r->headers = malloc(tuning.num_headers * sizeof *cn->r->headers)) == 0)
+		else if ((cn->r->headers = malloc(tuning.num_headers * sizeof *cn->r->headers)) == 0)
 				return -1;
-			if ((cn->pipe_params.cgi_headers = malloc(tuning.num_headers * sizeof *cn->pipe_params.cgi_headers)) == 0)
-				return -1;
-		}
 		if (new_pool(&cn->header_input, tuning.input_buf_size) == -1)
 			return -1;
 		if (new_pool(&cn->output, tuning.buf_size) == -1)

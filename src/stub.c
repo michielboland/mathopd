@@ -52,6 +52,18 @@ static const char rcsid[] = "$Id$";
 #include <string.h>
 #include "mathopd.h"
 
+static struct cgi_header *cgi_headers;
+
+int init_cgi_headers(void)
+{
+	if (tuning.num_headers) {
+		cgi_headers = malloc(tuning.num_headers * sizeof *cgi_headers);
+		if (cgi_headers == 0)
+			return -1;
+	}
+	return 0;
+}
+
 static int no_room(void)
 {
 	log_d("no room left for HTTP headers");
@@ -67,7 +79,6 @@ static int convert_cgi_headers(struct connection *pp, int *sp)
 	size_t len, tmpnamelen, tmpvaluelen;
 	char buf[50], gbuf[40], *cp, *dest;
 	unsigned long ul;
-	struct cgi_header *cgi_headers;
 
 	nheaders = 0;
 	tmpname = 0;
@@ -83,7 +94,6 @@ static int convert_cgi_headers(struct connection *pp, int *sp)
 	len = 0;
 	addheader = 0;
 	firstline = 1;
-	cgi_headers = pp->pipe_params.cgi_headers;
 	for (p = pp->script_input.floor; p < pp->script_input.start; p++) {
 		c = *p;
 		switch (s) {

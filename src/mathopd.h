@@ -275,7 +275,6 @@ struct pipe_params {
 	int nocontent;
 	int haslen;
 	size_t pmax;
-	struct cgi_header *cgi_headers;
 };
 
 struct connection {
@@ -420,6 +419,7 @@ extern void lerror(const char *);
 
 /* stub */
 
+extern int init_cgi_headers(void);
 extern void pipe_run(struct connection *);
 extern void init_child(struct connection *, int);
 extern int setup_child_pollfds(int, struct connection *);

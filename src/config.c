@@ -1041,5 +1041,7 @@ int init_buffers(void)
 		return -1;
 	if (init_log_buffer(tuning.input_buf_size + 1000) == -1)
 		return -1;
+	if (init_cgi_headers() == -1)
+		return -1;
 	return 0;
 }
