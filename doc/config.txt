@@ -327,6 +327,16 @@ Desc:    Use this keyword to add extra HTTP headers. This is perhaps best
 
          HTTP header.
 
+Keyword: Family
+Where:   Server
+Type:    String
+Desc:    The value of 'Family' determines the address family used by the
+         server. If this parameter is not set, the address family is left
+         unspecified. If set, the value must be either "inet" for IPv4 or
+         "inet6" for IPv6. Note that inet6 servers may or may not listen
+         on IPv4 addresses as well, depending on the operating system.
+         See also the discussion of "v6only" at the Options keyword.
+
 Keyword: Host
 Where:   Virtual
 Type:    String
@@ -557,6 +567,28 @@ Desc:    This keyword has a dual purpose.
          This keyword has an additional function: it determines the maximum
          number of headers that a CGI script can send. It is an error for
          a script to send more than this number of headers.
+
+Keyword: Options
+Where:   Server
+Desc:    The Options keyword sets so-called socket options for a particular
+         server. The options currently defined are:
+
+           Name: v6only
+           Type: flag
+           This option is valid only for inet6 servers. If the option
+           is turned on the server will listen only for IPv6 connections.
+           If the option is turned off the server will listen for IPv4
+           connections as well. If the option is not set the behaviour may
+           vary depending on the operating system.
+
+         To illustrate how options are set, here is a short example
+
+           Server {
+             Family inet6
+             Options {
+               v6only On
+             }
+           }
 
 Keyword: PIDFile
 Where:   Global
