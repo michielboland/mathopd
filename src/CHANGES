@@ -1,4 +1,4 @@
-CHANGES between mathopd-1.3pl2 and mathopd-1.4b3
+CHANGES between mathopd-1.3pl2 and mathopd-1.4b4
 
 A ScriptUser can be defined in a control block. Mathopd will
 change its identity to that of the ScriptUser right before
@@ -12,13 +12,31 @@ Note that ScriptUser overrides whatever value is active
 for RunScriptsAsOwner, and that no scripts will be run
 if neither variable is set and the server is run as root.
 
-All debugging hooks have been removed for now.
-
-1.4b3:
-
 LogFormat keyword has been added to generate custom log
 formats. See config.c for details. Additional keywords
 BytesRead, BytesWritten, ContentLength, Ctime, Method,
 Referer, Status, Uri, UserAgent, Version are also added.
 The HTTP version can now also be logged.
 Thans to Peter Leven for suggesting these changes.
+
+Never return a 403 error code, except if the client's IP
+address is explicitly denied access.
+
+Symlinks checking removed; it seems impossible to do
+this safely so we might as well dump it.
+
+Do not log a timeout if a client disconnects after the
+timeout period.
+
+Add debugging info to get_path_info.
+
+Always open() any file requested. If a file's mtime is
+equal to or less then the If-Modified-Since value, but
+we do not have read permission on the file, return an
+error rather than a 'not modified.'
+
+Return 404 rather than 400, if check_path() fails.
+
+Do not open a custom error file if the request method is
+HEAD.
+
