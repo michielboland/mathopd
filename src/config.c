@@ -1,7 +1,7 @@
 /*
  * config.c - startup and configuration of Mathopd
  *
- * Copyright 1996, 1997, Michiel Boland
+ * Copyright 1996, 1997, 1998, Michiel Boland
  */
 
 /* House of Games */
@@ -70,6 +70,7 @@ static STRING(c_on) =			"On";
 static STRING(c_path_args) =		"PathArgs";
 static STRING(c_pid) =			"PIDFile";
 static STRING(c_port) =			"Port";
+static STRING(c_refresh) =		"Refresh";
 static STRING(c_root_directory) =	"RootDirectory";
 static STRING(c_server) =		"Server";
 static STRING(c_specials) =		"Specials";
@@ -406,6 +407,7 @@ static const char *config_control(struct control **as)
 		a->path_args_ok = b->path_args_ok;
 		a->loglevel = b->loglevel;
 		a->admin = b->admin;
+		a->refresh = b->refresh;
 	}
 	else {
 		a->index_names = 0;
@@ -415,6 +417,7 @@ static const char *config_control(struct control **as)
 		a->path_args_ok = 0;
 		a->loglevel = 0;
 		a->admin = 0;
+		a->refresh = 0;
 	}
 	a->next = *as;
 	*as = a;
@@ -457,6 +460,8 @@ static const char *config_control(struct control **as)
 			t = config_mime(&a->mimes, M_SPECIAL);
 		else if (strceq(tokbuf, c_admin))
 			t = config_string(&a->admin);
+		else if (strceq(tokbuf, c_refresh))
+			t = config_int(&a->refresh);
 		else
 			t = e_keyword;
 		if (t)
