@@ -68,8 +68,8 @@ int debug;
 unsigned long fcm; /* should be mode_t */
 int stayroot;
 int my_pid;
-int am_daemon;
 
+static int am_daemon;
 static char *progname;
 
 static const char devnull[] = "/dev/null";
