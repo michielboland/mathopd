@@ -795,7 +795,6 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	s->controls = controls;
 	s->naccepts = 0;
 	s->nhandled = 0;
-	s->not_accepting = 0;
 	if ((t = gettoken(p)) != t_open)
 		return t;
 	while ((t = gettoken(p)) != t_close) {

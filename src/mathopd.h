@@ -188,7 +188,6 @@ struct server {
 	int pollno;
 	unsigned long naccepts;
 	unsigned long nhandled;
-	int not_accepting;
 	struct vserver *vservers;
 };
 
