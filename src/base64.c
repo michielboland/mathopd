@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 1999, 2000, 2001 Michiel Boland.
+ *   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -153,7 +153,7 @@ static int f_webuserok(const char *authorization, FILE *fp, char *username, int 
 	*q++ = 0;
 	bp = 0;
 	skipline = 0;
-	while ((c = getc(fp)) != EOF) {
+	while ((c = getc(fp)) != EOF)
 		if (c == '\n') {
 			if (skipline == 0) {
 				buf[bp] = 0;
@@ -174,7 +174,6 @@ static int f_webuserok(const char *authorization, FILE *fp, char *username, int 
 			if (bp == sizeof buf)
 				skipline = 1;
 		}
-	}
 	return 0;
 }
 
