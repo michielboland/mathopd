@@ -1,54 +1,6 @@
-CHANGES between mathopd-1.2pl8 and mathopd-1.3.
+CHANGES between mathopd-1.3pl2 and mathopd-1.4b1
 
-More or less in reverse order of importance.
-
-- Two extra items are logged: bytes sent to client and bytes received
-  from client. (Bytes sent through CGI/External modules are not
-  logged yet.)
-
-- Multiple "Host" keywords per Virtual servers are now allowed.
-  (Yippee.) In addition, a NoHost keyword has been added to indicate
-  virtual servers that get activated when no Host: header is sent.
-
-- A "Dump" specialty has been added. Mathopd no longer dumps to
-  the error log.  Dumping has been more or less obsoleted, since
-  Mathopd now logs the exact number of bytes sent and received
-  for each virtual server in the transaction log.
-
-- Client hostnames can now be double-checked by the CGI/External
-  module, a bit like what tcpwrap does. This behaviour is off by
-  default; use the DNSLevel keyword to turn it on. DNSLevel can
-  also be used to completely turn off reverse DNS lookups. The
-  keyword operates at the "Control" level so different websites,
-  or even different directories can have dissimilar DNSLevel
-  settings.
-
-- The "Export" and "ChildLog" keyword now operate at the "Control"
-  level, making it possible to customize these settings across
-  websites/directories (if anyone wants to.)
-
-- A "Dummy" specialty has been added. This does nothing, it only
-  returns a 404 error. You can use this to "hide" files on your
-  server.
-
-- The "ExactMatch" flag can be used in combination with aliases.
-  If it is set to On, the control block in which the alias lives
-  will be used only if the request-uri exactly matches the
-  alias.
-
-- Support for encrypted password files has been reinstated.
-
-- The size of input buffer can be changed with InputBufSize.
-
-- "NoApply" has been added to complement "Apply".
-
-- Negative numbers in configuration files are now illegal.
-
-- Port numbers are checked for being in the [1..65535] interval.
-
-- Stopped child processes are reported.
-
-- The Makefile now contains an "all" and an "install" target.
-
-Michiel Boland <boland@diva.nl>
-29 October 1999
+Scripts are no longer run used as the owner of the script.
+A ScriptUser can be defined in a control block. Mathopd will
+change its identity to that of the ScriptUser right before
+execution.
