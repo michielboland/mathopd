@@ -101,7 +101,12 @@ static int base64decode(const unsigned char *encoded, unsigned char *decoded)
 	}
 }
 
-static int f_webuserok(const char *authorization, FILE *fp, char *username, int len)
+static int pwok(const char *good, const char *guess, int do_crypt)
+{
+	return strcmp(good, do_crypt ? crypt(guess, good) : guess) == 0;
+}
+
+static int f_webuserok(const char *authorization, FILE *fp, char *username, int len, int do_crypt)
 {
 	char buf[128], tmp[128], *p, *q;
 	register int c, bp, skipline;
@@ -133,7 +138,7 @@ static int f_webuserok(const char *authorization, FILE *fp, char *username, int 
 				p = strchr(buf, ':');
 				if (p) {
 					*p++ = 0;
-					if (strcmp(tmp, buf) == 0 && strcmp(p, q) == 0) {
+					if (strcmp(tmp, buf) == 0 && pwok(p, q, do_crypt)) {
 						if (username)
 							strcpy(username, buf);
 						return 1;
@@ -151,7 +156,7 @@ static int f_webuserok(const char *authorization, FILE *fp, char *username, int 
 	return 0;
 }
 
-int webuserok(const char *authorization, const char *userfilename, char *username, int len)
+int webuserok(const char *authorization, const char *userfilename, char *username, int len, int do_crypt)
 {
 	FILE *f;
 	int retval;
@@ -161,7 +166,7 @@ int webuserok(const char *authorization, const char *userfilename, char *usernam
 		log_d("cannot open userfile %s", userfilename);
 		return 0;
 	}
-	retval = f_webuserok(authorization, f, username, len);
+	retval = f_webuserok(authorization, f, username, len, do_crypt);
 	fclose(f);
 	return retval;
 }

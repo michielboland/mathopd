@@ -665,7 +665,7 @@ static int check_realm(struct request *r)
 	a += 5;
 	while (isspace(*a))
 		++a;
-	if (webuserok(a, r->c->userfile, r->user, sizeof r->user))
+	if (webuserok(a, r->c->userfile, r->user, sizeof r->user, r->c->do_crypt))
 		return 0;
 	return -1;
 }

@@ -77,6 +77,7 @@ static const char c_control[] =		"Control";
 static const char c_core_directory[] =	"CoreDirectory";
 static const char c_default_name[] =	"DefaultName";
 static const char c_deny[] =		"Deny";
+static const char c_do_crypt[] =	"EncryptedUserFile";
 static const char c_error[] =		"ErrorLog";
 static const char c_error_401_file[] =	"Error401File";
 static const char c_error_403_file[] =	"Error403File";
@@ -435,6 +436,7 @@ static const char *config_control(struct control **as)
 		a->error_401_file = b->error_401_file;
 		a->error_403_file = b->error_403_file;
 		a->error_404_file = b->error_404_file;
+		a->do_crypt = b->do_crypt;
 	}
 	else {
 		a->index_names = 0;
@@ -449,6 +451,7 @@ static const char *config_control(struct control **as)
 		a->error_401_file = 0;
 		a->error_403_file = 0;
 		a->error_404_file = 0;
+		a->do_crypt = 0;
 	}
 	a->next = *as;
 	*as = a;
@@ -503,6 +506,8 @@ static const char *config_control(struct control **as)
 			t = config_string(&a->error_403_file);
 		else if (!strcasecmp(tokbuf, c_error_404_file))
 			t = config_string(&a->error_404_file);
+		else if (!strcasecmp(tokbuf, c_do_crypt))
+			t = config_flag(&a->do_crypt);
 		else
 			t = e_keyword;
 		if (t)

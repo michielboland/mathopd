@@ -68,6 +68,10 @@
 #include <poll.h>
 #endif
 
+#ifdef HAVE_CRYPT_H
+#include <crypt.h>
+#endif
+
 #define DEFAULT_BUF_SIZE 12288
 #define INPUT_BUF_SIZE 2048
 #define DEFAULT_NUM_CONNECTIONS 64
@@ -154,6 +158,7 @@ struct control {
 	char *error_401_file;
 	char *error_403_file;
 	char *error_404_file;
+	int do_crypt;
 };
 
 struct virtual {
@@ -322,7 +327,7 @@ extern void dump(void);
 /* base64 */
 
 extern void base64initialize(void);
-extern int webuserok(const char *, const char *, char *, int);
+extern int webuserok(const char *, const char *, char *, int, int);
 
 /* redirect */
 
