@@ -327,9 +327,12 @@ static int output_headers(struct pool *p, struct request *r)
 
 static char *dirmatch(char *s, char *t)
 {
-	int n = strlen(t);
+	int n;
 
-	return (strneq(s, t, n) && (s[n] == '/' || s[n] == '\0')) ? s + n : 0;
+	if ((n = strlen(t)) == 0)
+		return s;
+	return strneq(s, t, n) &&
+		(s[n] == '/' || s[n] == '\0' || s[n-1] == '~') ? s + n : 0;
 }
 
 static int findcontrol(struct request *r)
@@ -652,6 +655,11 @@ static int process_path(struct request *r)
 	}
 	log(L_DEBUG, " faketoreal,");
 	if (faketoreal(r->path, r->path_translated, r, 1) == 0) {
+		r->error = se_alias;
+		return 500;
+	}
+	log(L_DEBUG, " empty path check,");
+	if (r->path_translated[0] == 0) {
 		r->error = se_alias;
 		return 500;
 	}
