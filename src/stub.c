@@ -90,7 +90,7 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 	struct cgi_header headers[100];
 	size_t i, nheaders, status, location;
 	const char *p, *tmpname, *tmpvalue;
-	int havestatus, havelocation, havecolon;
+	int havestatus, havelocation;
 	size_t len, tmpnamelen, tmpvaluelen;
 
 	tmpname = 0;
@@ -114,7 +114,6 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 	nheaders = 0;
 	len = 0;
 	addheader = 0;
-	havecolon = 0;
 	for (i = 0, p = inbuf; i < insize; i++, p++) {
 		c = *p;
 		switch (s) {
@@ -141,7 +140,6 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 				s = 0;
 				break;
 			case ':':
-				havecolon = 1;
 			case ' ':
 			case '\t':
 				if (tmpnamelen == 0)
@@ -155,7 +153,7 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 			break;
 		}
 		if (addheader) {
-			if (tmpvalue == 0 || havecolon == 0)
+			if (tmpvalue == 0)
 				addheader = 0;
 			else
 				switch (tmpnamelen) {
@@ -186,7 +184,6 @@ static int convert_cgi_headers(const char *inbuf, size_t insize, char *outbuf, s
 					}
 					break;
 				}
-			havecolon = 0;
 			if (addheader == 0) {
 				if (debug)
 					log_d("convert_cgi_headers: disallowing header \"%.*s\"", len, tmpname);
