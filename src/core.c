@@ -436,8 +436,15 @@ static void cleanup_connections(void)
 
 	cn = connections;
 	while (cn) {
-		if (cn->state == HC_ACTIVE && (cn->action == HC_CLOSING || current_time >= cn->t + (time_t) tuning.timeout))
-			close_connection(cn);
+		if (cn->state == HC_ACTIVE) {
+			if (cn->action == HC_CLOSING)
+				close_connection(cn);
+			else if (current_time >= cn->t + (time_t) tuning.timeout) {
+				if (debug)
+					log_d("timeout to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
+				close_connection(cn);
+			}
+		}
 		cn = cn->next;
 	}
 }
