@@ -294,7 +294,6 @@ extern int debug;
 extern int fcm;
 extern int stayroot;
 extern int my_pid;
-extern void die(const char *, const char *, ...);
 extern int fork_request(struct request *, int (*)(struct request *));
 
 /* config */
@@ -311,7 +310,7 @@ extern char *coredir;
 extern struct connection *connections;
 extern struct server *servers;
 extern char *user_name;
-extern void config(void);
+extern const char *config(void);
 
 extern int log_columns;
 extern int *log_column;
@@ -329,9 +328,9 @@ extern void httpd_main(void);
 
 /* request */
 
-extern int prepare_reply(struct request *);
 extern int process_request(struct request *);
 extern struct control *faketoreal(char *, char *, struct request *, int);
+extern int prepare_reply(struct request *);
 
 /* imap */
 
