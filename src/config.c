@@ -52,20 +52,16 @@ static const char rcsid[] = "$Id$";
 #endif
 
 struct tuning tuning;
-
 char *pid_filename;
 char *log_filename;
 char *error_filename;
-
 char *rootdir;
 char *coredir;
 struct server *servers;
 struct virtual *virtuals;
 struct vserver *vservers;
-
 uid_t server_uid;
 gid_t server_gid;
-
 int log_columns;
 int *log_column;
 int log_gmt;
