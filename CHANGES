@@ -51,36 +51,6 @@ ASCII NUL characters are not allowed in HTTP
 headers, as these might upset the various
 string-handling routines.
 
-A new AllowedOwners keyword has been added. It
-can be used as follows:
-
- Virtual {
-  Host www.an.example
-  Control {
-   AllowedOwners {
-    User foo
-    User bar
-    Group foo
-   }
-  }
-  Control {
-   Alias /
-   ...
-
-In this example, files that get retrieved for www.an.example
-must be owned by either user foo, user bar or group foo.
-
-AllowedOwners is inheritable.
-
-If you have want to allow access regardless of file
-ownership, use
-
-  Control {
-   AllowedOwners {
-    World
-   }
-  }
-
 If mathopd is started with the -n flag, diagnostic
 messages are logged to standard error as well as the
 ErrorLog.
