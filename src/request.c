@@ -361,21 +361,26 @@ static int get_mime(struct request *r, const char *s)
 
 static int get_path_info(struct request *r)
 {
-	char *p, *pa, *end, *cp;
+	char *p, *pa, *end, *cp, *start;
 	struct stat *s;
 	int rv;
+	size_t m;
 
+	m = r->location_length;
+	if (m == 0)
+		return -1;
 	s = &r->finfo;
 	p = r->path_translated;
+	start = p + m - 1;
 	end = p + strlen(p);
 	pa = r->path_args;
 	*pa = 0;
 	cp = end;
 	if (debug)
 		log_d("get_path_info: p=%s", p);
-	while (cp > p && cp[-1] == '/')
+	while (cp > start && cp[-1] == '/')
 		--cp;
-	while (cp > p) {
+	while (cp > start) {
 		if (cp != end)
 			*cp = 0;
 		rv = stat(p, s);
@@ -388,7 +393,7 @@ static int get_path_info(struct request *r)
 			*cp = 0;
 			return 0;
 		}
-		while (--cp > p && *cp != '/')
+		while (--cp > start && *cp != '/')
 			;
 	}
 	return -1;
@@ -665,6 +670,7 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update)
 		if (update)
 			c->locations = c->locations->next;
 		strcpy(y, c->locations->name);
+		r->location_length = strlen(y);
 		if (c->locations->name[0] == '/' || !c->path_args_ok)
 			strcat(y, s);
 	}
@@ -1015,6 +1021,7 @@ static void init_request(struct request *r)
 	r->user[0] = 0;
 	r->servername = 0;
 	r->allowedmethods = 0;
+	r->location_length = 0;
 }
 
 int process_request(struct request *r)
