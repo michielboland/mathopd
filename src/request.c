@@ -1007,8 +1007,6 @@ static const char *header_list_next(const char *s, size_t *lp)
 	}
 	while (l > 0 && s[l - 1] == ' ')
 		--l;
-	if (debug)
-		log_d("header_list_next: \"%.*s\"", l, s);
 	*lp = l;
 	return s;
 }
