@@ -42,7 +42,6 @@ static const char rcsid[] = "$Id$";
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -250,8 +249,6 @@ static struct connection *find_connection(void)
 
 static int accept_connection(struct server *s)
 {
-	struct sockaddr_in sa_remote, sa_local;
-	socklen_t l;
 	int fd;
 	struct connection *cn;
 
@@ -259,8 +256,7 @@ static int accept_connection(struct server *s)
 		cn = find_connection();
 		if (cn == 0)
 			return 0;
-		l = sizeof sa_remote;
-		fd = accept(s->fd, (struct sockaddr *) &sa_remote, &l);
+		fd = accept(s->fd, 0, 0);
 		if (fd == -1)
 			switch (errno) {
 			case EAGAIN:
@@ -282,22 +278,12 @@ static int accept_connection(struct server *s)
 			log_d("accept_connection: %d", fd);
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		fcntl(fd, F_SETFL, O_NONBLOCK);
-		l = sizeof sa_local;
-		if (getsockname(fd, (struct sockaddr *) &sa_local, &l) == -1) {
-			lerror("getsockname");
-			close(fd);
-			break;
-		}
 		if (cn->connection_state != HC_FREE) {
-			if (debug)
-				log_d("clobbering connection to %s[%hu]", inet_ntoa(cn->peer.sin_addr), ntohs(cn->peer.sin_port));
 			close_connection(cn);
 		}
 		cn->s = s;
 		cn->fd = fd;
 		cn->rfd = -1;
-		cn->peer = sa_remote;
-		cn->sock = sa_local;
 		cn->t = current_time;
 		cn->pollno = -1;
 		++stats.nconnections;
@@ -753,27 +739,24 @@ static void run_connections(void)
 	}
 }
 
-static void timeout_connections(struct connection *c, time_t t, const char *what)
+static void timeout_connections(struct connection *c, time_t t)
 {
 	struct connection *n;
 
 	while (c) {
 		n = c->next;
-		if (current_time >= c->t + t) {
-			if (what)
-				log_d("%s timeout to %s[%hu]", what, inet_ntoa(c->peer.sin_addr), ntohs(c->peer.sin_port));
+		if (current_time >= c->t + t)
 			close_connection(c);
-		}
 		c = n;
 	}
 }
 
 static void cleanup_connections(void)
 {
-	timeout_connections(waiting_connections.head, tuning.wait_timeout, debug ? "wait" : 0);
-	timeout_connections(reading_connections.head, tuning.timeout, "read");
-	timeout_connections(writing_connections.head, tuning.timeout, "write");
-	timeout_connections(forked_connections.head, tuning.script_timeout, "script");
+	timeout_connections(waiting_connections.head, tuning.wait_timeout);
+	timeout_connections(reading_connections.head, tuning.timeout);
+	timeout_connections(writing_connections.head, tuning.timeout);
+	timeout_connections(forked_connections.head, tuning.script_timeout);
 }
 
 static void reap_children(void)

@@ -129,13 +129,6 @@ struct pool {
 	char state;
 };
 
-struct access {
-	int type;
-	unsigned long mask;
-	unsigned long addr;
-	struct access *next;
-};
-
 struct mime {
 	int class;
 	char *ext;
@@ -153,11 +146,9 @@ struct control {
 	int path_args_ok;
 	int exact_match;
 	struct simple_list *index_names;
-	struct access *accesses;
 	struct mime *mimes;
 	struct control *next;
 	struct simple_list *locations;
-	struct access *clients;
 	char *admin;
 	char *realm;
 	char *userfile;
@@ -192,14 +183,19 @@ struct vserver {
 
 struct server {
 	int fd;
-	unsigned long port;
-	struct in_addr addr;
+	size_t s_addrlen;
+	struct sockaddr *s_addr;
 	struct virtual *children;
 	struct control *controls;
 	struct server *next;
 	int pollno;
 	struct vserver *vservers;
 	unsigned long backlog;
+	char *addr;
+	char *port;
+	int family;
+	int socktype;
+	int protocol;
 };
 
 struct request_header {
@@ -286,8 +282,6 @@ struct connection {
 	struct server *s;
 	int fd;
 	int rfd;
-	struct sockaddr_in peer;
-	struct sockaddr_in sock;
 	time_t t;
 	struct pool header_input;
 	struct pool output;

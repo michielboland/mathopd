@@ -40,7 +40,7 @@ static const char rcsid[] = "$Id$";
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
+#include <netdb.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
@@ -199,10 +199,13 @@ static int add_http_vars(struct request *r, struct cgi_parameters *cp)
 
 static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 {
-	char t[16];
+	char t[INET6_ADDRSTRLEN], t2[6];
 	struct simple_list *e;
 	char path_translated[PATHLEN];
 	char *tmp;
+	struct sockaddr_storage sa;
+	socklen_t l;
+	int rv;
 
 	if (add_http_vars(r, cp) == -1)
 		return -1;
@@ -241,11 +244,19 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 		free(tmp);
 	} else if (add("REQUEST_URI", r->url, 0, cp) == -1)
 		return -1;
-	sprintf(t, "%s", inet_ntoa(r->cn->peer.sin_addr));
+	l = sizeof sa;
+	if (getpeername(r->cn->fd, (struct sockaddr *) &sa, &l) == -1) {
+		lerror("getpeername");
+		return -1;
+	}
+	rv = getnameinfo((struct sockaddr *) &sa, l, t, sizeof t, t2, sizeof t2, NI_NUMERICHOST | NI_NUMERICSERV);
+	if (rv) {
+		log_d("getnameinfo: %s", gai_strerror(rv));
+		return -1;
+	}
 	if (add("REMOTE_ADDR", t, 0, cp) == -1)
 		return -1;
-	sprintf(t, "%hu", ntohs(r->cn->peer.sin_port));
-	if (add("REMOTE_PORT", t, 0, cp) == -1)
+	if (add("REMOTE_PORT", t2, 0, cp) == -1)
 		return -1;
 	if (add("REQUEST_METHOD", r->method_s, 0, cp) == -1)
 		return -1;
@@ -253,11 +264,19 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 		return -1;
 	if (add("SERVER_NAME", r->host, 0, cp) == -1)
 		return -1;
-	sprintf(t, "%s", inet_ntoa(r->cn->sock.sin_addr));
+	l = sizeof sa;
+	if (getsockname(r->cn->fd, (struct sockaddr *) &sa, &l) == -1) {
+		lerror("getsockname");
+		return -1;
+	}
+	rv = getnameinfo((struct sockaddr *) &sa, l, t, sizeof t, t2, sizeof t2, NI_NUMERICHOST | NI_NUMERICSERV);
+	if (rv) {
+		log_d("getnameinfo: %s", gai_strerror(rv));
+		return -1;
+	}
 	if (add("SERVER_ADDR", t, 0, cp) == -1)
 		return -1;
-	sprintf(t, "%hu", ntohs(r->cn->sock.sin_port));
-	if (add("SERVER_PORT", t, 0, cp) == -1)
+	if (add("SERVER_PORT", t2, 0, cp) == -1)
 		return -1;
 	if (add("SERVER_SOFTWARE", server_version, 0, cp) == -1)
 		return -1;

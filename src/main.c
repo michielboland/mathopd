@@ -40,7 +40,6 @@ static const char rcsid[] = "$Id$";
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <signal.h>
@@ -104,9 +103,8 @@ static void die(const char *t, const char *fmt, ...)
 static void startup_server(struct server *s)
 {
 	int onoff;
-	struct sockaddr_in sa;
 
-	s->fd = socket(AF_INET, SOCK_STREAM, 0);
+	s->fd = socket(s->family, s->socktype, s->protocol);
 	if (s->fd == -1)
 		die("socket", 0);
 	onoff = 1;
@@ -114,12 +112,8 @@ static void startup_server(struct server *s)
 		die("setsockopt", "cannot set re-use flag");
 	fcntl(s->fd, F_SETFD, FD_CLOEXEC);
 	fcntl(s->fd, F_SETFL, O_NONBLOCK);
-	memset(&sa, 0, sizeof sa);
-	sa.sin_family = AF_INET;
-	sa.sin_addr = s->addr;
-	sa.sin_port = htons(s->port);
-	if (bind(s->fd, (struct sockaddr *) &sa, sizeof sa) == -1)
-		die("bind", "cannot start up server at %s port %lu", inet_ntoa(s->addr), s->port);
+	if (bind(s->fd, s->s_addr, s->s_addrlen) == -1)
+		die("bind", "cannot start up server at %s port %s", s->addr ? s->addr : "[any]", s->port);
 	if (listen(s->fd, s->backlog) == -1)
 		die("listen", 0);
 }

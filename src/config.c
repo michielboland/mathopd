@@ -40,7 +40,7 @@ static const char rcsid[] = "$Id$";
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
+#include <netdb.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,7 +78,6 @@ static struct virtual *virtuals;
 
 static const char c_all[] =			"*";
 static const char c_accept_multi[] =		"AcceptMulti";
-static const char c_access[] =			"Access";
 static const char c_address[] =			"Address";
 static const char c_admin[] =			"Admin";
 static const char c_alias[] =			"Alias";
@@ -92,7 +91,6 @@ static const char c_buf_size[] =		"BufSize";
 static const char c_bytes_read[] =		"BytesRead";
 static const char c_bytes_written[] =		"BytesWritten";
 static const char c_child_log[] =		"ChildLog";
-static const char c_clients[] =			"Clients";
 static const char c_clobber[] =			"Clobber";
 static const char c_content_length[] =		"ContentLength";
 static const char c_control[] =			"Control";
@@ -108,6 +106,7 @@ static const char c_exact_match[] =		"ExactMatch";
 static const char c_export[] =			"Export";
 static const char c_external[] =		"External";
 static const char c_extra_headers[] =		"ExtraHeaders";
+static const char c_family[] =			"Family";
 static const char c_host[] =			"Host";
 static const char c_index_names[] =		"IndexNames";
 static const char c_input_buf_size[] =		"InputBufSize";
@@ -160,10 +159,7 @@ static const char c_user_directory[] =		"UserDirectory";
 static const char c_user_file[] =		"UserFile";
 static const char c_version[] =			"Version";
 
-static const char e_bad_addr[] =	"bad address";
 static const char e_bad_alias[] =	"alias without matching location";
-static const char e_bad_mask[] =	"mask does not match address";
-static const char e_bad_network[] =	"bad network";
 static const char e_help[] =		"unknown error (help)";
 static const char e_inval[] =		"illegal quantity";
 static const char e_keyword[] =		"unknown keyword";
@@ -194,20 +190,6 @@ static int default_log_column[] = {
 	ML_BYTES_READ,
 	ML_BYTES_WRITTEN
 };
-
-
-#ifdef NEED_INET_ATON
-int inet_aton(const char *cp, struct in_addr *pin)
-{
-	unsigned long ia;
-
-	ia = inet_addr(cp);
-	if (ia == (unsigned long) -1)
-		return 0;
-	pin->s_addr = ia;
-	return 1;
-}
-#endif
 
 static const char *gettoken(struct configuration *p)
 {
@@ -360,19 +342,6 @@ static const char *config_flag(struct configuration *p, int *i)
 	return 0;
 }
 
-static const char *config_address(struct configuration *p, struct in_addr *b)
-{
-	struct in_addr ia;
-	const char *t;
-
-	if ((t = gettoken(p)) != t_string)
-		return t;
-	if (inet_aton(p->tokbuf, &ia) == 0)
-		return e_bad_addr;
-	*b = ia;
-	return 0;
-}
-
 static const char *config_list(struct configuration *p, struct simple_list **ls)
 {
 	struct simple_list *l;
@@ -495,103 +464,6 @@ static const char *config_mime(struct configuration *p, struct mime **ms, int cl
 #define ALLOWDENY 0
 #define APPLYNOAPPLY 1
 
-static unsigned long masks[] = {
-	0,
-	0x80000000,
-	0xc0000000,
-	0xe0000000,
-	0xf0000000,
-	0xf8000000,
-	0xfc000000,
-	0xfe000000,
-	0xff000000,
-	0xff800000,
-	0xffc00000,
-	0xffe00000,
-	0xfff00000,
-	0xfff80000,
-	0xfffc0000,
-	0xfffe0000,
-	0xffff0000,
-	0xffff8000,
-	0xffffc000,
-	0xffffe000,
-	0xfffff000,
-	0xfffff800,
-	0xfffffc00,
-	0xfffffe00,
-	0xffffff00,
-	0xffffff80,
-	0xffffffc0,
-	0xffffffe0,
-	0xfffffff0,
-	0xfffffff8,
-	0xfffffffc,
-	0xfffffffe,
-	0xffffffff
-};
-
-static const char *config_acccl(struct configuration *p, struct access **ls, int accltype)
-{
-	struct access *l;
-	struct in_addr ia;
-	char *sl, *e;
-	unsigned long sz;
-	const char *t;
-
-	if ((t = gettoken(p)) != t_open)
-		return t;
-	while ((t = gettoken(p)) != t_close) {
-		if (t != t_string)
-			return t;
-		if ((l = malloc(sizeof *l)) == 0)
-			return e_memory;
-		l->next = *ls;
-		*ls = l;
-		if (accltype == ALLOWDENY) {
-			if (!strcasecmp(p->tokbuf, c_allow))
-				l->type = ALLOW;
-			else if (!strcasecmp(p->tokbuf, c_deny))
-				l->type = DENY;
-			else
-				return e_keyword;
-		} else {
-			if (!strcasecmp(p->tokbuf, c_apply))
-				l->type = APPLY;
-			else if (!strcasecmp(p->tokbuf, c_no_apply))
-				l->type = NOAPPLY;
-			else
-				return e_keyword;
-		}
-		if ((t = gettoken(p)) != t_string)
-			return t;
-		sl = strchr(p->tokbuf, '/');
-		if (sl == 0)
-			return e_bad_network;
-		*sl++ = 0;
-		sz = strtoul(sl, &e, 0);
-		if (*e || e == sl || sz > 32)
-			return e_inval;
-		l->mask = htonl(masks[sz]);
-		if (inet_aton(p->tokbuf, &ia) == 0)
-			return e_bad_addr;
-		l->addr = ia.s_addr;
-		if ((l->mask | l->addr) != l->mask)
-			return e_bad_mask;
-	}
-	return 0;
-}
-
-static const char *config_access(struct configuration *p, struct access **ls)
-{
-	return config_acccl(p, ls, ALLOWDENY);
-}
-
-static const char *config_clients(struct configuration *p, struct access **ls)
-{
-	return config_acccl(p, ls, APPLYNOAPPLY);
-}
-
 static const char *config_script_user(struct configuration *p, struct control *c)
 {
 	const char *t;
@@ -644,12 +516,10 @@ static const char *config_control(struct configuration *p, struct control **as)
 		return e_memory;
 	a->locations = 0;
 	a->alias = 0;
-	a->clients = 0;
 	a->exact_match = 0;
 	a->user_directory = 0;
 	if (b) {
 		a->index_names = b->index_names;
-		a->accesses = b->accesses;
 		a->mimes = b->mimes;
 		a->path_args_ok = b->path_args_ok;
 		a->admin = b->admin;
@@ -671,7 +541,6 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->auto_index_command = b->auto_index_command;
 	} else {
 		a->index_names = 0;
-		a->accesses = 0;
 		a->mimes = 0;
 		a->path_args_ok = 0;
 		a->admin = 0;
@@ -726,10 +595,6 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_flag(p, &a->path_args_ok);
 		else if (!strcasecmp(p->tokbuf, c_index_names))
 			t = config_list(p, &a->index_names);
-		else if (!strcasecmp(p->tokbuf, c_access))
-			t = config_access(p, &a->accesses);
-		else if (!strcasecmp(p->tokbuf, c_clients))
-			t = config_clients(p, &a->clients);
 		else if (!strcasecmp(p->tokbuf, c_types))
 			t = config_mime(p, &a->mimes, CLASS_FILE);
 		else if (!strcasecmp(p->tokbuf, c_specials))
@@ -843,41 +708,80 @@ static const char *config_virtual(struct configuration *p, struct vserver **vs, 
 	return 0;
 }
 
+static const char *config_family(struct configuration *p, int *fp)
+{
+	const char *t;
+
+	if ((t = gettoken(p)) != t_string)
+		return t;
+	if (!strcasecmp(p->tokbuf, "inet"))
+		*fp = AF_INET;
+	else if (!strcasecmp(p->tokbuf, "inet6"))
+		*fp = AF_INET6;
+	else
+		return "unknown address family";
+	return 0;
+}
+
 static const char *config_server(struct configuration *p, struct server **ss)
 {
 	struct server *s;
 	const char *t;
+	struct addrinfo hints, *res;
+	int rv, fam;
 
 	if ((s = malloc(sizeof *s)) == 0)
 		return e_memory;
-	s->port = 80;
-	s->addr.s_addr = 0;
 	s->children = virtuals;
 	s->vservers = vservers;
 	s->controls = controls;
 	s->backlog = DEFAULT_BACKLOG;
+	s->addr = 0;
+	s->port = "80";
+	fam = AF_UNSPEC;
 	if ((t = gettoken(p)) != t_open)
 		return t;
 	while ((t = gettoken(p)) != t_close) {
 		if (t != t_string)
 			return t;
 		if (!strcasecmp(p->tokbuf, c_port))
-			t = config_int(p, &s->port);
+			t = config_string(p, &s->port);
 		else if (!strcasecmp(p->tokbuf, c_address))
-			t = config_address(p, &s->addr);
+			t = config_string(p, &s->addr);
 		else if (!strcasecmp(p->tokbuf, c_virtual))
 			t = config_virtual(p, &s->vservers, s);
 		else if (!strcasecmp(p->tokbuf, c_control))
 			t = config_control(p, &s->controls);
 		else if (!strcasecmp(p->tokbuf, c_backlog))
 			t = config_int(p, &s->backlog);
+		else if (!strcasecmp(p->tokbuf, c_family))
+			t = config_family(p, &fam);
 		else
 			t = e_keyword;
 		if (t)
 			return t;
 	}
-	if (s->port == 0 || s->port > 0xffff)
+	memset(&hints, 0, sizeof hints);
+	hints.ai_flags = AI_PASSIVE;
+	hints.ai_family = fam;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = 0;
+	rv = getaddrinfo(s->addr, s->port, &hints, &res);
+	if (rv) {
+		fprintf(stderr, "address %s port %s: %s\n", s->addr ? s->addr : "[any]", s->port, gai_strerror(rv));
 		return e_illegalport;
+	}
+	s->s_addr = malloc(res->ai_addrlen);
+	if (s->s_addr == 0) {
+		freeaddrinfo(res);
+		return e_memory;
+	}
+	s->family = res->ai_family;
+	s->socktype = res->ai_socktype;
+	s->protocol = res->ai_protocol;
+	memcpy(s->s_addr, res->ai_addr, res->ai_addrlen);
+	s->s_addrlen = res->ai_addrlen;
+	freeaddrinfo(res);
 	num_servers++;
 	s->next = *ss;
 	*ss = s;
