@@ -299,6 +299,7 @@ pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd,
 {
 	pid_t pid;
 	sigset_t set, oset;
+	struct rlimit rl;
 
 	sigfillset(&set);
 	sigprocmask(SIG_SETMASK, &set, &oset);
@@ -328,6 +329,10 @@ pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd,
 		mysignal(SIGUSR2, SIG_DFL);
 		mysignal(SIGPIPE, SIG_DFL);
 		mysignal(SIGWINCH, SIG_DFL);
+		if (coredir) {
+			rl.rlim_cur = rl.rlim_max = 0;
+			setrlimit(RLIMIT_CORE, &rl);
+		}
 		sigprocmask(SIG_SETMASK, &oset, 0);
 		dup2(fd, 0);
 		dup2(fd, 1);
