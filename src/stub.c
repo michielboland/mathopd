@@ -495,98 +495,91 @@ static int writetochild(struct pipe_params *p)
 	return 0;
 }
 
+static int scanlflf(struct pipe_params *p)
+{
+	char c;
+
+	while (p->pstart < p->ipp && p->state != 2) {
+		c = p->pbuf[p->pstart++];
+		switch (p->state) {
+		case 0:
+			if (c == '\n')
+				p->state = 1;
+			break;
+		case 1:
+			switch (c) {
+			case '\r':
+				break;
+			case '\n':
+				p->state = 2;
+				break;
+			default:
+				p->state = 0;
+				break;
+			}
+			break;
+		}
+	}
+	if (p->state == 2) {
+		if (convert_cgi_headers(p, &p->cn->r->status) == -1) {
+			p->error_condition = STUB_ERROR_RESTART;
+			return -1;
+		}
+		if (p->haslen) {
+			if (p->pstart < p->ipp) {
+				if (p->ipp > p->pstart + p->pmax) {
+					log_d("extra garbage from script ignored");
+					p->ipp = p->pstart + p->pmax;
+					p->pmax = 0;
+				} else
+					p->pmax -= p->ipp - p->pstart;
+			}
+			if (p->pmax == 0)
+				p->pstate = 2;
+		}
+	} else if (p->pstart == p->psize) {
+		log_d("scanlflf: buffer full");
+		p->error_condition = STUB_ERROR_RESTART;
+		return -1;
+	}
+	return 0;
+}
+
 static void pipe_run(struct pipe_params *p)
 {
-	short revents;
-	char c;
+	short cevents, pevents;
 	size_t room;
 	size_t bytestocopy;
-	int convert_result;
 	char chunkbuf[16];
 	size_t chunkheaderlen;
-	char buf[60];
 
-	if (p->cpollno != -1) {
-		revents = pollfds[p->cpollno].revents;
-		if (revents & ~(POLLIN | POLLOUT | POLLERR | POLLHUP)) {
-			log_d("pipe_run: revents=%hd", revents);
-			p->error_condition = STUB_ERROR_CLIENT;
-			return;
-		}
-		if (revents & POLLERR) {
-			sprintf(buf, "error on connection to %s[%hu]", inet_ntoa(p->cn->peer.sin_addr), ntohs(p->cn->peer.sin_port));
-			log_socket_error(p->cfd, buf);
-			p->error_condition = STUB_ERROR_CLIENT;
-			return;
-		}
-		if (revents & POLLIN) {
-			if (readfromclient(p) == -1)
-				return;
-		}
+	cevents = p->cpollno != -1 ? pollfds[p->cpollno].revents : 0;
+	pevents = p->ppollno != -1 ? pollfds[p->ppollno].revents : 0;
+	if (cevents & POLLERR) {
+		log_socket_error(p->cfd, "pipe_run: error on client socket");
+		p->error_condition = STUB_ERROR_CLIENT;
+		return;
 	}
-	if (p->ppollno != -1) {
-		revents = pollfds[p->ppollno].revents;
-		if (revents & ~(POLLIN | POLLOUT | POLLERR | POLLHUP)) {
-			log_d("pipe_run: revents=%hd", revents);
-			p->error_condition = STUB_ERROR_PIPE;
+	if (pevents & POLLERR) {
+		log_socket_error(p->pfd, "pipe_run: error on child socket");
+		p->error_condition = STUB_ERROR_PIPE;
+		return;
+	}
+	cevents &= POLLIN;
+	cevents |= POLLOUT;
+	pevents &= POLLIN;
+	pevents |= POLLOUT;
+	if (cevents & POLLIN) {
+		if (readfromclient(p) == -1)
 			return;
-		}
-		if (revents & POLLERR) {
-			log_socket_error(p->pfd, "error occurred on child socket");
-			p->error_condition = STUB_ERROR_PIPE;
+	}
+	if (pevents & POLLIN) {
+		if (readfromchild(p) == -1)
 			return;
-		}
-		if (revents & POLLIN) {
-			if (readfromchild(p) == -1)
-				return;
-		}
 	}
 	if (p->ipp && p->state != 2) {
-		while (p->pstart < p->ipp && p->state != 2) {
-			c = p->pbuf[p->pstart++];
-			switch (p->state) {
-			case 0:
-				if (c == '\n')
-					p->state = 1;
-				break;
-			case 1:
-				switch (c) {
-				case '\r':
-					break;
-				case '\n':
-					p->state = 2;
-					break;
-				default:
-					p->state = 0;
-					break;
-				}
-				break;
-			}
-		}
-		if (p->state == 2) {
-			convert_result = convert_cgi_headers(p, &p->cn->r->status);
-			if (convert_result == -1) {
-				log_d("pipe_run: problem in convert_cgi_headers");
-				p->error_condition = STUB_ERROR_RESTART;
-				return;
-			}
-			if (p->haslen) {
-				if (p->pstart < p->ipp) {
-					if (p->ipp > p->pstart + p->pmax) {
-						log_d("extra garbage from script ignored");
-						p->ipp = p->pstart + p->pmax;
-						p->pmax = 0;
-					} else
-						p->pmax -= p->ipp - p->pstart;
-				}
-				if (p->pmax == 0)
-					p->pstate = 2;
-			}
-		} else if (p->pstart == p->psize) {
-			log_d("pipe_run: buffer full");
-			p->error_condition = STUB_ERROR_RESTART;
+		if (scanlflf(p) == -1)
 			return;
-		}
 	}
 	if (p->state == 2 && p->pstart < p->ipp) {
 		if (p->nocontent)
@@ -632,11 +625,11 @@ static void pipe_run(struct pipe_params *p)
 		} else
 			p->pstate = 3;
 	}
-	if (p->otop > p->obp) {
+	if (cevents & POLLOUT && p->otop > p->obp) {
 		if (writetoclient(p) == -1)
 			return;
 	}
-	if (p->ibp > p->opp) {
+	if (pevents & POLLOUT && p->ibp > p->opp) {
 		if (writetochild(p) == -1)
 			return;
 	}
