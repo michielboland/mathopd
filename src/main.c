@@ -255,11 +255,9 @@ int main(int argc, char *argv[])
 		pid_fd = -1;
 	if (init_logs(tee) == -1)
 		die("open", "Cannot open log files");
-	if (am_daemon) {
-		dup2(null_fd, 0);
-		dup2(null_fd, 1);
-		dup2(null_fd, 2);
-	}
+	dup2(null_fd, 0);
+	dup2(null_fd, 1);
+	dup2(null_fd, 2);
 	close(null_fd);
 	if (am_daemon) {
 		if (fork())
