@@ -1,7 +1,7 @@
 /*
  * core.c - socket level code for Mathopd
  *
- * Copyright 1996, 1997, Michiel Boland
+ * Copyright 1996, 1997, 1998, Michiel Boland
  */
 
 /* Les trois soers aveugles */
