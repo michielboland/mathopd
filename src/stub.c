@@ -292,6 +292,8 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 		pp->chunkit = 0;
 		pp->haslen = 1;
 		pp->pmax = ul;
+		pp->cn->r->num_content = 0;
+		pp->cn->r->content_length = ul;
 	} else if (pp->cn->r->protocol_minor == 0 && pp->nocontent == 0)
 		pp->cn->keepalive = 0;
 	l = sprintf(buf, "Server: %.30s\r\n", server_version);
