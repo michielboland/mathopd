@@ -51,7 +51,6 @@ static const char rcsid[] = "$Id$";
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include "mathopd.h"
 
 struct cgi_header {
@@ -283,7 +282,7 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 		}
 		ul = strtoul(tmpvalue, &cp, 10);
 		if (cp != tmpvalue) {
-			while (*cp != '\n' && isspace(*cp))
+			while (*cp != '\n' && (*cp == ' ' || *cp == '\t'))
 				++cp;
 		}
 		if (*cp != '\n' || ul >= UINT_MAX) {
