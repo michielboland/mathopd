@@ -74,6 +74,7 @@ static const char c_types[] =		"Types";
 static const char c_virtual[] =		"Virtual";
 static const char c_umask[] =		"Umask";
 static const char c_user[] =		"User";
+static const char c_userfile[] =	"UserFile";
 
 static const char e_addr_set[] =	"address already set";
 static const char e_bad_addr[] =	"bad address";
@@ -403,6 +404,7 @@ static const char *config_control(struct control **as)
 		a->admin = b->admin;
 		a->refresh = b->refresh;
 		a->realm = b->realm;
+		a->userfile = b->userfile;
 		a->error_401_file = b->error_401_file;
 	}
 	else {
@@ -415,6 +417,7 @@ static const char *config_control(struct control **as)
 		a->admin = 0;
 		a->refresh = 0;
 		a->realm = 0;
+		a->userfile = 0;
 		a->error_401_file = 0;
 	}
 	a->next = *as;
@@ -462,6 +465,8 @@ static const char *config_control(struct control **as)
 			t = config_int(&a->refresh);
 		else if (!strcasecmp(tokbuf, c_realm))
 			t = config_string(&a->realm);
+		else if (!strcasecmp(tokbuf, c_userfile))
+			t = config_string(&a->userfile);
 		else if (!strcasecmp(tokbuf, c_error_401_file))
 			t = config_string(&a->error_401_file);
 		else
