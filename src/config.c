@@ -121,6 +121,7 @@ static const char e_help[] =		"unknown error (help)";
 static const char e_inval[] =		"illegal quantity";
 static const char e_keyword[] =		"unknown keyword";
 static const char e_memory[] =		"out of memory";
+static const char e_nodefault[] =	"DefaultName not set";
 static const char e_unknown_host[] =	"unknown host";
 
 static const char t_close[] =		"unexpected closing brace";
@@ -129,6 +130,16 @@ static const char t_open[] =		"unexpected opening brace";
 static const char t_string[] =		"unexpected string";
 static const char t_too_long[] =	"token too long";
 static const char t_word[] =		"unexpected word";
+
+#define ALLOC(x) if (((x) = malloc(sizeof *(x))) == 0) return e_memory
+#define COPY(x, y) if (((x) = strdup(y)) == 0) return e_memory
+#define GETWORD() if (gettoken() != t_word) return err
+#define GETSTRING() if (gettoken() != t_string && err != t_word) return err
+#define GETOPEN() if (gettoken() != t_open) return err
+#define REQWORD() if (err != t_word) return err
+#define REQSTRING() if (err != t_string && err != t_word) return err
+#define NOTCLOSE() gettoken() != t_close
+#define NOTEOF() gettoken() != t_eof
 
 static const char *gettoken(void)
 {
@@ -228,17 +239,6 @@ static const char *gettoken(void)
 	return err;
 }
 
-#define NEW(x) malloc(sizeof (x))
-#define MAKE(x, y) if (((x) = malloc(sizeof (y))) == 0) return e_memory
-#define COPY(x, y) if (((x) = strdup(y)) == 0) return e_memory
-#define GETWORD() if (gettoken() != t_word) return err
-#define GETSTRING() if (gettoken() != t_string && err != t_word) return err
-#define GETOPEN() if (gettoken() != t_open) return err
-#define REQWORD() if (err != t_word) return err
-#define REQSTRING() if (err != t_string && err != t_word) return err
-#define NOTCLOSE() gettoken() != t_close
-#define NOTEOF() gettoken() != t_eof
-
 static const char *config_string(char **a)
 {
 	GETSTRING();
@@ -303,7 +303,7 @@ static const char *config_list(struct simple_list **ls)
 	GETOPEN();
 	while (NOTCLOSE()) {
 		REQSTRING();
-		MAKE(l, struct simple_list);
+		ALLOC(l);
 		COPY(l->name, tokbuf);
 		l->next = *ls;
 		*ls = l;
@@ -314,7 +314,7 @@ static const char *config_list(struct simple_list **ls)
 static const char *config_mime(struct mime **ms, int class)
 {
 	struct mime *m;
-	char *name;
+	char *name, *s, buf[32];
 
 	GETOPEN();
 	while (NOTCLOSE()) {
@@ -323,15 +323,13 @@ static const char *config_mime(struct mime **ms, int class)
 		GETOPEN();
 		while (NOTCLOSE()) {
 			REQSTRING();
-			MAKE(m, struct mime);
+			ALLOC(m);
 			m->class = class;
 			m->name = name;
 			if (!strcasecmp(tokbuf, c_all))
 				m->ext = 0;
 			else {
-				char buf[32];
-				char *s = tokbuf;
-
+				s = tokbuf;
 				if (*s == '/')
 					sprintf(buf, "%.30s", s);
 				else {
@@ -358,7 +356,7 @@ static const char *config_access(struct access **ls)
 	GETOPEN();
 	while (NOTCLOSE()) {
 		REQWORD();
-		MAKE(l, struct access);
+		ALLOC(l);
 		l->next = *ls;
 		*ls = l;
 		if (!strcasecmp(tokbuf, c_allow))
@@ -375,8 +373,7 @@ static const char *config_access(struct access **ls)
 			static int nwarn;
 			if (nwarn == 0) {
 				nwarn = 1;
-				fprintf(stderr, "warning: deprecated network "
-					"notation used in config file\n");
+				fprintf(stderr, "warning: deprecated network notation used in config file\n");
 			}
 		}
 		if (!strcasecmp(tokbuf, c_all))
@@ -399,8 +396,7 @@ static const char *config_access(struct access **ls)
 				if (sz == 0)
 					l->mask = 0;
 				else
-					l->mask = htonl(0xffffffff ^
-						((1 << (32 - sz)) - 1));
+					l->mask = htonl(0xffffffff ^ ((1 << (32 - sz)) - 1));
 			}
 			if (inet_aton(tokbuf, &ia) == 0)
 				return e_bad_addr;
@@ -411,7 +407,7 @@ static const char *config_access(struct access **ls)
 	}
 	return 0;
 }
-	
+
 static void chopslash(char *s)
 {
 	char *t;
@@ -430,7 +426,7 @@ static const char *config_control(struct control **as)
 	b = *as;
 	while (b && b->locations)
 		b = b->next;
-	MAKE(a, struct control);
+	ALLOC(a);
 	a->locations = 0;
 	a->alias = 0;
 	a->clients = 0;
@@ -470,7 +466,7 @@ static const char *config_control(struct control **as)
 	while (NOTCLOSE()) {
 		REQWORD();
 		if (!strcasecmp(tokbuf, c_location)) {
-			MAKE(l, struct simple_list);
+			ALLOC(l);
 			GETSTRING();
 			chopslash(tokbuf);
 			COPY(l->name, tokbuf);
@@ -535,7 +531,7 @@ static const char *config_virtual(struct virtual **vs, struct server *parent,
 	const char *t = 0;
 	struct virtual *v;
 
-	MAKE(v, struct virtual);
+	ALLOC(v);
 	v->host = 0;
 	v->parent = parent;
 	v->controls = parent->controls;
@@ -567,10 +563,10 @@ static const char *config_server(struct server **ss)
 	struct server *s;
 	struct virtual *v;
 
-	MAKE(s, struct server);
+	ALLOC(s);
 	num_servers++;
 	s->port = 0;
-	s->addr.s_addr = htonl(INADDR_ANY);
+	s->addr.s_addr = 0;
 	s->s_name = 0;
 	s->children = 0;
 	s->controls = controls;
@@ -617,7 +613,7 @@ static const char *fill_servernames(void)
 			s->port = DEFAULT_PORT;
 		if (s->s_name == 0) {
 			if (fqdn == 0)
-				return e_unknown_host;
+				return e_nodefault;
 			s->s_name = fqdn;
 		}
 		v = s->children;
@@ -704,7 +700,7 @@ static struct pool *new_pool(size_t s)
 	char *t;
 	struct pool *p;
 
-	p = NEW(struct pool);
+	p = malloc(sizeof *p);
 	if (p) {
 		t = malloc(s);
 		if (t) {
@@ -717,7 +713,7 @@ static struct pool *new_pool(size_t s)
 	return p;
 }
 
-void config(void)
+static const char *config2(void)
 {
 	const char *s;
 	int n;
@@ -731,38 +727,39 @@ void config(void)
 	fcm = DEFAULT_UMASK;
 
 	s = config_main();
-
-	if (s)
-		die(0,
-		    "An error occurred at token `%s' around line %d:\n"
-		    "*** %s ***",
-		    tokbuf,
-		    line,
-		    s);
-
+	if (s) {
+		fprintf(stderr, "Error at token '%s' around line %d\n", tokbuf, line);
+		return s;
+	}
 	s = fill_servernames();
 	if (s)
-		die(0, "%s", s);
-
+		return s;
 #ifdef POLL
-	pollfds = malloc((tuning.num_connections + num_servers)
-					   * sizeof (struct pollfd));
+	pollfds = malloc((tuning.num_connections + num_servers) * sizeof *pollfds);
 	if (pollfds == 0)
-		die(0, e_memory);
+		return e_memory;
 #endif
-
 	for (n = 0; n < tuning.num_connections; n++) {
-		if ((cn = NEW(struct connection)) == 0
-			|| (cn->r = NEW(struct request)) == 0
-			|| (cn->input = new_pool(tuning.input_buf_size)) == 0
-			|| (cn->output = new_pool(tuning.buf_size)) == 0)
-			die(0, e_memory);
-		else {
-			cn->ip[15] = '\0';
-			cn->r->cn = cn;
-			cn->next = connections;
-			cn->state = HC_FREE;
-			connections = cn;
-		}
+		ALLOC(cn);
+		ALLOC(cn->r);
+		if ((cn->input = new_pool(tuning.input_buf_size)) == 0)
+			return e_memory;
+		if ((cn->output = new_pool(tuning.buf_size)) == 0)
+			return e_memory;
+		cn->ip[15] = '\0';
+		cn->r->cn = cn;
+		cn->next = connections;
+		cn->state = HC_FREE;
+		connections = cn;
 	}
+	return 0;
+}
+
+void config(void)
+{
+	const char *s;
+
+	s = config2();
+	if (s)
+		die(0, "%s", s);
 }
