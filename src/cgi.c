@@ -189,6 +189,8 @@ static int make_cgi_envp(struct request *r)
 	ADD("HTTP_FROM", r->from);
 	ADD("HTTP_REFERER", r->referer);
 	ADD("HTTP_USER_AGENT", r->user_agent);
+	if (r->user && r->user[0])
+		ADD("REMOTE_USER", r->user);
 	if (r->class == CLASS_EXTERNAL) {
 		ADD("PATH_INFO", r->path);
 		ADD("PATH_TRANSLATED", r->path_translated);
