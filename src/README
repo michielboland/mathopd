@@ -1,23 +1,57 @@
-This is the README for the current beta release of the Mathopd
-HTTP server.
+README file for Mathopd/1.3
 
-We are currently at 1.3b9. Changes to the last beta:
+This is Mathopd, a fast, lightweight, non-forking HTTP server for
+UN*X systems.
 
-base64.c:
-	pwok returns false if EncryptedUserFile is on and crypt() is not used
+Mathopd does not allocate any memory, once it has started up, and
+does not fork any processes (except for CGI scripts of course.)
 
-config.c:
-	a "NoHost" keyword has been added; this makes it possible to
-	do things like
-		Virtual {
-			Host www.an.example
-			Host www.another.example
-			NoHost
-			Control {
-		...
-	virtual servers with NoHost will be used if no Host: header is
-	received.
+Although I have not done a full test, I believe that Mathopd is
+both HTTP/1.0 and HTTP/1.1 compliant. Mathopd does not support the
+more exotic features of HTTP, however. Instead, it focuses purely on
+*speed*. Of course, the two main features of HTTP/1.1, persistent
+connections and 'IP-less' virtual servers are supported.
 
-If no bugs are found, this beta will be released as Mathopd-1.3
+Please read the file COPYING first before you do anyhing else.
+
+The file CHANGES contains a list of things that have changed between
+releases 1.2 and 1.3.
+
+To build the server, edit the Makefile and type make. The makefile
+is very small, therefore I do not see any need for a configure
+script at this time.
+
+Mathopd should compile without any errors or warnings.
+If you DO get errors or warnings, try fiddling with the
+makefile first. If you still cannot get the thing to compile
+or need to do some major tweaking, please send me a note.
+
+If you have problems finding out how things work, I am unable to
+offer you *ANY* support at present (I have a very busy schedule doing
+other Important Things.) Use the source, that's what it's for.
+
+HOWEVER, this does in NO WAY imply that you cannot send me
+bug reports, or suggestions, or other comments about Mathopd.
+On the contrary, I would be very happy if someone showed some
+interest in my work.
+
+Please join the Mathopd mailing list, if you have not already done so.
+The list is used for announcements of new releases and some very light
+discussion. :)
+
+The address to send subscription requests to is:
+
+	mathopd-request@diva.nl
+
+Put the word 'subscribe' in the body of your message.
+
+There is also a web site for mathopd, currently located at
+
+        http://mathop.diva.nl
+
+Please check this site for updates and more information.
+
+Enjoy!
 
 Michiel Boland <boland@diva.nl>
+29 October 1999
