@@ -166,6 +166,8 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 		case 10:
 			if (strcasecmp(r->headers[n].rh_name, "Connection") == 0)
 				continue;
+			if (strcasecmp(r->headers[n].rh_name, "Keep-Alive") == 0)
+				continue;
 			break;
 		case 12:
 			if (strcasecmp(r->headers[n].rh_name, "Content-Type") == 0)
