@@ -124,7 +124,6 @@ static const char c_on[] =		"On";
 static const char c_path_args[] =	"PathArgs";
 static const char c_pid[] =		"PIDFile";
 static const char c_port[] =		"Port";
-static const char c_protocol[] =	"Protocol";
 static const char c_realm[] =		"Realm";
 static const char c_referer[] =		"Referer";
 static const char c_remote_address[] =	"RemoteAddress";
@@ -780,7 +779,6 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	s->next = *ss;
 	s->naccepts = 0;
 	s->nhandled = 0;
-	s->protocol = 0;
 	*ss = s;
 	if ((t = gettoken(p)) != t_open)
 		return t;
@@ -791,8 +789,6 @@ static const char *config_server(struct configuration *p, struct server **ss)
 			t = config_int(p, &s->port);
 		else if (!strcasecmp(p->tokbuf, c_name))
 			t = config_string(p, &s->s_name);
-		else if (!strcasecmp(p->tokbuf, c_protocol))
-			t = config_string(p, &s->protocol);
 		else if (!strcasecmp(p->tokbuf, c_address))
 			t = config_address(p, &s->addr);
 		else if (!strcasecmp(p->tokbuf, c_virtual))
