@@ -610,7 +610,6 @@ static int scan_request(struct connection *cn)
 			close_connection(cn);
 			return -1;
 		}
-
 		set_connection_state(cn, HC_WRITING);
 	}
 	return 0;
