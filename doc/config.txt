@@ -723,16 +723,6 @@ Desc:    The server uses three buffers for CGI scripts. The size of these
          buffers is made slightly larger than the others to create extra room
          for 'chunk' delimiters.)
 
-Keyword: ScriptLoWat
-Where:   Tuning
-Type:    Integer
-Default: 0
-Desc:    This parameter sets the 'receive low water mark' on every internal
-         connection to CGI scripts. If this number is nonzero, Mathopd will
-         not read from the script connection unless there are at least this
-         number of bytes to be read, or if an end-of-file condition occurs.
-         This is an experimental feature.
-
 Keyword: ScriptTimeout
 Where:   Tuning
 Type:    Integer

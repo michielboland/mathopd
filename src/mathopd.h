@@ -344,7 +344,6 @@ struct tuning {
 	unsigned long num_headers;
 	unsigned long script_timeout;
 	unsigned long script_buf_size;
-	unsigned long script_lo_wat;
 };
 
 /* main */
