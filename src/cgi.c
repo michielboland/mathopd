@@ -228,6 +228,7 @@ static int cgi_error(struct request *r, int code)
 {
 	struct pool *p;
 
+	log_d("error executing script %s", r->path_translated);
 	r->status = code;
 	if (prepare_reply(r) != -1) {
 		p = r->cn->output;
