@@ -297,7 +297,8 @@ static int convert_cgi_headers(struct pipe_params *pp, int *sp)
 		pp->chunkit = 0;
 		pp->haslen = 1;
 		pp->pmax = ul;
-	}
+	} else if (pp->cn->r->protocol_minor == 0 && pp->nocontent == 0)
+		pp->cn->keepalive = 0;
 	if (pp->chunkit) {
 		if (nheaders == STUB_NHEADERS) {
 			log_d("convert_cgi_headers: too many header lines");
