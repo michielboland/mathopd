@@ -259,6 +259,7 @@ struct request {
 	char rhost[STRLEN];
 	char *in_transfer_encoding;
 	size_t in_mblen;
+	char curdir[PATHLEN];
 };
 
 struct cgi_header {
