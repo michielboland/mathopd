@@ -68,6 +68,7 @@ unsigned long fcm; /* should be mode_t */
 int stayroot;
 int amroot;
 volatile int my_pid;
+int nfiles;
 
 static int am_daemon;
 static char *progname;
@@ -163,7 +164,7 @@ static void sighandler(int sig)
 
 int main(int argc, char *argv[])
 {
-	int c, i, n, version, pid_fd, null_fd, tee;
+	int c, i, version, pid_fd, null_fd, tee;
 	struct server *s;
 	char buf[10];
 	struct rlimit rl;
@@ -207,10 +208,10 @@ int main(int argc, char *argv[])
 	}
 	if (getrlimit(RLIMIT_NOFILE, &rl) == -1)
 		die("getrlimit", 0);
-	n = rl.rlim_cur = rl.rlim_max;
+	nfiles = rl.rlim_cur = rl.rlim_max;
 	setrlimit(RLIMIT_NOFILE, &rl);
 	if (am_daemon)
-		for (i = 3; i < n; i++)
+		for (i = 3; i < nfiles; i++)
 			close(i);
 	null_fd = open(devnull, O_RDWR);
 	if (null_fd == -1)
@@ -221,8 +222,6 @@ int main(int argc, char *argv[])
 			die("dup", 0);
 	}
 	message = config(config_filename);
-	if (2 * tuning.num_connections >= n)
-		fprintf(stderr, "Warning: NumConnections may be set too high (only room for %d fds)\n", n);
 	if (message)
 		die(0, "%s", message);
 	s = servers;
