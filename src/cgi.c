@@ -222,8 +222,10 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 	if (r->c->dns) {
 		tmp = dnslookup(r->cn->peer.sin_addr);
 		if (tmp) {
-			if (add("REMOTE_HOST", tmp, 0, cp) == -1)
+			if (add("REMOTE_HOST", tmp, 0, cp) == -1) {
+				free(tmp);
 				return -1;
+			}
 			free(tmp);
 		}
 	}
