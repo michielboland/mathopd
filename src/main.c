@@ -39,7 +39,7 @@
 
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.2b20";
+const char server_version[] = "Mathopd/1.2b21";
 
 volatile int gotsigterm;
 volatile int gotsighup;
@@ -69,32 +69,33 @@ static int mysignal(int sig, void(*f)(int), int flags)
 
 static void startup_server(struct server *s)
 {
-	int onoff;
+	int onoff, rv;
 	struct sockaddr_in sa;
 
-	if ((s->fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	s->fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (s->fd == -1)
 		die("socket", 0);
-
 	onoff = 1;
-
-	if (setsockopt(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &onoff, sizeof onoff) == -1 ||
-	    setsockopt(s->fd, SOL_SOCKET, SO_SNDBUF, (char *) &tuning.buf_size, sizeof tuning.buf_size) == -1 ||
-	    setsockopt(s->fd, SOL_SOCKET, SO_RCVBUF, (char *) &tuning.input_buf_size, sizeof tuning.input_buf_size) == -1)
-		die("setsockopt", 0);
-
+	rv = setsockopt(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &onoff, sizeof onoff);
+	if (rv == -1)
+		die("setsockopt", "cannot set re-use flag");
+	rv = setsockopt(s->fd, SOL_SOCKET, SO_SNDBUF, (char *) &tuning.buf_size, sizeof tuning.buf_size);
+	if (rv == -1)
+		die("setsockopt", "cannot set send buffer size");
+	rv = setsockopt(s->fd, SOL_SOCKET, SO_RCVBUF, (char *) &tuning.input_buf_size, sizeof tuning.input_buf_size);
+	if (rv == -1)
+		die("setsockopt", "cannot set receive buffer size");
 	fcntl(s->fd, F_SETFD, FD_CLOEXEC);
 	fcntl(s->fd, F_SETFL, O_NONBLOCK);
-
 	memset((char *) &sa, 0, sizeof sa);
 	sa.sin_family = AF_INET;
 	sa.sin_addr = s->addr;
 	sa.sin_port = htons(s->port);
-
-	if (bind(s->fd, (struct sockaddr *) &sa, sizeof sa) == -1)
-		die("bind", "cannot start up server at %s port %d",
-		    s->s_name ? s->s_name : "0", s->port);
-
-	if (listen(s->fd, 128) == -1)
+	rv = bind(s->fd, (struct sockaddr *) &sa, sizeof sa);
+	if (rv == -1)
+		die("bind", "cannot start up server at %s port %d", s->s_name ? s->s_name : "0", s->port);
+	rv = listen(s->fd, 128);
+	if (rv == -1)
 		die("listen", 0);
 }
 
@@ -135,19 +136,15 @@ static void sigchld(int sig)
 
 int main(int argc, char *argv[])
 {
-	int c;
-	int daemon = 1;
-	int version = 0;
-	int i, pid_fd, n, null_fd;
+	int c, i, n, daemon, version, pid_fd, null_fd;
 	struct server *s;
 	char buf[10];
-#ifndef NO_GETRLIMIT
 	struct rlimit rl;
-#endif
 	struct passwd *pwd;
 
 	progname = argv[0];
-
+	daemon = 1;
+	version = 0;
 	while ((c = getopt(argc, argv, "ndv")) != EOF) {
 		switch(c) {
 		case 'n':
@@ -164,19 +161,16 @@ int main(int argc, char *argv[])
 			break;
 		}
 	}
-
 	if (version) {
 		fprintf(stderr, "%s\n", server_version);
 		return 0;
 	}
-
 	if (getrlimit(RLIMIT_NOFILE, &rl) == -1)
 		die("getrlimit", 0);
 	n = rl.rlim_cur = rl.rlim_max;
 	if (debug)
 		fprintf(stderr, "Number of fds available: %d\n", n);
 	setrlimit(RLIMIT_NOFILE, &rl);
-
 	for (i = 0; i < n; i++) {
 		switch(i) {
 		default:
@@ -186,22 +180,18 @@ int main(int argc, char *argv[])
 			break;
 		}
 	}
-
 	config();
-
 	s = servers;
 	while (s) {
 		startup_server(s);
 		s = s->next;
 	}
-
 	if (rootdir) {
 		if (chroot(rootdir) == -1)
 			die("chroot", 0);
 		if (chdir("/") == -1)
 			die("chdir", 0);
 	}
-
 	if (geteuid() == 0) {
 		if (user_name == 0)
 			die(0, "No user specified.");
@@ -215,15 +205,12 @@ int main(int argc, char *argv[])
 		if (setuid(pwd->pw_uid) == -1)
 			die("setuid", 0);
 	}
-
 	if (coredir) {
 		if (chdir(coredir) == -1)
 			die("chdir", 0);
 	} else
 		chdir("/");
-
 	umask(fcm);
-
 	if (pid_filename) {
 		pid_fd = open(pid_filename, O_WRONLY | O_CREAT,
 			      DEFAULT_FILEMODE);
@@ -232,7 +219,6 @@ int main(int argc, char *argv[])
 	}
 	else
 		pid_fd = -1;
-
 	if (daemon) {
 		if (fork())
 			_exit(0);
@@ -240,7 +226,6 @@ int main(int argc, char *argv[])
 		if (fork())
 			_exit(0);
 	}
-
 	mysignal(SIGCHLD, sigchld, SA_RESTART | SA_NOCLDSTOP);
 	mysignal(SIGHUP,  sighup,  SA_INTERRUPT);
 	mysignal(SIGTERM, sigterm, SA_INTERRUPT);
@@ -250,45 +235,36 @@ int main(int argc, char *argv[])
 	mysignal(SIGUSR2, sigusr2, SA_INTERRUPT);
 	mysignal(SIGWINCH, sigwinch, SA_INTERRUPT);
 	mysignal(SIGPIPE, SIG_IGN, 0);
-
 	my_pid = getpid();
-
 	if (pid_fd != -1) {
 		ftruncate(pid_fd, 0);
 		sprintf(buf, "%d\n", my_pid);
 		write(pid_fd, buf, strlen(buf));
 		close(pid_fd);
 	}
-
 	null_fd = open("/", O_RDONLY);
 	if (null_fd == -1)
 		die("open", "Cannot open /");
-
 	dup2(null_fd, STDIN_FILENO);
 	dup2(null_fd, STDERR_FILENO);
 	close(null_fd);
-
 	gotsighup = 1;
 	gotsigterm = 0;
 	gotsigusr1 = 0;
 	gotsigusr2 = 0;
 	gotsigwinch = 1;
-
 	time(&startuptime);
 	time(&current_time);
-
 	base64initialize();
-
 	httpd_main();
-
 	return 0;
 }
 
 void die(const char *t, const char *fmt, ...)
 {
-	if (fmt) {
-		va_list ap;
+	va_list ap;
 
+	if (fmt) {
 		fprintf(stderr, "%s: ", progname);
 		va_start(ap, fmt);
 		vfprintf(stderr, fmt, ap);
@@ -306,13 +282,10 @@ int fork_request(struct request *r, int (*f)(struct request *))
 
 	if (forked)
 		_exit(1);
-
 	switch (fork()) {
 	case 0:
 		forked = 1;
-
 		mysignal(SIGPIPE, SIG_DFL, 0);
-
 		fd = r->cn->fd;
 		efd = open(child_filename,
 			   O_WRONLY | O_CREAT | O_APPEND, DEFAULT_FILEMODE);
