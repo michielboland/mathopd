@@ -56,6 +56,8 @@
 #define DEFAULT_NUM_HEADERS 100
 #define DEFAULT_SCRIPT_TIMEOUT 60
 #define DEFAULT_SCRIPT_BUF_SIZE 4080
+#define DEFAULT_BACKLOG 5
+#define MAX_BACKLOG 128
 
 #define STRLEN 400
 #define PATHLEN (2 * STRLEN)
@@ -198,6 +200,7 @@ struct server {
 	unsigned long naccepts;
 	unsigned long nhandled;
 	struct vserver *vservers;
+	unsigned long backlog;
 };
 
 struct request_header {
@@ -364,6 +367,8 @@ extern int maxconnections;
 extern time_t startuptime;
 extern time_t current_time;
 extern struct pollfd *pollfds;
+extern int available_connections;
+extern unsigned long nrequests;
 extern void log_socket_error(int, const char *);
 extern void httpd_main(void);
 extern int init_pollfds(size_t);
