@@ -319,6 +319,7 @@ static const char *config_mime(struct mime **ms, int class)
 static const char *config_access(struct access **ls)
 {
 	struct access *l;
+	struct in_addr ia;
 
 	GETOPEN();
 	while (NOTCLOSE()) {
@@ -340,13 +341,15 @@ static const char *config_access(struct access **ls)
 		else {
 			if (!strcasecmp(tokbuf, c_exact))
 				l->mask = (unsigned long) -1;
-			else if ((l->mask = inet_addr(tokbuf))
-				 == (unsigned long) -1)
-				return e_bad_addr;
+			else {
+				if (inet_aton(tokbuf, &ia) == 0)
+					return e_bad_addr;
+				l->mask = ia.s_addr;
+			}
 			GETWORD();
-			if ((l->addr = inet_addr(tokbuf))
-			    == (unsigned long) -1)
+			if (inet_aton(tokbuf, &ia) == 0)
 				return e_bad_addr;
+			l->addr = ia.s_addr;
 		}
 	}
 	return 0;
