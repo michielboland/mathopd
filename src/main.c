@@ -113,7 +113,7 @@ static void startup_server(struct server *s)
 		die("setsockopt", "cannot set re-use flag");
 	fcntl(s->fd, F_SETFD, FD_CLOEXEC);
 	fcntl(s->fd, F_SETFL, O_NONBLOCK);
-	memset((char *) &sa, 0, sizeof sa);
+	memset(&sa, 0, sizeof sa);
 	sa.sin_family = AF_INET;
 	sa.sin_addr = s->addr;
 	sa.sin_port = htons(s->port);
