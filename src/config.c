@@ -86,7 +86,6 @@ static STRING(e_help) =			"unknown error (help)";
 static STRING(e_inval) =		"illegal quantity";
 static STRING(e_keyword) =		"unknown keyword";
 static STRING(e_memory) =		"out of memory";
-static STRING(e_no_servers) =		"no servers";
 static STRING(e_unknown_host) =		"no default hostname";
 
 static STRING(t_close) =		"unexpected closing brace";
@@ -530,10 +529,6 @@ static const char *fill_servernames(void)
 	char buf[256];
 	char *name;
 
-#if 0
-	if (s == 0)
-		return e_no_servers;
-#endif
 	while (s) {
 		if (s->port == 0)
 			s->port = DEFAULT_PORT;
