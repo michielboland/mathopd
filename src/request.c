@@ -1060,34 +1060,6 @@ int prepare_reply(struct request *r)
 	return (output_headers(p, r) == -1 || (send_message && putstring(p, buf) == -1)) ? -1 : 0;
 }
 
-static void log_request(struct request *r)
-{
-	struct connection *cn;
-	long cl;
-
-	if (r->path[0] == 0) {
-		r->path[0] = '?';
-		r->path[1] = 0;
-	}
-	cl = r->num_content;
-	if (cl >= 0)
-		cl = r->content_length;
-	if (cl < 0)
-		cl = 0;
-	cn = r->cn;
-	log_trans("%.15s\t%s\t%hu\t%s\t%s\t%s\t%.3s\t%ld\t%.128s\t%.128s",
-		r->user[0] ? r->user : "-",
-		cn->ip,
-		ntohs(cn->peer.sin_port),
-		r->vs->fullname,
-		r->method_s,
-		r->url,
-		r->status_line,
-		cl,
-		r->referer ? r->referer : "-",
-		r->user_agent ? r->user_agent : "-");
-}
-
 static void init_request(struct request *r)
 {
 	r->vs = 0;
