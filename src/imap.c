@@ -224,7 +224,7 @@ int process_imap(struct request *r)
 
 		strcpy(buf, url);
 		if (*buf == '/')
-			construct_url(buf, url, r->vs);
+			construct_url(buf, url, r);
 		escape_url(buf);
 		r->location = buf;
 		return 302;
