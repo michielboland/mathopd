@@ -1,18 +1,18 @@
 BIN=mathopd
-OBJS=main.o config.o core.o request.o imap.o cgi.o dump.o base64.o redirect.o util.o
-DEPENDS=mathopd.h Makefile
-
 CC=gcc
 CFLAGS=-O -Wall
 CPPFLAGS=
 LDFLAGS=
 LDLIBS=
-RM=rm -f
+
+OBJS=	base64.o cgi.o config.o core.o dump.o imap.o \
+	main.o redirect.o request.o util.o dummy.o
+DEPENDS=mathopd.h Makefile
 
 $(BIN): $(OBJS)
 	$(CC) $(LDFLAGS) -o $(BIN) $(OBJS) $(LDLIBS)
 $(OBJS): $(DEPENDS)
 .c.o:
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) $<
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 clean:
-	$(RM) $(BIN) $(OBJS)
+	rm -f $(BIN) $(OBJS)
