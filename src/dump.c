@@ -127,8 +127,6 @@ int process_dump(struct request *r)
 	int fd, fd2;
 	char name[32];
 
-	if (r->status)
-		return 0;
 	if (r->method != M_GET && r->method != M_HEAD) {
 		r->status = 405;
 		return 0;

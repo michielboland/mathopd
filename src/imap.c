@@ -319,8 +319,6 @@ int process_imap(struct request *r)
 	int fd;
 	int retval;
 
-	if (r->status)
-		return 0;
 	if (r->method == M_HEAD) {
 		r->status = 204;
 		return 0;

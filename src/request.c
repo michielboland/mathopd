@@ -512,14 +512,14 @@ static int process_special(struct request *r)
 	r->num_content = -1;
 	if (!strcasecmp(ct, CGI_MAGIC_TYPE))
 		return process_cgi(r);
+	if (r->status)
+		return 0;
 	if (!strcasecmp(ct, IMAP_MAGIC_TYPE))
 		return process_imap(r);
 	if (!strcasecmp(ct, REDIRECT_MAGIC_TYPE))
 		return process_redirect(r);
 	if (!strcasecmp(ct, DUMP_MAGIC_TYPE))
 		return process_dump(r);
-	if (r->status)
-		return 0;
 	r->error_file = r->c->error_404_file;
 	r->status = 404;
 	return 0;

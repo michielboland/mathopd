@@ -49,8 +49,6 @@ int process_redirect(struct request *r)
 	int fd;
 	ssize_t l;
 
-	if (r->status)
-		return 0;
 	if (r->method != M_GET && r->method != M_HEAD) {
 		r->status = 405;
 		return 0;
