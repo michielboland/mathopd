@@ -1,6 +1,13 @@
-CHANGES between mathopd-1.3pl2 and mathopd-1.4b1
+CHANGES between mathopd-1.3pl2 and mathopd-1.4b2
 
-Scripts are no longer run used as the owner of the script.
 A ScriptUser can be defined in a control block. Mathopd will
 change its identity to that of the ScriptUser right before
 execution.
+
+Scripts can still be run as the owner of the script. This
+is governed by the RunScriptsAsOwner parameter (set to 'On'
+to enable the old behaviour.)
+
+Note that ScriptUser overrides whatever value is active
+for RunScriptsAsOwner, and that no scripts will be run
+if neither variable is set and the server is run as root.
