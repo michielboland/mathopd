@@ -61,7 +61,7 @@ static void dump_servers(FILE *f, struct server *s)
 	fprintf(f, "\n");
 }
 
-static void dump_connections(FILE *f, struct connection *cn)
+static void dump_connections(FILE *f, struct connection *cn, struct connection *currcon)
 {
 	int i, n_free, n_reading, n_writing, n_waiting, n_closing, n_reinit, n_unknown, n_forked;
 
@@ -80,55 +80,58 @@ static void dump_connections(FILE *f, struct connection *cn)
 			putc('\n', f);
 			i = 0;
 		}
-		switch (cn->state) {
-		case HC_FREE:
-			putc('.', f);
-			++n_free;
-			break;
-		case HC_ACTIVE:
-			switch (cn->action) {
-			case HC_READING:
-				putc('r', f);
-				++n_reading;
+		if (cn == currcon)
+			putc('*', f);
+		else
+			switch (cn->state) {
+			case HC_FREE:
+				putc('.', f);
+				++n_free;
 				break;
-			case HC_WRITING:
-				putc('W', f);
-				++n_writing;
+			case HC_ACTIVE:
+				switch (cn->action) {
+				case HC_READING:
+					putc('r', f);
+					++n_reading;
+					break;
+				case HC_WRITING:
+					putc('W', f);
+					++n_writing;
+					break;
+				case HC_WAITING:
+					putc('-', f);
+					++n_waiting;
+					break;
+				case HC_CLOSING:
+					putc('c', f);
+					++n_closing;
+					break;
+				case HC_REINIT:
+					putc('i', f);
+					++n_reinit;
+					break;
+				default:
+					putc('?', f);
+					++n_unknown;
+					break;
+				}
 				break;
-			case HC_WAITING:
-				putc('-', f);
-				++n_waiting;
-				break;
-			case HC_CLOSING:
-				putc('c', f);
-				++n_closing;
-				break;
-			case HC_REINIT:
-				putc('i', f);
-				++n_reinit;
+			case HC_FORKED:
+				putc('F', f);
+				++n_forked;
 				break;
 			default:
 				putc('?', f);
 				++n_unknown;
 				break;
 			}
-			break;
-		case HC_FORKED:
-			putc('F', f);
-			++n_forked;
-			break;
-		default:
-			putc('?', f);
-			++n_unknown;
-			break;
-		}
 		cn = cn->next;
 	}
 	fprintf(f, "\nReading: %d, Writing: %d, Waiting: %d, Closing: %d\n", n_reading, n_writing, n_waiting, n_closing);
 	fprintf(f, "Initializing: %d, Forked: %d, Unknown: %d\n", n_reinit, n_forked, n_unknown);
 }
 
-static void fdump(FILE *f)
+static void fdump(FILE *f, struct request *r)
 {
 	fprintf(f,
 		"Uptime: %d seconds\n"
@@ -142,11 +145,11 @@ static void fdump(FILE *f)
 		numchildren);
 	maxconnections = nconnections;
 	dump_servers(f, servers);
-	dump_connections(f, connections);
+	dump_connections(f, connections, r->cn);
 	fprintf(f, "*** End of dump\n");
 }
 
-static int dump(int fd)
+static int dump(int fd, struct request *r)
 {
 	FILE *f;
 	int fd2;
@@ -163,7 +166,7 @@ static int dump(int fd)
 		close(fd2);
 		return -1;
 	}
-	fdump(f);
+	fdump(f, r);
 	if (fclose(f) == EOF) {
 		lerror("fclose");
 		close(fd2);
@@ -180,7 +183,7 @@ static int do_dump(int fd, const char *name, struct request *r)
 		return -1;
 	}
 	fcntl(fd, F_SETFD, FD_CLOEXEC);
-	if (dump(fd) == -1) {
+	if (dump(fd, r) == -1) {
 		log_d("do_dump: failed to dump to file %s", name);
 		return -1;
 	}
