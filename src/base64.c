@@ -131,7 +131,7 @@ static int pwok(const char *good, const char *guess, int do_crypt)
 static int f_webuserok(const char *authorization, FILE *fp, char *username, int len, int do_crypt)
 {
 	char buf[128], tmp[128], *p, *q;
-	int c, bp, skipline;
+	int c, bp, skipline, gotcr;
 
 	if (strlen(authorization) >= sizeof tmp) {
 		log_d("authorization string too long");
@@ -153,6 +153,7 @@ static int f_webuserok(const char *authorization, FILE *fp, char *username, int 
 	*q++ = 0;
 	bp = 0;
 	skipline = 0;
+	gotcr = 0;
 	while ((c = getc(fp)) != EOF)
 		if (c == '\n') {
 			if (skipline == 0) {
@@ -169,8 +170,13 @@ static int f_webuserok(const char *authorization, FILE *fp, char *username, int 
 			}
 			bp = 0;
 			skipline = 0;
+			gotcr = 0;
 		} else if (skipline == 0) {
-			buf[bp++] = c;
+			if (gotcr && bp < sizeof buf)
+				buf[bp++] = '\r';
+			gotcr = c == '\r';
+			if (gotcr == 0 && bp < sizeof buf)
+				buf[bp++] = c;
 			if (bp == sizeof buf)
 				skipline = 1;
 		}
