@@ -238,6 +238,7 @@ struct request {
 	char user[16];
 	char *servername;
 	char newloc[PATHLEN];
+	const char *allowedmethods;
 };
 
 struct connection {
