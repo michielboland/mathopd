@@ -643,7 +643,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->allow_dotfiles = 0;
 		a->putenvs = 0;
 		a->extra_headers = 0;
-		a->path_info_ok = 0;
+		a->path_info_ok = 1;
 	}
 	a->next = *as;
 	*as = a;
