@@ -524,6 +524,10 @@ static void run_connections(void)
 				read_connection(cn);
 			else if (r & POLLOUT)
 				write_connection(cn);
+			else if (r) {
+				log_d("poll: unexpected event %hd", r);
+				cn->action = HC_CLOSING;
+			}
 		}
 		cn = cn->next;
 	}

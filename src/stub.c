@@ -359,6 +359,11 @@ static void pipe_run(struct pipe_params *p)
 
 	if (p->cpollno != -1) {
 		revents = pollfds[p->cpollno].revents;
+		if (revents & ~(POLLIN | POLLOUT | POLLERR | POLLHUP)) {
+			log_d("pipe_run: revents=%hd", revents);
+			p->error_condition = STUB_ERROR_CLIENT;
+			return;
+		}
 		if (revents & POLLERR) {
 			sprintf(buf, "error on connection to %s[%hu]", inet_ntoa(p->cn->peer.sin_addr), ntohs(p->cn->peer.sin_port));
 			log_socket_error(p->cfd, buf);
@@ -415,6 +420,11 @@ static void pipe_run(struct pipe_params *p)
 	}
 	if (p->ppollno != -1) {
 		revents = pollfds[p->ppollno].revents;
+		if (revents & ~(POLLIN | POLLOUT | POLLERR | POLLHUP)) {
+			log_d("pipe_run: revents=%hd", revents);
+			p->error_condition = STUB_ERROR_PIPE;
+			return;
+		}
 		if (revents & POLLERR) {
 			log_socket_error(p->pfd, "error occurred on child socket");
 			p->error_condition = STUB_ERROR_PIPE;
