@@ -41,7 +41,6 @@ static const char rcsid[] = "$Id$";
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <netdb.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
@@ -131,47 +130,6 @@ static int add_argv(const char *a, const char *b, int decode, struct cgi_paramet
 	}
 	++cp->cgi_argc;
 	return 0;
-}
-
-static char *dnslookup(struct in_addr ia)
-{
-	char **al;
-	struct hostent *h;
-	const char *message;
-	char *tmp;
-
-	h = gethostbyaddr((char *) &ia, sizeof ia, AF_INET);
-	if (h == 0 || h->h_name == 0)
-		return 0;
-	tmp = strdup(h->h_name);
-	if (tmp == 0) {
-		log_d("dnslookup: strdup failed");
-		return 0;
-	}
-	message = "name does not match address";
-	h = gethostbyname(tmp);
-	if (h == 0)
-		message = "host not found";
-	else if (h->h_name == 0)
-		message = "h_name == 0";
-	else if (strcasecmp(h->h_name, tmp))
-		message = "name not canonical";
-	else if (h->h_addrtype != AF_INET)
-		message = "h_addrtype != AF_INET";
-	else if (h->h_length != sizeof ia)
-		message = "h_length != sizeof (struct in_addr)";
-	else
-		for (al = h->h_addr_list; *al; al++)
-			if (memcmp(*al, &ia, sizeof ia) == 0) {
-				message = 0;
-				break;
-			}
-	if (message) {
-		log_d("dnslookup: %s, address=%s, name=%s", message, inet_ntoa(ia), tmp);
-		free(tmp);
-		return 0;
-	}
-	return tmp;
 }
 
 static char *cgi_envar(const char *s)
@@ -276,16 +234,6 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 	sprintf(t, "%hu", ntohs(r->cn->peer.sin_port));
 	if (add("REMOTE_PORT", t, 0, cp) == -1)
 		return -1;
-	if (r->c->dns) {
-		tmp = dnslookup(r->cn->peer.sin_addr);
-		if (tmp) {
-			if (add("REMOTE_HOST", tmp, 0, cp) == -1) {
-				free(tmp);
-				return -1;
-			}
-			free(tmp);
-		}
-	}
 	if (add("REQUEST_METHOD", r->method_s, 0, cp) == -1)
 		return -1;
 	if (add("SCRIPT_NAME", r->path, strlen(r->path_args), cp) == -1)

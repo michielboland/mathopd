@@ -102,7 +102,6 @@ static const char c_control[] =			"Control";
 static const char c_core_directory[] =		"CoreDirectory";
 static const char c_ctime[] =			"Ctime";
 static const char c_deny[] =			"Deny";
-static const char c_dns_lookups[] =		"DNSLookups";
 static const char c_encrypted_user_file[] =	"EncryptedUserFile";
 static const char c_error_log[] =		"ErrorLog";
 static const char c_error_401_file[] =		"Error401File";
@@ -653,7 +652,6 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->error_404_file = b->error_404_file;
 		a->do_crypt = b->do_crypt;
 		a->child_filename = b->child_filename;
-		a->dns = b->dns;
 		a->exports = b->exports;
 		a->script_identity = b->script_identity;
 		a->script_uid = b->script_uid;
@@ -676,7 +674,6 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->error_404_file = 0;
 		a->do_crypt = 0;
 		a->child_filename = 0;
-		a->dns = 1;
 		a->exports = 0;
 		a->script_identity = SI_DONOTCHANGE;
 		a->script_uid = 0;
@@ -747,8 +744,6 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_flag(p, &a->do_crypt);
 		else if (!strcasecmp(p->tokbuf, c_child_log))
 			t = config_string(p, &a->child_filename);
-		else if (!strcasecmp(p->tokbuf, c_dns_lookups))
-			t = config_flag(p, &a->dns);
 		else if (!strcasecmp(p->tokbuf, c_export))
 			t = config_list(p, &a->exports);
 		else if (!strcasecmp(p->tokbuf, c_exact_match))

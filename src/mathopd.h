@@ -172,7 +172,6 @@ struct control {
 	char *error_404_file;
 	int do_crypt;
 	char *child_filename;
-	int dns;
 	struct simple_list *exports;
 	int script_identity;
 	uid_t script_uid;
