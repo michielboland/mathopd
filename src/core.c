@@ -767,8 +767,7 @@ static void timeout_connections(struct connection *c, time_t t)
 	while (c) {
 		n = c->next;
 		if (current_time >= c->t + t) {
-			if (debug)
-				log_d("timeout to %s[%hu]", inet_ntoa(c->peer.sin_addr), ntohs(c->peer.sin_port));
+			log_d("timeout to %s[%hu]", inet_ntoa(c->peer.sin_addr), ntohs(c->peer.sin_port));
 			close_connection(c);
 		}
 		c = n;
@@ -868,6 +867,11 @@ void httpd_main(void)
 				log_d("debugging turned on");
 			else
 				log_d("debugging turned off");
+		}
+		if (gotsigwinch) {
+			gotsigwinch = 0;
+			log_d("performing internal dump");
+			internal_dump();
 		}
 		n = 0;
 		if (accepting && (free_connections.head || waiting_connections.head))
