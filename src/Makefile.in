@@ -10,7 +10,7 @@ LIBS=@LIBS@
 BIN=mathopd
 OBJS=	base64.o cgi.o config.o core.o dummy.o dump.o imap.o log.o main.o \
 	redirect.o request.o util.o
-DEPENDS=mathopd.h config.h $(MAKEFILE)
+DEPENDS=mathopd.h config.h Makefile
 
 all: $(BIN)
 install: $(BIN)
@@ -22,4 +22,6 @@ $(OBJS): $(DEPENDS)
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 clean:
 	rm -f $(BIN) $(OBJS)
-.PHONY: install clean
+distclean: clean
+	rm -f config.log config.h config.cache config.status Makefile
+.PHONY: install clean distclean
