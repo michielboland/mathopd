@@ -182,29 +182,29 @@ static int dump(int fd, struct request *r)
 	return 0;
 }
 
-static int do_dump(int fd, const char *name, struct request *r)
+static int temp_dump_fd(char *name)
 {
+	int fd;
+
+	fd = mkstemp(name);
+	if (fd == -1) {
+		lerror("mkstemp");
+		return -1;
+	}
 	if (remove(name) == -1) {
-		log_d("do_dump: cannot remove temporary file %s", name);
+		log_d("cannot remove temporary file %s", name);
 		lerror("remove");
+		close(fd);
 		return -1;
 	}
 	fcntl(fd, F_SETFD, FD_CLOEXEC);
-	if (dump(fd, r) == -1) {
-		log_d("do_dump: failed to dump to file %s", name);
-		return -1;
-	}
-	if (fstat(fd, &r->finfo) == -1) {
-		lerror("fstat");
-		return -1;
-	}
-	return 0;
+	return fd;
 }
 
 int process_dump(struct request *r)
 {
 	int fd;
-	char tmpbuf[32];
+	char name[32];
 
 	if (r->method != M_GET && r->method != M_HEAD)
 		return 405;
@@ -212,13 +212,17 @@ int process_dump(struct request *r)
 		r->error_file = r->c->error_404_file;
 		return 404;
 	}
-	strcpy(tmpbuf, "/tmp/mathop-dump.XXXXXXXX");
-	fd = mkstemp(tmpbuf);
-	if (fd == -1) {
-		lerror("mkstemp");
+	strcpy(name, "/tmp/mathop-dump.XXXXXXXX");
+	fd = temp_dump_fd(name);
+	if (fd == -1)
+		return 500;
+	if (dump(fd, r) == -1) {
+		log_d("process_dump: dump failed");
+		close(fd);
 		return 500;
 	}
-	if (do_dump(fd, tmpbuf, r) == -1) {
+	if (fstat(fd, &r->finfo) == -1) {
+		lerror("fstat");
 		close(fd);
 		return 500;
 	}
