@@ -336,7 +336,6 @@ int process_cgi(struct request *r)
 	struct cgi_parameters *cp;
 	uid_t u;
 	gid_t g;
-	struct pipe_params *pp;
 	int p[2], efd;
 	pid_t pid;
 	char curdir[PATHLEN], *s;
@@ -345,11 +344,6 @@ int process_cgi(struct request *r)
 	if (s == 0)
 		return 500;
 	sprintf(curdir, "%.*s", s - r->path_translated, r->path_translated);
-	pp = new_pipe_params();
-	if (pp == 0) {
-		r->cn->keepalive = 0;
-		return 503;
-	}
 	switch (r->c->script_identity) {
 	case SI_CHANGETOFIXED:
 		u = r->c->script_uid;
@@ -412,7 +406,7 @@ int process_cgi(struct request *r)
 	}
 	r->cn->pid = pid;
 	fcntl(p[0], F_SETFL, O_NONBLOCK);
-	init_child(pp, r, p[0]);
+	init_child(r->cn, p[0]);
 	destroy_parameters(cp);
 	if (debug)
 		log_d("process_cgi: %d", p[0]);
