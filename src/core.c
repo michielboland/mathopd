@@ -268,6 +268,9 @@ static void read_connection(struct connection *cn)
 			log_d("error peeking from %s", cn->ip);
 			lerror("recv");
 		case ECONNRESET:
+		case ENETUNREACH:
+		case EHOSTUNREACH:
+		case EPIPE:
 			cn->action = HC_CLOSING;
 		case EAGAIN:
 			return;
@@ -546,7 +549,6 @@ void httpd_main(void)
 		}
 		if (gotsigwinch) {
 			gotsigwinch = 0;
-			dump();
 		}
 		if (gotsigchld)
 			reap_children();
@@ -630,6 +632,5 @@ void httpd_main(void)
 			cleanup_connections();
 		}
 	}
-	dump();
 	log_d("*** shutting down", my_pid);
 }
