@@ -578,7 +578,7 @@ static const char *fill_servernames(void)
 		s->name = fqdn;
 		v = s->children;
 		while (v) {
-			name = v->host ? v->host : s->name;
+			name = v->host ? v->host : (s->name ? s->name : "0");
 			if (s->port == DEFAULT_PORT)
 				v->fullname = name;
 			else {
