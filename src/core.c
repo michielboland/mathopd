@@ -540,8 +540,13 @@ void httpd_main(void)
 	int first;
 	int error;
 	int rv;
+#ifdef POLL
+	int n;
+	short r;
+#else
 	fd_set rfds, wfds;
 	int m;
+#endif
 
 	first = 1;
 	error = 0;
@@ -581,15 +586,25 @@ void httpd_main(void)
 			else
 				log_d("debugging turned off");
 		}
+#ifdef POLL
+		n = 0;
+#else
 		m = -1;
 		FD_ZERO(&rfds);
 		FD_ZERO(&wfds);
+#endif
 		s = servers;
 		while (s) {
 			if (s->fd != -1) {
+#ifdef POLL
+				pollfds[n].events = POLLIN;
+				pollfds[n].fd = s->fd;
+				s->pollno = n++;
+#else
 				FD_SET(s->fd, &rfds);
 				if (s->fd > m)
 					m = s->fd;
+#endif
 			}
 			s = s->next;
 		}
@@ -599,30 +614,69 @@ void httpd_main(void)
 				switch (cn->action) {
 				case HC_WAITING:
 				case HC_READING:
+#ifdef POLL
+					pollfds[n].events = POLLIN;
+#else
 					FD_SET(cn->fd, &rfds);
+#endif
 					break;
 				default:
+#ifdef POLL
+					pollfds[n].events = POLLOUT;
+#else
 					FD_SET(cn->fd, &wfds);
+#endif
 					break;
 				}
+#ifdef POLL
+				pollfds[n].fd = cn->fd;
+				cn->pollno = n++;
+#else
 				if (cn->fd > m)
 					m = cn->fd;
+#endif
 			}
+#ifdef POLL
+			else
+				cn->pollno = -1;
+#endif
 			cn = cn->next;
 		}
+#ifdef POLL
+		if (n == 0) {
+			log_d("no more sockets to poll from");
+			break;
+		}
+#else
 		if (m == -1) {
 			log_d("no more sockets to select from");
 			break;
 		}
+#endif
+#ifdef POLL
+		if (debug)
+			log_d("httpd_main: poll(%d) ...", n);
+		rv = poll(pollfds, n, INFTIM);
+#else
 		if (debug)
 			log_d("httpd_main: select(%d) ...", m + 1);
 		rv = select(m + 1, &rfds, &wfds, 0, 0);
+#endif
 		current_time = time(0);
+#ifdef POLL
+		if (debug)
+			log_d("httpd_main: poll() = %d", rv);
+#else
 		if (debug)
 			log_d("httpd_main: select() = %d", rv);
+#endif
 		if (rv == -1) {
 			if (errno != EINTR) {
+#ifdef POLL
+				lerror("poll");
+#else
 				lerror("select");
+#endif
 				if (error++) {
 					log_d("whoops");
 					break;
@@ -634,7 +688,11 @@ void httpd_main(void)
 				s = servers;
 				while (s) {
 					if (s->fd != -1) {
+#ifdef POLL
+						if (pollfds[s->pollno].revents & POLLIN)
+#else
 						if (FD_ISSET(s->fd, &rfds))
+#endif
 							accept_connection(s);
 					}
 					s = s->next;
@@ -642,10 +700,24 @@ void httpd_main(void)
 				cn = connections;
 				while (cn) {
 					if (cn->state == HC_ACTIVE) {
+#ifdef POLL
+						if (cn->pollno != -1) {
+							r = pollfds[cn->pollno].revents;
+							if (r & POLLIN)
+								read_connection(cn);
+							else if (r & POLLOUT)
+								write_connection(cn);
+							else if (r) {
+								log_d("dropping %s: unexpected event %hd", cn->ip, r);
+								cn->action = HC_CLOSING;
+							}
+						}
+#else
 						if (FD_ISSET(cn->fd, &rfds))
 							read_connection(cn);
 						else if (FD_ISSET(cn->fd, &wfds))
 							write_connection(cn);
+#endif
 					}
 					cn = cn->next;
 				}

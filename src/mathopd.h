@@ -65,6 +65,10 @@
 #include <grp.h>
 #include <sys/resource.h>
 
+#ifdef POLL
+#include <poll.h>
+#endif
+
 #ifdef HAVE_CRYPT_H
 #include <crypt.h>
 #endif
@@ -205,6 +209,9 @@ struct server {
 	struct virtual *children;
 	struct control *controls;
 	struct server *next;
+#ifdef POLL
+	int pollno;
+#endif
 	unsigned long naccepts;
 	unsigned long nhandled;
 	struct vserver *vservers;
@@ -270,6 +277,9 @@ struct connection {
 	int keepalive;
 	int action;
 	struct connection *next;
+#ifdef POLL
+	int pollno;
+#endif
 	unsigned long nread;
 	unsigned long nwritten;
 	long left;
@@ -320,6 +330,10 @@ extern const char *config(void);
 
 extern int log_columns;
 extern int *log_column;
+
+#ifdef POLL
+extern struct pollfd *pollfds;
+#endif
 
 /* core */
 
