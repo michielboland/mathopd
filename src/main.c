@@ -253,6 +253,7 @@ int main(int argc, char *argv[])
 			die("open", "Cannot open PID file");
 	} else
 		pid_fd = -1;
+	current_time = time(0);
 	if (init_logs(tee) == -1)
 		die("open", "Cannot open log files");
 	dup2(null_fd, 0);
