@@ -391,6 +391,8 @@ static int get_path_info(struct request *r)
 		if (cp != end)
 			*cp = 0;
 		rv = stat(p, s);
+		if (debug)
+			log_d("get_path_info: stat(\"%s\") = %d", p, rv);
 		if (cp != end)
 			*cp = '/';
 		if (rv != -1) {
@@ -399,7 +401,8 @@ static int get_path_info(struct request *r)
 				*cp++ = '/';
 			*cp = 0;
 			return 0;
-		}
+		} else if (r->c->path_info_ok == 0)
+			return -1;
 		while (--cp >= start && *cp != '/')
 			;
 	}
