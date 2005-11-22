@@ -334,10 +334,10 @@ pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd,
 		++stats.forked_children;
 		if (debug)
 			log_d("child process %d created", pid);
-		return pid;
+		break;
 	case -1:
 		lerror("spawn: failed to create child process");
-		return -1;
+		break;
 	case 0:
 		setpgid(0, 0);
 		mysignal(SIGPIPE, SIG_DFL);
@@ -364,5 +364,5 @@ pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd,
 		execve(program, argv, envp);
 		_exit(6);
 	}
-	return -1; /* not reached */
+	return pid;
 }
