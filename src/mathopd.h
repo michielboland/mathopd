@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996 - 2005 Michiel Boland.
+ *   Copyright 1996 - 2006 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -171,6 +171,7 @@ struct control {
 	int path_info_ok;
 	char *auto_index_command;
 	unsigned long expire_interval;
+	int sanitize_path;
 };
 
 struct virtual {
