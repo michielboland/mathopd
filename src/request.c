@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996 - 2004 Michiel Boland.
+ *   Copyright 1996 - 2006 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -392,6 +392,85 @@ static int get_path_info(struct request *r)
 			;
 	}
 	return -1;
+}
+
+static void sanitize_path(struct request *r)
+{
+	char *p, *q, c;
+	enum {
+		sp_normal,
+		sp_slash,
+		sp_slashdot,
+		sp_slashdotdot
+	} s;
+
+	if (debug)
+		log_d("sanitize_path: old path: %s", r->path);
+	p = q = r->path;
+	s = sp_normal;
+	do {
+		c = *p++;
+		switch (s) {
+		case sp_normal:
+			if (c == '/')
+				s = sp_slash;
+			break;
+		case sp_slash:
+			switch (c) {
+			case '/':
+				/*
+				 * replace '//' with '/'
+				 */
+				--q;
+				break;
+			case '.':
+				s = sp_slashdot;
+				break;
+			default:
+				s = sp_normal;
+				break;
+			}
+			break;
+		case sp_slashdot:
+			switch (c) {
+			case '/':
+				/*
+				 * replace '/./' with '/'
+				 */
+				q -= 2;
+				s = sp_slash;
+				break;
+			case '.':
+				s = sp_slashdotdot;
+				break;
+			default:
+				s = sp_normal;
+				break;
+			}
+			break;
+		case sp_slashdotdot:
+			switch (c) {
+			case '/':
+				/*
+				 * replace '/foo/../' with '/'
+				 */
+				q -= 3;
+				while (q > r->path && q[-1] != '/')
+					--q;
+				if (q > r->path)
+					--q;
+				s = sp_slash;
+				break;
+			default:
+				s = sp_normal;
+				break;
+			}
+			break;
+		}
+		*q++ = c;
+	} while (c);
+	if (debug)
+		log_d("sanitize_path: new path: %s", r->path);
 }
 
 static int check_path(struct request *r)
@@ -789,6 +868,8 @@ static void process_path(struct request *r)
 		r->status = 400;
 		return;
 	}
+	if (r->vs->vserver->controls && r->vs->vserver->controls->sanitize_path)
+		sanitize_path(r);
 	if ((r->c = faketoreal(r->path, r->path_translated, r, 1, sizeof r->path_translated)) == 0) {
 		if (debug)
 			log_d("faketoreal failed");
