@@ -782,6 +782,31 @@ Desc:    Normally, if the server is started as root and the StayRoot flag
          This is not recommended, since it is possible to trick mathopd
          using symbolic links.
 
+Keyword: SanitizePath
+Where:   Control
+Type:    Flag
+Default: Off
+Desc:    If this flag is set for a virtual server, Mathop will filter out
+         all '//', '/./' and '/../' components of a URL.
+         For example, a request for
+
+             /foo/bar/../baz/./watnou//weer
+
+         would be treated as if it really had been for
+
+             /foo/baz/watnou/weer
+
+         Note that the presense of this flag in a virtual directory has no
+         effect. It only works at server level.
+
+         Also note that URLs of the form
+
+             /some/dir/.
+             /some/dir/..
+
+         that is, URLs that end with /. or /.. are illegal and return an
+         error, irrespective of the SanitizePath setting.
+
 Keyword: ScriptBufSize
 Where:   Tuning
 Type:    Integer

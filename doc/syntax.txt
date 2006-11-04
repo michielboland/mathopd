@@ -90,6 +90,7 @@ control-item:
 	"PathInfo" flag
 	"AutoIndexCommand" string
 	"ExpireInterval" integer
+	"SanitizePath" flag
 
 server-item:
 	"Port" string
