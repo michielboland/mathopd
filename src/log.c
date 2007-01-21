@@ -1,5 +1,5 @@
 /*
- *   Copyright 1999 - 2005 Michiel Boland.
+ *   Copyright 1999 - 2006 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -183,11 +183,11 @@ void log_request(struct request *r)
 			break;
 		case ML_TIME_TAKEN:
 			tvdiff(&tv, &r->cn->itv, &dtv);
-			sprintf(tmp, "%ld.%06ld", dtv.tv_sec, dtv.tv_usec);
+			sprintf(tmp, "%ld.%06ld", (long) dtv.tv_sec, dtv.tv_usec);
 			s = tmp;
 			break;
 		case ML_MICRO_TIME:
-			sprintf(tmp, "%ld.%06ld", tv.tv_sec, tv.tv_usec);
+			sprintf(tmp, "%ld.%06ld", (long) tv.tv_sec, tv.tv_usec);
 			s = tmp;
 			break;
 		case ML_PID:

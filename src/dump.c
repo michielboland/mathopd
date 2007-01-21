@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996 - 2005 Michiel Boland.
+ *   Copyright 1996 - 2006 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -125,10 +125,10 @@ static void fdump(FILE *f)
 	fprintf(f, "\n");
 	getrusage(RUSAGE_SELF, &ru);
 	tvadd(&ru.ru_utime, &ru.ru_stime, &t);
-	fprintf(f, "CPU time used by this process: %8ld.%02ld\n", t.tv_sec, t.tv_usec / 10000);
+	fprintf(f, "CPU time used by this process: %8ld.%02ld\n", (long) t.tv_sec, t.tv_usec / 10000);
 	getrusage(RUSAGE_CHILDREN, &ru);
 	tvadd(&ru.ru_utime, &ru.ru_stime, &t);
-	fprintf(f, "                     children: %8ld.%02ld\n\n", t.tv_sec, t.tv_usec / 10000);
+	fprintf(f, "                     children: %8ld.%02ld\n\n", (long) t.tv_sec, t.tv_usec / 10000);
 	stats.maxconnections = stats.nconnections;
 	dump_connections(f);
 	fprintf(f, "*** End of dump\n");
@@ -227,7 +227,7 @@ void internal_dump(void)
 		return;
 	}
 	gettimeofday(&tv, 0);
-	fprintf(f, "*** Dump performed at %ld.%06ld\n", tv.tv_sec, tv.tv_usec);
+	fprintf(f, "*** Dump performed at %ld.%06ld\n", (long) tv.tv_sec, tv.tv_usec);
 	fdump(f);
 	fclose(f);
 }
