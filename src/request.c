@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996 - 2006 Michiel Boland.
+ *   Copyright 1996 - 2007 Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -873,7 +873,7 @@ static void process_path(struct request *r)
 	if ((r->c = faketoreal(r->path, r->path_translated, r, 1, sizeof r->path_translated)) == 0) {
 		if (debug)
 			log_d("faketoreal failed");
-		r->status = 500;
+		r->status = 404;
 		return;
 	}
 	if (check_path(r) == -1) {
