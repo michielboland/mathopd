@@ -690,15 +690,11 @@ static int process_fd(struct request *r)
 		if (r->last_modified <= r->ims) {
 			close_rfd(r);
 			r->num_content = -1;
-			if (debug)
-				log_d("file not modified (%ld <= %ld)", r->last_modified, r->ims);
 			r->status = 304;
 			return 0;
 		}
 		if (r->ius && r->last_modified > r->ius) {
 			close_rfd(r);
-			if (debug)
-				log_d("file modified (%ld > %ld)", r->last_modified, r->ius);
 			r->status = 412;
 			return 0;
 		}
