@@ -14,8 +14,9 @@ SBINDIR = $(PREFIX)/sbin
 # On Linux, uncomment the following
 # CPPFLAGS = -DHAVE_CRYPT_H
 
-# To add support for large files (>2GB) on 32-bit linux versions, uncomment
-# the following. You do not need this for 64-bit executables.
+# For Linux or Solaris:
+# To add support for large files (>2GB), uncomment the following.
+# You do not need this for 64-bit executables.
 # CPPFLAGS += -D_FILE_OFFSET_BITS=64
 
 OBJS = base64.o cgi.o config.o core.o dump.o imap.o log.o main.o \
