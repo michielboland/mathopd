@@ -45,6 +45,10 @@
 #include <signal.h>
 #include <stdint.h> /* (u)intmax_t */
 
+#ifndef __GNUC__
+#define __attribute__(x)
+#endif
+
 #define CGI_MAGIC_TYPE "CGI"
 #define IMAP_MAGIC_TYPE "Imagemap"
 #define REDIRECT_MAGIC_TYPE "Redirect"
@@ -405,7 +409,8 @@ extern int init_connections(size_t);
 
 extern char *rfctime(time_t, char *);
 extern struct control *faketoreal(char *, char *, struct request *, int, int);
-extern int pool_print(struct pool *, const char *, ...);
+extern int pool_print(struct pool *, const char *, ...)
+	__attribute__((format(printf, 2, 3)));
 extern void init_request(struct request *);
 extern int process_request(struct request *);
 extern int cgi_error(struct request *);
@@ -443,7 +448,8 @@ extern int init_log_buffer(size_t);
 extern void log_request(struct request *);
 extern int open_log(const char *);
 extern int init_logs(int);
-extern void log_d(const char *, ...);
+extern void log_d(const char *, ...)
+	__attribute__((format(printf, 1, 2)));
 extern void lerror(const char *);
 
 /* stub */
