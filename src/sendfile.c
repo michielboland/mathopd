@@ -63,7 +63,7 @@ off_t sendfile_connection(struct connection *cn)
 		return 0;
 	s = sendfile(cn->fd, cn->rfd, &cn->file_offset, cn->left);
 	if (debug)
-		log_d("sendfile_connection: %d %d %d %d", cn->rfd, cn->fd, cn->left, s);
+		log_d("sendfile_connection: %d %d %jd %zd", cn->rfd, cn->fd, cn->left, s);
 	if (s == -1) {
 		if (errno == EAGAIN)
 			return 0;
