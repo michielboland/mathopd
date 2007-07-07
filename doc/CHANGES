@@ -17,6 +17,9 @@ Mathopd can now (optionally) allow //, /./ and /../ in URL
 paths. Thanks for Peter Pentchev for suggesting this and providing
 initial patches.
 
+Attempts have been made to add support for large (>2GB) files on
+32-bit operating systems. FreeBSD and Linux have been tested so far.
+
 The following keywords have been added:
 
 	ExpireInterval
