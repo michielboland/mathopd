@@ -171,11 +171,11 @@ void log_request(struct request *r)
 			s = r->user_agent;
 			break;
 		case ML_BYTES_READ:
-			sprintf(tmp, "%lu", r->cn->nread);
+			sprintf(tmp, "%ju", r->cn->nread);
 			s = tmp;
 			break;
 		case ML_BYTES_WRITTEN:
-			sprintf(tmp, "%lu", r->cn->nwritten);
+			sprintf(tmp, "%ju", r->cn->nwritten);
 			s = tmp;
 			break;
 		case ML_QUERY_STRING:
