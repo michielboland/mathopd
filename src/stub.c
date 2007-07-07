@@ -195,7 +195,7 @@ static int convert_cgi_headers(struct connection *pp, int *sp)
 			if (firstline)
 				firstline = 0;
 			if (addheader == 0)
-				log_d("convert_cgi_headers: disallowing header \"%.*s\"", len, tmpname);
+				log_d("convert_cgi_headers: disallowing header \"%.*s\"", (int) len, tmpname);
 			else {
 				if (nheaders >= tuning.num_headers) {
 					log_d("convert_cgi_headers: too many header lines");
@@ -225,7 +225,7 @@ static int convert_cgi_headers(struct connection *pp, int *sp)
 	} else {
 		s = atoi(cgi_headers[status].value);
 		if (s < 200 || s > 599) {
-			log_d("convert_cgi_headers: illegal header line \"%.*s\"", cgi_headers[status].len, cgi_headers[status].name);
+			log_d("convert_cgi_headers: illegal header line \"%.*s\"", (int) cgi_headers[status].len, cgi_headers[status].name);
 			return -1;
 		}
 		if (s == 204 || s == 304) {
@@ -237,13 +237,13 @@ static int convert_cgi_headers(struct connection *pp, int *sp)
 			pp->pipe_params.chunkit = 0;
 		}
 		tmpvaluelen = cgi_headers[status].len - (cgi_headers[status].value - cgi_headers[status].name);
-		if (pool_print(po, "HTTP/1.1 %.*s\r\n", tmpvaluelen, cgi_headers[status].value) == -1)
+		if (pool_print(po, "HTTP/1.1 %.*s\r\n", (int) tmpvaluelen, cgi_headers[status].value) == -1)
 			return no_room();
 	}
 	if (havelength) {
 		tmpvalue = cgi_headers[length].value;
 		if (*tmpvalue == '-') {
-			log_d("convert_cgi_headers: illegal content-length header \"%.*s\"", cgi_headers[length].len, cgi_headers[length].name);
+			log_d("convert_cgi_headers: illegal content-length header \"%.*s\"", (int) cgi_headers[length].len, cgi_headers[length].name);
 			return -1;
 		}
 		ul = strtoul(tmpvalue, &cp, 10);
@@ -252,7 +252,7 @@ static int convert_cgi_headers(struct connection *pp, int *sp)
 				++cp;
 		}
 		if (*cp != '\n' || ul >= UINT_MAX) {
-			log_d("convert_cgi_headers: illegal content-length header \"%.*s\"", cgi_headers[length].len, cgi_headers[length].name);
+			log_d("convert_cgi_headers: illegal content-length header \"%.*s\"", (int) cgi_headers[length].len, cgi_headers[length].name);
 			return -1;
 		}
 		pp->pipe_params.chunkit = 0;
@@ -277,7 +277,7 @@ static int convert_cgi_headers(struct connection *pp, int *sp)
 			return no_room();
 	for (i = 0; i < nheaders; i++)
 		if (havestatus == 0 || i != status)
-			if (pool_print(po, "%.*s\r\n", cgi_headers[i].len, cgi_headers[i].name) == -1)
+			if (pool_print(po, "%.*s\r\n", (int) cgi_headers[i].len, cgi_headers[i].name) == -1)
 				return no_room();
 	if (pool_print(po, "\r\n") == -1)
 		return no_room();
@@ -299,7 +299,7 @@ static int readfromclient(struct connection *p)
 	}
 	r = read(p->fd, p->client_input.end, bytestoread);
 	if (debug)
-		log_d("readfromclient: %d %d %d %d", p->fd, p->client_input.end - p->client_input.floor, bytestoread, r);
+		log_d("readfromclient: %d %zd %zu %zd", p->fd, p->client_input.end - p->client_input.floor, bytestoread, r);
 	switch (r) {
 	case -1:
 		if (errno == EAGAIN)
@@ -336,7 +336,7 @@ static int readfromchild(struct connection *p)
 	}
 	r = read(p->rfd, p->script_input.end, bytestoread);
 	if (debug)
-		log_d("readfromchild: %d %d %d %d", p->rfd, p->script_input.end - p->script_input.floor, bytestoread, r);
+		log_d("readfromchild: %d %zd %zu %zd", p->rfd, p->script_input.end - p->script_input.floor, bytestoread, r);
 	switch (r) {
 	case -1:
 		if (errno == EAGAIN)
@@ -347,12 +347,12 @@ static int readfromchild(struct connection *p)
 		return -1;
 	case 0:
 		if (p->pipe_params.state != 2) {
-			log_d("readfromchild: premature end of script headers (ipp=%d)", p->script_input.end - p->script_input.floor);
+			log_d("readfromchild: premature end of script headers (ipp=%zd)", p->script_input.end - p->script_input.floor);
 			cgi_error(p->r);
 			return -1;
 		}
 		if (p->pipe_params.haslen) {
-			log_d("readfromchild: script went away (pmax=%d)", p->pipe_params.pmax);
+			log_d("readfromchild: script went away (pmax=%zu)", p->pipe_params.pmax);
 			close_connection(p);
 			return -1;
 		}
@@ -384,7 +384,7 @@ static int writetoclient(struct connection *p)
 	}
 	r = write(p->fd, p->output.start, bytestowrite);
 	if (debug)
-		log_d("writetoclient: %d %d %d %d", p->fd, p->output.start - p->output.floor, bytestowrite, r);
+		log_d("writetoclient: %d %zd %zu %zd", p->fd, p->output.start - p->output.floor, bytestowrite, r);
 	switch (r) {
 	case -1:
 		if (errno == EAGAIN)
@@ -416,7 +416,7 @@ static int writetochild(struct connection *p)
 	}
 	r = write(p->rfd, p->client_input.start, bytestowrite);
 	if (debug)
-		log_d("writetochild: %d %d %d %d", p->rfd, p->client_input.start - p->client_input.floor, bytestowrite, r);
+		log_d("writetochild: %d %zd %zu %zd", p->rfd, p->client_input.start - p->client_input.floor, bytestowrite, r);
 	switch (r) {
 	case -1:
 		if (errno == EAGAIN)

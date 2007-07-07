@@ -50,6 +50,7 @@ static const char rcsid[] = "$Id$";
 #include <time.h>
 #include <unistd.h>
 #include <errno.h>
+#include <inttypes.h>
 #include "mathopd.h"
 
 static const char m_get[] =			"GET";
@@ -690,14 +691,14 @@ static int process_fd(struct request *r)
 			close_rfd(r);
 			r->num_content = -1;
 			if (debug)
-				log_d("file not modified (%d <= %d)", r->last_modified, r->ims);
+				log_d("file not modified (%ld <= %ld)", r->last_modified, r->ims);
 			r->status = 304;
 			return 0;
 		}
 		if (r->ius && r->last_modified > r->ius) {
 			close_rfd(r);
 			if (debug)
-				log_d("file modified (%d > %d)", r->last_modified, r->ius);
+				log_d("file modified (%ld > %ld)", r->last_modified, r->ius);
 			r->status = 412;
 			return 0;
 		}
@@ -985,7 +986,7 @@ static int parse_range_header(struct request *r, const char *s)
 {
 	char *t;
 	int suffix;
-	unsigned long u, v;
+	uintmax_t u, v;
 
 	if (strncasecmp(s, "bytes", 5))
 		return -1;
@@ -1005,7 +1006,7 @@ static int parse_range_header(struct request *r, const char *s)
 		if (*s == '-')
 			return -1;
 	}
-	u = strtoul(s, &t, 10);
+	u = strtoumax(s, &t, 10);
 	if (t == s)
 		return -1;
 	s = t;
@@ -1030,7 +1031,7 @@ static int parse_range_header(struct request *r, const char *s)
 	}
 	if (*s == '-')
 		return -1;
-	v = strtoul(s, &t, 10);
+	v = strtoumax(s, &t, 10);
 	if (t == s)
 		return -1;
 	s = t;
@@ -1262,7 +1263,7 @@ static int process_headers(struct request *r)
 	s = r->url;
 	if (strlen(s) > STRLEN) {
 		if (debug)
-			log_d("url too long (%d > %d)", strlen(s), STRLEN);
+			log_d("url too long (%zu > %d)", strlen(s), STRLEN);
 		r->status = 414;
 		return 0;
 	}
@@ -1477,7 +1478,7 @@ static int prepare_reply(struct request *r)
 		return -1;
 	switch (r->status) {
 	case 206:
-		if (pool_print(p, "Content-Range: bytes %lu-%lu/%lu\r\n", r->range_floor, r->range_ceiling, r->range_total) == -1)
+		if (pool_print(p, "Content-Range: bytes %ju-%ju/%ju\r\n", r->range_floor, r->range_ceiling, r->range_total) == -1)
 			return -1;
 		break;
 	case 302:
@@ -1495,7 +1496,7 @@ static int prepare_reply(struct request *r)
 			return -1;
 		break;
 	case 416:
-		if (pool_print(p, "Content-Range: bytes */%lu\r\n", r->range_total) == -1)
+		if (pool_print(p, "Content-Range: bytes */%ju\r\n", r->range_total) == -1)
 			return -1;
 		break;
 	}
@@ -1506,7 +1507,7 @@ static int prepare_reply(struct request *r)
 			if (pool_print(p, "Content-Length: ") == -1)
 				return -1;
 			cl_start = p->end;
-			if (pool_print(p, "%ld", r->content_length) == -1)
+			if (pool_print(p, "%jd", r->content_length) == -1)
 				return -1;
 			cl_end = p->end;
 			if (pool_print(p, "\r\n") == -1)
@@ -1577,7 +1578,7 @@ static int prepare_reply(struct request *r)
 		log_d("cl_start is null!?!?");
 		return -1;
 	}
-	sprintf(cl_start, "%*ld", (int) (cl_end - cl_start), r->content_length);
+	sprintf(cl_start, "%*jd", (int) (cl_end - cl_start), r->content_length);
 	*cl_end = '\r';
 	return 0;
 }
