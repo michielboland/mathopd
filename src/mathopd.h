@@ -115,7 +115,7 @@ enum {
 	ML_QUERY_STRING,
 	ML_TIME_TAKEN,
 	ML_MICRO_TIME,
-	ML_PID,
+	ML_PID
 };
 
 enum {

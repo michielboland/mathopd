@@ -733,7 +733,7 @@ static const char *config_sockopts(struct configuration *p, struct server_sockop
 	unsigned long u;
 	enum {
 		SO_FLAG,
-		SO_INT,
+		SO_INT
 	} what;
 
 	if ((t = gettoken(p)) != t_open)
