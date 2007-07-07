@@ -333,7 +333,7 @@ pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd,
 	default:
 		++stats.forked_children;
 		if (debug)
-			log_d("child process %d created", pid);
+			log_d("child process %d created", (int) pid);
 		break;
 	case -1:
 		lerror("spawn: failed to create child process");
