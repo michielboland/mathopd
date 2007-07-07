@@ -110,7 +110,7 @@ off_t sendfile_connection(struct connection *cn)
 	n = 0;
 	rv = sendfile(cn->rfd, cn->fd, cn->file_offset, cn->left, 0, &n, 0);
 	if (debug)
-		log_d("sendfile_connection: %d %d %d %d", cn->rfd, cn->fd, cn->left, (int) n);
+		log_d("sendfile_connection: %d %d %jd %jd", cn->rfd, cn->fd, cn->left, (intmax_t) n);
 	if (rv == -1 && errno != EAGAIN) {
 		if (debug)
 			lerror("sendfile");
