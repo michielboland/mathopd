@@ -112,8 +112,7 @@ off_t sendfile_connection(struct connection *cn)
 	if (debug)
 		log_d("sendfile_connection: %d %d %jd %jd", cn->rfd, cn->fd, cn->left, (intmax_t) n);
 	if (rv == -1 && errno != EAGAIN) {
-		if (debug)
-			lerror("sendfile");
+		lerror("sendfile");
 		return -1;
 	}
 	if (n) {
@@ -121,7 +120,7 @@ off_t sendfile_connection(struct connection *cn)
 		cn->nwritten += n;
 		cn->t = current_time;
 		cn->file_offset += n;
-	} else {
+	} else if (rv != -1) {
 		log_d("premature end of file %s", cn->r->path_translated);
 		return -1;
 	}
