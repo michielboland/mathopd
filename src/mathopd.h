@@ -43,6 +43,11 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <signal.h>
+#include <stdint.h> /* (u)intmax_t */
+
+#ifndef __GNUC__
+#define __attribute__(x)
+#endif
 
 #define CGI_MAGIC_TYPE "CGI"
 #define IMAP_MAGIC_TYPE "Imagemap"
@@ -224,7 +229,7 @@ struct request {
 	const char *content_type;
 	int num_content;
 	int class;
-	long content_length;
+	intmax_t content_length;
 	time_t last_modified;
 	time_t ims;
 	char *location;
@@ -249,10 +254,10 @@ struct request {
 	char *if_range_s;
 	time_t if_range;
 	int range;
-	unsigned long range_floor;
-	unsigned long range_ceiling;
-	unsigned long range_suffix;
-	unsigned long range_total;
+	uintmax_t range_floor;
+	uintmax_t range_ceiling;
+	uintmax_t range_suffix;
+	uintmax_t range_total;
 	char *ius_s;
 	time_t ius;
 	char rhost[STRLEN];
@@ -297,9 +302,9 @@ struct connection {
 	int keepalive;
 	int pollno;
 	int rpollno;
-	unsigned long nread;
-	unsigned long nwritten;
-	long left;
+	uintmax_t nread;
+	uintmax_t nwritten;
+	intmax_t left;
 	int logged;
 	struct timeval itv;
 	struct pipe_params pipe_params;
@@ -388,7 +393,8 @@ extern int init_connections(size_t);
 
 extern char *rfctime(time_t, char *);
 extern struct control *faketoreal(char *, char *, struct request *, int, int);
-extern int pool_print(struct pool *, const char *, ...);
+extern int pool_print(struct pool *, const char *, ...)
+	__attribute__((format(printf, 2, 3)));
 extern void init_request(struct request *);
 extern int process_request(struct request *);
 extern int cgi_error(struct request *);
@@ -426,7 +432,8 @@ extern int init_log_buffer(size_t);
 extern void log_request(struct request *);
 extern int open_log(const char *);
 extern int init_logs(int);
-extern void log_d(const char *, ...);
+extern void log_d(const char *, ...)
+	__attribute__((format(printf, 1, 2)));
 extern void lerror(const char *);
 
 /* stub */

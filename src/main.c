@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996 - 2005 Michiel Boland.
+ *   Copyright 1996, Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -35,7 +35,7 @@
 
 /* Once Around */
 
-static const char rcsid[] = "$Id: main.c,v 1.204.2.3 2005/03/22 18:45:05 boland Exp $";
+static const char rcsid[] = "$Id: main.c,v 1.204.2.4 2005/03/22 18:46:55 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -321,7 +321,7 @@ pid_t spawn(const char *program, char *const argv[], char *const envp[], int fd,
 	default:
 		++stats.forked_children;
 		if (debug)
-			log_d("child process %d created", pid);
+			log_d("child process %d created", (int) pid);
 		return pid;
 	case -1:
 		lerror("spawn: failed to create child process");

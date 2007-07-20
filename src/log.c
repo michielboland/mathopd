@@ -1,5 +1,5 @@
 /*
- *   Copyright 1999, 2000, 2001, 2002, 2003 Michiel Boland.
+ *   Copyright 1999, Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -35,7 +35,7 @@
 
 /* Piece Of My Luck */
 
-static const char rcsid[] = "$Id: log.c,v 1.49 2003/11/30 18:51:44 boland Exp $";
+static const char rcsid[] = "$Id: log.c,v 1.50 2003/12/15 19:34:58 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -177,11 +177,11 @@ void log_request(struct request *r)
 			s = r->user_agent;
 			break;
 		case ML_BYTES_READ:
-			sprintf(tmp, "%lu", r->cn->nread);
+			sprintf(tmp, "%ju", r->cn->nread);
 			s = tmp;
 			break;
 		case ML_BYTES_WRITTEN:
-			sprintf(tmp, "%lu", r->cn->nwritten);
+			sprintf(tmp, "%ju", r->cn->nwritten);
 			s = tmp;
 			break;
 		case ML_QUERY_STRING:

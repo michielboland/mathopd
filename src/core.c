@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996 - 2004 Michiel Boland.
+ *   Copyright 1996, Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -35,7 +35,7 @@
 
 /* Les trois soers aveugles */
 
-static const char rcsid[] = "$Id: core.c,v 1.226 2004/01/03 23:53:56 boland Exp $";
+static const char rcsid[] = "$Id: core.c,v 1.227 2004/02/23 15:12:50 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -316,7 +316,7 @@ static int fill_connection(struct connection *cn)
 {
 	struct pool *p;
 	int poolleft, n, m;
-	long fileleft;
+	intmax_t fileleft;
 
 	if (cn->rfd == -1)
 		return 0;
@@ -329,7 +329,7 @@ static int fill_connection(struct connection *cn)
 	cn->left -= n;
 	m = read(cn->rfd, p->end, n);
 	if (debug)
-		log_d("fill_connection: %d %d %d %d", cn->rfd, p->end - p->floor, n, m);
+		log_d("fill_connection: %d %zd %d %d", cn->rfd, p->end - p->floor, n, m);
 	if (m != n) {
 		if (m == -1)
 			lerror("read");
@@ -392,7 +392,7 @@ static void write_connection(struct connection *cn)
 		}
 		m = write(cn->fd, p->start, n);
 		if (debug)
-			log_d("write_connection: %d %d %d %d", cn->fd, p->start - p->floor, n, m);
+			log_d("write_connection: %d %zd %d %d", cn->fd, p->start - p->floor, n, m);
 		if (m == -1) {
 			if (errno == EAGAIN)
 				return;
@@ -429,7 +429,7 @@ static int read_connection(struct connection *cn)
 	}
 	nr = read(cn->fd, cn->header_input.end, bytestoread);
 	if (debug)
-		log_d("read_connection: %d %d %d %d", cn->fd, cn->header_input.end - cn->header_input.floor, bytestoread, nr);
+		log_d("read_connection: %d %zd %zu %zd", cn->fd, cn->header_input.end - cn->header_input.floor, bytestoread, nr);
 	if (nr == -1) {
 		if (errno == EAGAIN)
 			return 0;
@@ -790,13 +790,13 @@ static void reap_children(void)
 			++stats.exited_children;
 			exitstatus = WEXITSTATUS(status);
 			if (exitstatus || debug)
-				log_d("child process %d exited with status %d", pid, exitstatus);
+				log_d("child process %d exited with status %d", (int) pid, exitstatus);
 		} else if (WIFSIGNALED(status)) {
 			++stats.exited_children;
 			termsig = WTERMSIG(status);
-			log_d("child process %d killed by signal %d", pid, termsig);
+			log_d("child process %d killed by signal %d", (int) pid, termsig);
 		} else
-			log_d("child process %d stopped!?", pid);
+			log_d("child process %d stopped!?", (int) pid);
 	}
 	if (pid < 0 && errno != ECHILD)
 		lerror("waitpid");

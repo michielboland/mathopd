@@ -1,5 +1,5 @@
 /*
- *   Copyright 2003 Michiel Boland.
+ *   Copyright 2003, Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -35,7 +35,7 @@
 
 /* I will now proceed to entangle the entire area. */
 
-static const char rcsid[] = "$Id: sendfile.c,v 1.4 2003/12/16 18:49:10 boland Exp $";
+static const char rcsid[] = "$Id: sendfile.c,v 1.4.2.1 2007/07/20 13:26:27 boland Exp $";
 
 #if defined LINUX_SENDFILE
 #include <sys/types.h>
@@ -63,7 +63,7 @@ off_t sendfile_connection(struct connection *cn)
 		return 0;
 	s = sendfile(cn->fd, cn->rfd, &cn->file_offset, cn->left);
 	if (debug)
-		log_d("sendfile_connection: %d %d %d %d", cn->rfd, cn->fd, cn->left, s);
+		log_d("sendfile_connection: %d %d %jd %zd", cn->rfd, cn->fd, cn->left, s);
 	if (s == -1) {
 		if (errno == EAGAIN)
 			return 0;
@@ -110,7 +110,7 @@ off_t sendfile_connection(struct connection *cn)
 	n = 0;
 	rv = sendfile(cn->rfd, cn->fd, cn->file_offset, cn->left, 0, &n, 0);
 	if (debug)
-		log_d("sendfile_connection: %d %d %d %d", cn->rfd, cn->fd, cn->left, (int) n);
+		log_d("sendfile_connection: %d %d %jd %jd", cn->rfd, cn->fd, cn->left, (intmax_t) n);
 	if (rv == -1 && errno != EAGAIN) {
 		if (debug)
 			lerror("sendfile");
