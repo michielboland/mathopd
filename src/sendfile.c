@@ -112,7 +112,8 @@ off_t sendfile_connection(struct connection *cn)
 	if (debug)
 		log_d("sendfile_connection: %d %d %jd %jd", cn->rfd, cn->fd, cn->left, (intmax_t) n);
 	if (rv == -1 && errno != EAGAIN) {
-		lerror("sendfile");
+		if (debug)
+			lerror("sendfile");
 		return -1;
 	}
 	if (n) {
