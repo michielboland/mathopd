@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003 Michiel Boland.
+ *   Copyright 1996, Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -176,6 +176,7 @@ struct control {
 	struct simple_list *extra_headers;
 	int path_info_ok;
 	char *auto_index_command;
+	int sanitize_path;
 };
 
 struct virtual {

@@ -74,6 +74,7 @@ config.c:
 		MicroTime
 		Clobber
 		Wait [!]
+		SanitizePath
 
 	The following keywords have been removed:-
 
@@ -224,6 +225,10 @@ request.c:
 	Mathopd no longer generates Last-Modified dates that are in the
 	future, and ignores If-Modified-Since dates in the future.
 	[RFC2616]
+
+	Mathopd can now (optionally) allow //, /./ and /../ in URL
+	paths. Thanks for Peter Pentchev for suggesting this and providing
+	initial patches.
 
 stub.c:
 

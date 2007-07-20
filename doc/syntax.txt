@@ -89,6 +89,7 @@ control-item:
 	"ExtraHeaders" string-block
 	"PathInfo" flag
 	"AutoIndexCommand" string
+	"SanitizePath" flag
 
 server-item:
 	"Port" integer

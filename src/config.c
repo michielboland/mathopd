@@ -1,5 +1,5 @@
 /*
- *   Copyright 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003 Michiel Boland.
+ *   Copyright 1996, Michiel Boland.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or
@@ -35,7 +35,7 @@
 
 /* House of Games */
 
-static const char rcsid[] = "$Id: config.c,v 1.171 2003/12/22 20:07:08 boland Exp $";
+static const char rcsid[] = "$Id: config.c,v 1.172 2004/01/13 21:59:13 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -138,6 +138,7 @@ static const char c_remote_port[] =		"RemotePort";
 static const char c_remote_user[] =		"RemoteUser";
 static const char c_root_directory[] =		"RootDirectory";
 static const char c_run_scripts_as_owner[] =	"RunScriptsAsOwner";
+static const char c_sanitize_path[] =		"SanitizePath";
 static const char c_script_buf_size[] =		"ScriptBufSize";
 static const char c_script_timeout[] =		"ScriptTimeout";
 static const char c_script_user[] =		"ScriptUser";
@@ -669,6 +670,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->extra_headers = b->extra_headers;
 		a->path_info_ok = b->path_info_ok;
 		a->auto_index_command = b->auto_index_command;
+		a->sanitize_path = b->sanitize_path;
 	} else {
 		a->index_names = 0;
 		a->accesses = 0;
@@ -691,6 +693,7 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->extra_headers = 0;
 		a->path_info_ok = 1;
 		a->auto_index_command = 0;
+		a->sanitize_path = 0;
 	}
 	a->next = *as;
 	*as = a;
@@ -772,6 +775,8 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_flag(p, &a->path_info_ok);
 		else if (!strcasecmp(p->tokbuf, c_auto_index_command))
 			t = config_string(p, &a->auto_index_command);
+		else if (!strcasecmp(p->tokbuf, c_sanitize_path))
+			t = config_flag(p, &a->sanitize_path);
 		else
 			t = e_keyword;
 		if (t)
