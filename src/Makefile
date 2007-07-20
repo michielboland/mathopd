@@ -15,12 +15,12 @@ SBINDIR = $(PREFIX)/sbin
 # CPPFLAGS = -DHAVE_CRYPT_H
 
 OBJS = base64.o cgi.o config.o core.o dump.o imap.o log.o main.o \
-	redirect.o request.o util.o stub.o
+	redirect.o request.o util.o stub.o $(EXTRA_OBJS)
 DEPENDS = mathopd.h Makefile
 
 # Uncomment the following if your system does not support the poll() function
 # CPPFLAGS += -DPOLL_EMULATION
-# OBJS += poll-emul.o
+# EXTRA_OBJS += poll-emul.o
 
 # Uncomment the following if your system does not have the socklen_t type
 # CPPFLAGS += -DNEED_SOCKLEN_T
@@ -34,11 +34,11 @@ DEPENDS = mathopd.h Makefile
 # CPPFLAGS += -DFREEBSD_SENDFILE
 # If you define any of the SENDFILE conditionals, make sure to uncomment
 # the next line as well.
-# OBJS += sendfile.o
+# EXTRA_OBJS += sendfile.o
 
 all: $(BIN)
 install: $(BIN)
-	install -c $(BIN) $(SBINDIR)
+	install -c $(BIN) $(DESTDIR)$(SBINDIR)
 $(BIN): $(OBJS)
 	$(CC) $(LDFLAGS) -o $(BIN) $(OBJS) $(LIBS)
 $(OBJS): $(DEPENDS)
