@@ -35,7 +35,7 @@
 
 /* I will now proceed to entangle the entire area. */
 
-static const char rcsid[] = "$Id: sendfile.c,v 1.3 2003/12/14 19:43:30 boland Exp $";
+static const char rcsid[] = "$Id: sendfile.c,v 1.4 2003/12/16 18:49:10 boland Exp $";
 
 #if defined LINUX_SENDFILE
 #include <sys/types.h>
@@ -121,7 +121,7 @@ off_t sendfile_connection(struct connection *cn)
 		cn->nwritten += n;
 		cn->t = current_time;
 		cn->file_offset += n;
-	} else {
+	} else if (rv != -1) {
 		log_d("premature end of file %s", cn->r->path_translated);
 		return -1;
 	}
