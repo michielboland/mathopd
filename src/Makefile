@@ -8,8 +8,8 @@ PREFIX = /usr/local
 SBINDIR = $(PREFIX)/sbin
 
 # On Solaris, uncomment the following
-# CPPFLAGS = -DNEED_INET_ATON -DHAVE_CRYPT_H
-# LIBS = -lsocket -lnsl
+# CPPFLAGS = -DHAVE_CRYPT_H
+# LIBS = -lsocket -lnsl -lresolv
 
 # On Linux, uncomment the following
 # CPPFLAGS = -DHAVE_CRYPT_H
