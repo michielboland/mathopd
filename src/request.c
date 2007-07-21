@@ -35,7 +35,7 @@
 
 /* Mysterons */
 
-static const char rcsid[] = "$Id: request.c,v 1.294.2.5 2007/07/20 14:04:15 boland Exp $";
+static const char rcsid[] = "$Id: request.c,v 1.294.2.6 2007/07/20 14:28:04 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -700,14 +700,14 @@ static int process_fd(struct request *r)
 			close_rfd(r);
 			r->num_content = -1;
 			if (debug)
-				log_d("file not modified (%ld <= %ld)", r->last_modified, r->ims);
+				log_d("file not modified (%ld <= %ld)", (long) r->last_modified, (long) r->ims);
 			r->status = 304;
 			return 0;
 		}
 		if (r->ius && r->last_modified > r->ius) {
 			close_rfd(r);
 			if (debug)
-				log_d("file modified (%ld > %ld)", r->last_modified, r->ius);
+				log_d("file modified (%ld > %ld)", (long) r->last_modified, (long) r->ius);
 			r->status = 412;
 			return 0;
 		}
