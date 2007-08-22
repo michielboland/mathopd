@@ -43,7 +43,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <signal.h>
-#include <stdint.h> /* (u)intmax_t */
+#include <inttypes.h> /* (u)intmax_t */
 
 #ifndef __GNUC__
 #define __attribute__(x)
