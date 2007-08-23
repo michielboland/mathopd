@@ -1006,7 +1006,7 @@ static int parse_range_header(struct request *r, const char *s)
 		if (*s == '-')
 			return -1;
 	}
-	u = strtoumax(s, &t, 10);
+	u = strtoull(s, &t, 10);
 	if (t == s)
 		return -1;
 	s = t;
@@ -1031,7 +1031,7 @@ static int parse_range_header(struct request *r, const char *s)
 	}
 	if (*s == '-')
 		return -1;
-	v = strtoumax(s, &t, 10);
+	v = strtoull(s, &t, 10);
 	if (t == s)
 		return -1;
 	s = t;
