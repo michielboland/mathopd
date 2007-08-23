@@ -299,7 +299,7 @@ static int readfromclient(struct connection *p)
 	}
 	r = read(p->fd, p->client_input.end, bytestoread);
 	if (debug)
-		log_d("readfromclient: %d %zd %zu %zd", p->fd, p->client_input.end - p->client_input.floor, bytestoread, r);
+		log_d("readfromclient: %d %d %u %d", p->fd, (int) (p->client_input.end - p->client_input.floor), (unsigned) bytestoread, (int) r);
 	switch (r) {
 	case -1:
 		if (errno == EAGAIN)
@@ -336,7 +336,7 @@ static int readfromchild(struct connection *p)
 	}
 	r = read(p->rfd, p->script_input.end, bytestoread);
 	if (debug)
-		log_d("readfromchild: %d %zd %zu %zd", p->rfd, p->script_input.end - p->script_input.floor, bytestoread, r);
+		log_d("readfromchild: %d %d %u %d", p->rfd, (int) (p->script_input.end - p->script_input.floor), (unsigned) bytestoread, (int) r);
 	switch (r) {
 	case -1:
 		if (errno == EAGAIN)
@@ -347,12 +347,12 @@ static int readfromchild(struct connection *p)
 		return -1;
 	case 0:
 		if (p->pipe_params.state != 2) {
-			log_d("readfromchild: premature end of script headers (ipp=%zd)", p->script_input.end - p->script_input.floor);
+			log_d("readfromchild: premature end of script headers (ipp=%d)", (int) (p->script_input.end - p->script_input.floor));
 			cgi_error(p->r);
 			return -1;
 		}
 		if (p->pipe_params.haslen) {
-			log_d("readfromchild: script went away (pmax=%zu)", p->pipe_params.pmax);
+			log_d("readfromchild: script went away (pmax=%u)", (unsigned) p->pipe_params.pmax);
 			close_connection(p);
 			return -1;
 		}
@@ -384,7 +384,7 @@ static int writetoclient(struct connection *p)
 	}
 	r = write(p->fd, p->output.start, bytestowrite);
 	if (debug)
-		log_d("writetoclient: %d %zd %zu %zd", p->fd, p->output.start - p->output.floor, bytestowrite, r);
+		log_d("writetoclient: %d %d %u %d", p->fd, (int) (p->output.start - p->output.floor), (unsigned) bytestowrite, (int) r);
 	switch (r) {
 	case -1:
 		if (errno == EAGAIN)
@@ -416,7 +416,7 @@ static int writetochild(struct connection *p)
 	}
 	r = write(p->rfd, p->client_input.start, bytestowrite);
 	if (debug)
-		log_d("writetochild: %d %zd %zu %zd", p->rfd, p->client_input.start - p->client_input.floor, bytestowrite, r);
+		log_d("writetochild: %d %d %u %d", p->rfd, (int) (p->client_input.start - p->client_input.floor), (unsigned) bytestowrite, (int) r);
 	switch (r) {
 	case -1:
 		if (errno == EAGAIN)

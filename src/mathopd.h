@@ -238,7 +238,7 @@ struct request {
 	const char *content_type;
 	int num_content;
 	int class;
-	intmax_t content_length;
+	long long content_length;
 	time_t last_modified;
 	time_t ims;
 	char *location;
@@ -263,10 +263,10 @@ struct request {
 	char *if_range_s;
 	time_t if_range;
 	int range;
-	uintmax_t range_floor;
-	uintmax_t range_ceiling;
-	uintmax_t range_suffix;
-	uintmax_t range_total;
+	unsigned long long range_floor;
+	unsigned long long range_ceiling;
+	unsigned long long range_suffix;
+	unsigned long long range_total;
 	char *ius_s;
 	time_t ius;
 	char rhost[STRLEN];
@@ -316,9 +316,9 @@ struct connection {
 	int keepalive;
 	int pollno;
 	int rpollno;
-	uintmax_t nread;
-	uintmax_t nwritten;
-	intmax_t left;
+	unsigned long long nread;
+	unsigned long long nwritten;
+	long long left;
 	int logged;
 	struct timeval itv;
 	struct pipe_params pipe_params;

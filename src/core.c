@@ -257,7 +257,7 @@ static void pool_adjust(struct pool *p, size_t s)
 	if (s > 0 && s < n)
 		n -= n % s;
 	if (debug)
-		log_d("pool_adjust: n=%zu", n);
+		log_d("pool_adjust: n=%u", (unsigned) n);
 	p->ceiling = p->floor + n;
 }
 
@@ -359,7 +359,7 @@ static int fill_connection(struct connection *cn)
 	cn->left -= n;
 	m = read(cn->rfd, p->end, n);
 	if (debug)
-		log_d("fill_connection: %d %zd %d %d", cn->rfd, p->end - p->floor, n, m);
+		log_d("fill_connection: %d %d %d %d", cn->rfd, (int) (p->end - p->floor), n, m);
 	if (m != n) {
 		if (m == -1)
 			lerror("read");
@@ -422,7 +422,7 @@ static void write_connection(struct connection *cn)
 		}
 		m = write(cn->fd, p->start, n);
 		if (debug)
-			log_d("write_connection: %d %zd %d %d", cn->fd, p->start - p->floor, n, m);
+			log_d("write_connection: %d %d %d %d", cn->fd, (int) (p->start - p->floor), n, m);
 		if (m == -1) {
 			if (errno == EAGAIN)
 				return;
@@ -459,7 +459,7 @@ static int read_connection(struct connection *cn)
 	}
 	nr = read(cn->fd, cn->header_input.end, bytestoread);
 	if (debug)
-		log_d("read_connection: %d %zd %zu %zd", cn->fd, cn->header_input.end - cn->header_input.floor, bytestoread, nr);
+		log_d("read_connection: %d %d %u %d", cn->fd, (int) (cn->header_input.end - cn->header_input.floor), (unsigned) bytestoread, (int) nr);
 	if (nr == -1) {
 		if (errno == EAGAIN)
 			return 0;
