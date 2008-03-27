@@ -181,6 +181,8 @@ int reinit_connection(struct connection *cn)
 
 void close_connection(struct connection *cn)
 {
+	if (cn->connection_state == HC_FREE)
+		abort();
 	if (cn->nread || cn->nwritten || cn->logged == 0) {
 		++stats.nrequests;
 		log_request(cn->r);
@@ -638,11 +640,14 @@ static int scan_request(struct connection *cn)
 	cn->header_input.middle = s;
 	if (state == 8) {
 		if (process_request(cn->r) == -1) {
-			if (cn->connection_state != HC_FORKED) {
+			switch (cn->connection_state) {
+			case HC_FORKED:
+				return 0;
+			default:
 				close_connection(cn);
+			case HC_FREE:
 				return -1;
 			}
-			return 0;
 		}
 		if (begin_response(cn) == -1) {
 			close_connection(cn);
