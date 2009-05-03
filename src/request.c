@@ -559,8 +559,7 @@ static int append_indexes(struct request *r)
 		n = strlen(i->name);
 		if (l + n >= PATHLEN - 1)
 			continue;
-		memcpy(p + l, i->name, n);
-		p[l + n] = 0;
+		strcpy(p + l, i->name);
 		fd = open(p, O_RDONLY | O_NONBLOCK);
 		if (debug)
 			log_d("append_indexes: open(\"%s\") = %d", p, fd);
