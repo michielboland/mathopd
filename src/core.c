@@ -321,6 +321,7 @@ static int accept_connection(struct server *s)
 			break;
 		}
 		l = sizeof mss;
+		mss = 0;
 		if (getsockopt(fd, IPPROTO_TCP, TCP_MAXSEG, &mss, &l) == -1) {
 			lerror("getsockopt");
 			close(fd);
