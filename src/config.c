@@ -816,10 +816,8 @@ static const char *config_server(struct configuration *p, struct server **ss)
 	s->controls = controls;
 	s->backlog = DEFAULT_BACKLOG;
 	s->addr = 0;
-	s->port = strdup("80");
-	if (s->port == 0)
-		return e_memory;
 	s->options = 0;
+	s->port = 0;
 	fam = AF_UNSPEC;
 	if ((t = gettoken(p)) != t_open)
 		return t;
@@ -844,6 +842,11 @@ static const char *config_server(struct configuration *p, struct server **ss)
 			t = e_keyword;
 		if (t)
 			return t;
+	}
+	if (s->port == 0) {
+		s->port = strdup("80");
+		if (s->port == 0)
+			return e_memory;
 	}
 	memset(&hints, 0, sizeof hints);
 	hints.ai_flags = AI_PASSIVE;
