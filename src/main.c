@@ -35,7 +35,7 @@
 
 /* Once Around */
 
-static const char rcsid[] = "$Id: main.c,v 1.204.2.7 2012/02/02 17:08:03 boland Exp $";
+static const char rcsid[] = "$Id: main.c,v 1.204.2.8 2012/02/02 18:43:39 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -297,9 +297,11 @@ int main(int argc, char *argv[])
 	mysignal(SIGWINCH, sighandler);
 	my_pid = getpid();
 	if (pid_fd != -1) {
-		ftruncate(pid_fd, 0);
+		if (ftruncate(pid_fd, 0) == -1)
+			return 1;
 		sprintf(buf, "%d\n", my_pid);
-		write(pid_fd, buf, strlen(buf));
+		if (write(pid_fd, buf, strlen(buf)) == -1)
+			return 1;
 		close(pid_fd);
 	}
 	if (init_buffers() == -1)
