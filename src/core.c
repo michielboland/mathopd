@@ -35,7 +35,7 @@
 
 /* Les trois soers aveugles */
 
-static const char rcsid[] = "$Id: core.c,v 1.227 2004/02/23 15:12:50 boland Exp $";
+static const char rcsid[] = "$Id: core.c,v 1.227.2.1 2007/07/20 14:28:04 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -819,16 +819,16 @@ static void dump_pollfds(int n, int r)
 		b = buf + sprintf(buf, "fds:     ");
 		for (i = 0; i < n; i++)
 			b += sprintf(b, " %4d", pollfds[i].fd);
-		log_d(buf);
+		log_d("%s", buf);
 		b = buf + sprintf(buf, "events:  ");
 		for (i = 0; i < n; i++)
 			b += sprintf(b, " %4hd", pollfds[i].events);
-		log_d(buf);
+		log_d("%s", buf);
 	} else {
 		b = buf + sprintf(buf, "revents: ");
 		for (i = 0; i < n; i++)
 			b += sprintf(b, " %4hd", pollfds[i].revents);
-		log_d(buf);
+		log_d("%s", buf);
 	}
 	free(buf);
 }
