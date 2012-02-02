@@ -208,7 +208,7 @@ char *rfctime(time_t t, char *buf)
 	return buf;
 }
 
-static char *getline(struct pool *p, int fold)
+static char *pool_getline(struct pool *p, int fold)
 {
 	char *s, *olds, *sp, *end;
 	int f;
@@ -245,7 +245,7 @@ static char *getline(struct pool *p, int fold)
 			break;
 		}
 	}
-	log_d("getline: fallen off the end");
+	log_d("pool_getline: fallen off the end");
 	return 0;
 }
 
@@ -1155,7 +1155,7 @@ static int process_headers(struct request *r)
 	unsigned long cl;
 
 	do {
-		l = getline(&r->cn->header_input, 0);
+		l = pool_getline(&r->cn->header_input, 0);
 		if (l == 0)
 			return -1;
 	} while (*l == 0);
@@ -1184,7 +1184,7 @@ static int process_headers(struct request *r)
 	if (r->protocol_major && r->protocol_minor)
 		r->cn->keepalive = 1;
 	n = 0;
-	while ((l = getline(&r->cn->header_input, 1)) != 0) {
+	while ((l = pool_getline(&r->cn->header_input, 1)) != 0) {
 		s = strchr(l, ':');
 		if (s == 0)
 			continue;
