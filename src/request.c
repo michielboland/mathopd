@@ -35,7 +35,7 @@
 
 /* Mysterons */
 
-static const char rcsid[] = "$Id: request.c,v 1.294.2.6 2007/07/20 14:28:04 boland Exp $";
+static const char rcsid[] = "$Id: request.c,v 1.294.2.7 2007/07/21 10:48:00 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -1311,6 +1311,11 @@ static int process_headers(struct request *r)
 	if (r->host && r->host[0] == 0) {
 		if (debug)
 			log_d("empty Host header");
+		r->status = 400;
+		return 0;
+	}
+	if (strchr(r->host, '/')) {
+		log_d("illegal host name \"%s\"", r->host);
 		r->status = 400;
 		return 0;
 	}
