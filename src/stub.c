@@ -77,7 +77,7 @@ static int no_room(void)
 static int convert_cgi_headers(struct connection *pp, int *sp)
 {
 	int addheader, c, s;
-	size_t i, nheaders, status, location, length;
+	size_t i, nheaders, status, length;
 	const char *p, *tmpname, *tmpvalue;
 	int havestatus, havelocation, firstline, havelength;
 	size_t len, tmpnamelen, tmpvaluelen;
@@ -93,7 +93,6 @@ static int convert_cgi_headers(struct connection *pp, int *sp)
 	havelocation = 0;
 	havelength = 0;
 	status = 0;
-	location = 0;
 	length = 0;
 	s = 0;
 	len = 0;
@@ -163,12 +162,11 @@ static int convert_cgi_headers(struct connection *pp, int *sp)
 					break;
 				case 8:
 					if (strncasecmp(tmpname, "Location", 8) == 0) {
-						if (havelocation)
-							addheader = 0;
-						else {
-							location = nheaders;
-							havelocation = 1;
+						if (havelocation) {
+							log_d("convert_cgi_headers: multiple Location headers");
+							return -1;
 						}
+						havelocation = 1;
 					}
 					break;
 				case 10:
