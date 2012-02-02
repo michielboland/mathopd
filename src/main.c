@@ -261,7 +261,8 @@ int main(int argc, char *argv[])
 			die("chdir", 0);
 	} else {
 		rl.rlim_cur = 0;
-		chdir("/");
+		if (chdir("/") == -1)
+			die("chdir", 0);
 	}
 	setrlimit(RLIMIT_CORE, &rl);
 	umask(fcm);
