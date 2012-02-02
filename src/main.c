@@ -35,7 +35,7 @@
 
 /* Once Around */
 
-static const char rcsid[] = "$Id: main.c,v 1.204.2.6 2007/07/21 10:48:50 boland Exp $";
+static const char rcsid[] = "$Id: main.c,v 1.204.2.7 2012/02/02 17:08:03 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -261,7 +261,8 @@ int main(int argc, char *argv[])
 			die("chdir", 0);
 	} else {
 		rl.rlim_cur = 0;
-		chdir("/");
+		if (chdir("/") == -1)
+			die("chdir", 0);
 	}
 	setrlimit(RLIMIT_CORE, &rl);
 	umask(fcm);
