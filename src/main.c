@@ -306,12 +306,14 @@ int main(int argc, char *argv[])
 	mysignal(SIGWINCH, sighandler);
 	my_pid = getpid();
 	if (pid_fd != -1) {
-		ftruncate(pid_fd, 0);
+		if (ftruncate(pid_fd, 0) == -1)
+			return 1;
 		if (tuning.num_processes > 1)
 			sprintf(buf, "-%d\n", (int) getpgrp());
 		else
 			sprintf(buf, "%d\n", my_pid);
-		write(pid_fd, buf, strlen(buf));
+		if (write(pid_fd, buf, strlen(buf)) == -1)
+			return 1;
 		close(pid_fd);
 	}
 	if (init_buffers() == -1)
