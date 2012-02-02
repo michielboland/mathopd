@@ -1297,6 +1297,11 @@ static int process_headers(struct request *r)
 		r->status = 400;
 		return 0;
 	}
+	if (strchr(r->host, '/')) {
+		log_d("illegal host name \"%s\"", r->host);
+		r->status = 400;
+		return 0;
+	}
 	if (s == 0)
 		strcpy(r->path, "/");
 	else if (unescape_url(s, r->path) == -1) {
