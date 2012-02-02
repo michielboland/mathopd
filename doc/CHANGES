@@ -230,6 +230,9 @@ request.c:
 	paths. Thanks for Peter Pentchev for suggesting this and providing
 	initial patches.
 
+	Host names that contain a slash are no longer allowed.
+	Problem pointed out by Mateusz Goik.
+
 stub.c:
 
 	This is a new file that contains code to pass data from and to
