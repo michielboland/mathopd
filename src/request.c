@@ -1297,7 +1297,7 @@ static int process_headers(struct request *r)
 		r->status = 400;
 		return 0;
 	}
-	if (strchr(r->host, '/')) {
+	if (r->host && strchr(r->host, '/')) {
 		log_d("illegal host name \"%s\"", r->host);
 		r->status = 400;
 		return 0;
