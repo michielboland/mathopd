@@ -85,11 +85,11 @@ int unescape_url_n(const char *from, char *to, size_t n)
 void sanitize_host(char *s)
 {
 	int c, l;
-	int ipv6_literal = 0;
+	int inside_ipv6_literal = 0;
 
 	l = 0;
 	if (s[0] == '[') {
-		ipv6_literal = 1;
+		inside_ipv6_literal = 1;
 	}
 	while ((c = *s) != 0) {
 		/*
@@ -97,12 +97,12 @@ void sanitize_host(char *s)
 		 * number, unless the colon was part of an
 		 * IPv6 literal.
 		 */
-		if (c == ':' && ipv6_literal == 0) {
+		if (c == ':' && inside_ipv6_literal == 0) {
 			*s = 0;
 			break;
 		}
 		if (c == ']') {
-			ipv6_literal = 0;
+			inside_ipv6_literal = 0;
 		}
 		*s++ = tolower(c);
 		l = c;
