@@ -35,8 +35,6 @@
 
 /* I will now proceed to entangle the entire area. */
 
-static const char rcsid[] = "$Id$";
-
 #if defined LINUX_SENDFILE
 #include <sys/types.h>
 #include <sys/socket.h>

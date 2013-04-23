@@ -35,8 +35,6 @@
 
 /* San Jacinto */
 
-static const char rcsid[] = "$Id$";
-
 #include <ctype.h>
 #include "mathopd.h"
 

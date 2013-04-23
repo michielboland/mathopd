@@ -35,8 +35,6 @@
 
 /* De verpletterende werkelijkheid */
 
-static const char rcsid[] = "$Id$";
-
 #include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>

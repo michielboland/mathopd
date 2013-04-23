@@ -35,8 +35,6 @@
 
 /* Aja */
 
-static const char rcsid[] = "$Id$";
-
 #include <string.h>
 #include <stdio.h>
 #ifdef HAVE_CRYPT_H

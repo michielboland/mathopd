@@ -35,8 +35,6 @@
 
 /* Careful, man, there's a beverage here! */
 
-static const char rcsid[] = "$Id$";
-
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
