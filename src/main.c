@@ -50,7 +50,7 @@
 #include <time.h>
 #include "mathopd.h"
 
-const char server_version[] = "Mathopd/1.6b13";
+const char server_version[] = "Mathopd/1.6b14";
 
 volatile sig_atomic_t gotsigterm;
 volatile sig_atomic_t gotsighup;
