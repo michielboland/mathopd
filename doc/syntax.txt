@@ -62,6 +62,7 @@ tuning-item:
 	"Wait" integer
 	"NumProcesses" integer
 	"Greedy" flag
+	"AdjustOutputBuffer" flag
 
 control-item:
 	"Location" string

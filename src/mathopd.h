@@ -344,6 +344,7 @@ struct tuning {
 	unsigned long wait_timeout;
 	int num_processes;
 	int greedy;
+	int adjust_output_buffer;
 };
 
 struct statistics {

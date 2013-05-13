@@ -320,10 +320,12 @@ static int accept_connection(struct server *s)
 		}
 		l = sizeof mss;
 		mss = 0;
-		if (getsockopt(fd, IPPROTO_TCP, TCP_MAXSEG, &mss, &l) == -1) {
-			lerror("getsockopt");
-			close(fd);
-			break;
+		if (tuning.adjust_output_buffer) {
+			if (getsockopt(fd, IPPROTO_TCP, TCP_MAXSEG, &mss, &l) == -1) {
+				lerror("getsockopt");
+				close(fd);
+				break;
+			}
 		}
 		if (debug)
 			log_d("mss = %d", mss);

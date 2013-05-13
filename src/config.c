@@ -74,6 +74,7 @@ static struct virtual *virtuals;
 static const char c_all[] =			"*";
 static const char c_accept_multi[] =		"AcceptMulti";
 static const char c_address[] =			"Address";
+static const char c_adjust_output_buffer[] =	"AdjustOutputBuffer";
 static const char c_admin[] =			"Admin";
 static const char c_alias[] =			"Alias";
 static const char c_allow_dotfiles[] =		"AllowDotfiles";
@@ -920,6 +921,8 @@ static const char *config_tuning(struct configuration *p, struct tuning *tp)
 			t = config_smallint(p, &tp->num_processes);
 		else if (!strcasecmp(p->tokbuf, c_greedy))
 			t = config_flag(p, &tp->greedy);
+		else if (!strcasecmp(p->tokbuf, c_adjust_output_buffer))
+			t = config_flag(p, &tp->adjust_output_buffer);
 		else
 			t = e_keyword;
 		if (t)
@@ -1019,6 +1022,7 @@ const char *config(const char *config_filename)
 	tuning.wait_timeout = DEFAULT_WAIT_TIMEOUT;
 	tuning.num_processes = 1;
 	tuning.greedy = 1;
+	tuning.adjust_output_buffer = 1;
 	fcm = DEFAULT_UMASK;
 	stayroot = 0;
 	log_columns = 0;

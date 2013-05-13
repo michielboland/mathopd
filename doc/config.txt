@@ -21,6 +21,17 @@ Desc:    If you want a server to listen on a specific address, rather
              Address 127.0.0.1
            }
 
+Keyword: AdjustOutputBuffer
+Where:   Tuning
+Type:    Flag
+Default: On
+Desc:    Normally, when serving a request, Mathopd will adjust the size
+         of the output buffer so that it matches the TCP segment size
+         for that connection. This behaviour can be turned off by
+         resetting the AdjustOutputBuffer flag. Note that this flag
+         does not really do anything if the server was compiled with
+         sendfile support.
+
 Keyword: Admin
 Where:   Control
 Type:    String
