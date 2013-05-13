@@ -325,6 +325,8 @@ static int accept_connection(struct server *s)
 			close(fd);
 			break;
 		}
+		if (debug)
+			log_d("mss = %d", mss);
 		cn->s = s;
 		cn->fd = fd;
 		cn->rfd = -1;
