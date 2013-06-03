@@ -31,6 +31,24 @@ Desc:    The Access block can be used to allow or deny access to
          This will allow access to 127.0.0.1, while denying access to
          anyone else.
 
+         WARNING: IPv4 and IPv6 access lists are evaluated separately.
+         If you need to restrict on both IPv4 and IPv6 addresses you
+         need something like this:
+
+            Control {
+              Access {
+                Deny 0/0
+                Deny ::/0
+                Allow 127.0.0.1/32
+                Allow ::1/128
+              }
+            }
+
+         The "0/0" prefix is an IPv4 prefix, so it does not apply to
+         IPv6 clients. Which means that, if you should leave out the
+         "Deny ::/0" in the example above, all IPv6 clients get access
+         which is probably not what you want.
+
 Keyword: Address
 Where:   Server
 Type:    Address
