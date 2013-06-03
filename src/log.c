@@ -92,6 +92,7 @@ void log_request(struct request *r)
 	struct tm *tp;
 	struct timeval tv, dtv;
 	time_t rounded_time;
+	struct addrport local, remote;
 
 	if (log_fd == -1)
 		return;
@@ -113,6 +114,8 @@ void log_request(struct request *r)
 	b = log_buffer;
 	gettimeofday(&tv, 0);
 	rounded_time = tv.tv_sec;
+	sockaddr_to_addrport((struct sockaddr *) &r->cn->peer, &remote);
+	sockaddr_to_addrport((struct sockaddr *) &r->cn->sock, &local);
 	for (i = 0; i < log_columns; i++) {
 		l = log_buffer_size;
 		s = 0;
@@ -126,16 +129,16 @@ void log_request(struct request *r)
 			s = r->user;
 			break;
 		case ML_REMOTE_ADDRESS:
-			s = r->cn->peer.ap_address;
+			s = remote.ap_address;
 			break;
 		case ML_REMOTE_PORT:
-			s = r->cn->peer.ap_port;
+			s = remote.ap_port;
 			break;
 		case ML_LOCAL_ADDRESS:
-			s = r->cn->sock.ap_address;
+			s = local.ap_address;
 			break;
 		case ML_LOCAL_PORT:
-			s = r->cn->sock.ap_port;
+			s = local.ap_port;
 			break;
 		case ML_SERVERNAME:
 			s = r->host;

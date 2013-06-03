@@ -265,8 +265,9 @@ static int accept_connection(struct server *s)
 {
 	struct sockaddr_storage sa_remote, sa_local;
 	socklen_t l;
-	int fd, rv, mss;
+	int fd, mss;
 	struct connection *cn;
+	struct addrport a;
 
 	do {
 		cn = find_connection();
@@ -296,28 +297,20 @@ static int accept_connection(struct server *s)
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		fcntl(fd, F_SETFL, O_NONBLOCK);
 		if (cn->connection_state != HC_FREE) {
-			if (debug)
-				log_d("clobbering connection to %s[%s]", cn->peer.ap_address, cn->peer.ap_port);
+			if (debug) {
+				sockaddr_to_addrport((struct sockaddr *) &cn->peer, &a);
+				log_d("clobbering connection to %s[%s]", a.ap_address, a.ap_port);
+			}
 			close_connection(cn);
 		}
-		rv = getnameinfo((struct sockaddr *) &sa_remote, l, cn->peer.ap_address, sizeof cn->peer.ap_address, cn->peer.ap_port, sizeof cn->peer.ap_port, NI_NUMERICHOST | NI_NUMERICSERV);
-		if (rv) {
-			log_d("accept_connection: getnameinfo failed for peer: %s", gai_strerror(rv));
-			close(fd);
-			break;
-		}
+		cn->peer = sa_remote;
 		l = sizeof sa_local;
 		if (getsockname(fd, (struct sockaddr *) &sa_local, &l) == -1) {
 			lerror("getsockname");
 			close(fd);
 			break;
 		}
-		rv = getnameinfo((struct sockaddr *) &sa_local, l, cn->sock.ap_address, sizeof cn->sock.ap_address, cn->sock.ap_port, sizeof cn->sock.ap_port, NI_NUMERICHOST | NI_NUMERICSERV);
-		if (rv) {
-			log_d("accept_connection: getnameinfo failed for sock: %s", gai_strerror(rv));
-			close(fd);
-			break;
-		}
+		cn->sock = sa_local;
 		l = sizeof mss;
 		mss = 0;
 		if (tuning.adjust_output_buffer) {
@@ -794,12 +787,15 @@ static void run_connections(void)
 static void timeout_connections(struct connection *c, time_t t, const char *what)
 {
 	struct connection *n;
+	struct addrport a;
 
 	while (c) {
 		n = c->next;
 		if (current_time >= c->t + t) {
-			if (what)
-				log_d("%s timeout to %s[%s]", what, c->peer.ap_address, c->peer.ap_port);
+			if (what) {
+				sockaddr_to_addrport((struct sockaddr *) &c->peer, &a);
+				log_d("%s timeout to %s[%s]", what, a.ap_address, a.ap_port);
+			}
 			close_connection(c);
 		}
 		c = n;

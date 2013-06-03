@@ -199,6 +199,7 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 	struct simple_list *e;
 	char path_translated[PATHLEN];
 	char *tmp;
+	struct addrport a;
 
 	if (add_http_vars(r, cp) == -1)
 		return -1;
@@ -237,9 +238,10 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 		free(tmp);
 	} else if (add("REQUEST_URI", r->url, 0, cp) == -1)
 		return -1;
-	if (add("REMOTE_ADDR", r->cn->peer.ap_address, 0, cp) == -1)
+	sockaddr_to_addrport((struct sockaddr *) &r->cn->peer, &a);
+	if (add("REMOTE_ADDR", a.ap_address, 0, cp) == -1)
 		return -1;
-	if (add("REMOTE_PORT", r->cn->peer.ap_port, 0, cp) == -1)
+	if (add("REMOTE_PORT", a.ap_port, 0, cp) == -1)
 		return -1;
 	if (add("REQUEST_METHOD", r->method_s, 0, cp) == -1)
 		return -1;
@@ -247,9 +249,10 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 		return -1;
 	if (add("SERVER_NAME", r->host, 0, cp) == -1)
 		return -1;
-	if (add("SERVER_ADDR", r->cn->sock.ap_address, 0, cp) == -1)
+	sockaddr_to_addrport((struct sockaddr *) &r->cn->sock, &a);
+	if (add("SERVER_ADDR", a.ap_address, 0, cp) == -1)
 		return -1;
-	if (add("SERVER_PORT", r->cn->sock.ap_port, 0, cp) == -1)
+	if (add("SERVER_PORT", a.ap_port, 0, cp) == -1)
 		return -1;
 	if (add("SERVER_SOFTWARE", server_version, 0, cp) == -1)
 		return -1;

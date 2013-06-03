@@ -69,6 +69,8 @@ control-item:
 	"Alias" string
 	"PathArgs" flag
 	"IndexNames" string-block
+	"Access" access-block
+	"Clients" client-block
 	"Types" type-block
 	"Specials" type-block
 	"External" type-block
@@ -108,6 +110,14 @@ virtual-item:
 	"Control" control-block
 	"AnyHost"
 
+access-item:
+	"Allow" network
+	"Deny" network
+
+client-item:
+	"Apply" network
+	"NoApply" network
+
 type-item:
 	string string-block
 
@@ -129,7 +139,7 @@ logformat-item:
 	"BytesRead"
 	"BytesWritten"
 	"QueryString"
-        "TimeTaken"
+	"TimeTaken"
 	"MicroTime"
 	"PID"
 

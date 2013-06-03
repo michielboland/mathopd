@@ -6,9 +6,7 @@ replaced with the current value of the Host header.
 If the Error*File is not present, the original HTTP status code
 is sent back, rather than a 500 error.
 
-IPv6 support has been added. It is not clear yet how the Access
-and Clients functionality should be ported. Therefore Access and
-Clients has been temporarily disabled, as well as Error403File.
+IPv6 support has been added.
 
 The server can now fork multiple copies of itself, via the
 NumProcesses keyword.
@@ -29,12 +27,3 @@ The following keywords have been added:
 	NumProcesses
 	PID
 	SanitizePath
-
-The following keywords have been removed:
-
-	Access
-	Allow
-	Apply
-	Clients
-	Deny
-	NoApply

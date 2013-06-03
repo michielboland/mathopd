@@ -73,26 +73,32 @@ static struct virtual *virtuals;
 
 static const char c_all[] =			"*";
 static const char c_accept_multi[] =		"AcceptMulti";
+static const char c_access[] =			"Access";
 static const char c_address[] =			"Address";
 static const char c_adjust_output_buffer[] =	"AdjustOutputBuffer";
 static const char c_admin[] =			"Admin";
 static const char c_alias[] =			"Alias";
+static const char c_allow[] =			"Allow";
 static const char c_allow_dotfiles[] =		"AllowDotfiles";
 static const char c_any_host[] =		"AnyHost";
+static const char c_apply[] =			"Apply";
 static const char c_auto_index_command[] =	"AutoIndexCommand";
 static const char c_backlog[] =			"Backlog";
 static const char c_buf_size[] =		"BufSize";
 static const char c_bytes_read[] =		"BytesRead";
 static const char c_bytes_written[] =		"BytesWritten";
 static const char c_child_log[] =		"ChildLog";
+static const char c_clients[] =			"Clients";
 static const char c_clobber[] =			"Clobber";
 static const char c_content_length[] =		"ContentLength";
 static const char c_control[] =			"Control";
 static const char c_core_directory[] =		"CoreDirectory";
 static const char c_ctime[] =			"Ctime";
+static const char c_deny[] =			"Deny";
 static const char c_encrypted_user_file[] =	"EncryptedUserFile";
 static const char c_error_log[] =		"ErrorLog";
 static const char c_error_401_file[] =		"Error401File";
+static const char c_error_403_file[] =		"Error403File";
 static const char c_error_404_file[] =		"Error404File";
 static const char c_exact_match[] =		"ExactMatch";
 static const char c_expire_interval[] =		"ExpireInterval";
@@ -112,6 +118,7 @@ static const char c_log_format[] =		"LogFormat";
 static const char c_log_gmt[] =			"LogGMT";
 static const char c_method[] =			"Method";
 static const char c_micro_time[] =		"MicroTime";
+static const char c_no_apply[] =		"NoApply";
 static const char c_no_host[] =			"NoHost";
 static const char c_num_connections[] =		"NumConnections";
 static const char c_num_headers[] =		"NumHeaders";
@@ -156,7 +163,9 @@ static const char c_user_directory[] =		"UserDirectory";
 static const char c_user_file[] =		"UserFile";
 static const char c_version[] =			"Version";
 
+static const char e_bad_addr[] =	"bad address";
 static const char e_bad_alias[] =	"alias without matching location";
+static const char e_bad_network[] =	"bad network";
 static const char e_help[] =		"unknown error (help)";
 static const char e_inval[] =		"illegal quantity";
 static const char e_keyword[] =		"unknown keyword";
@@ -461,6 +470,77 @@ static const char *config_mime(struct configuration *p, struct mime **ms, int cl
 	return 0;
 }
 
+#define ALLOWDENY 0
+#define APPLYNOAPPLY 1
+
+static const char *config_acccl(struct configuration *p, struct access **ls, int accltype)
+{
+	struct access *l;
+	struct addrinfo hints, *res;
+	char *sl, *e;
+	unsigned long sz;
+	const char *t;
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_flags = AI_NUMERICHOST;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	if ((t = gettoken(p)) != t_open)
+		return t;
+	while ((t = gettoken(p)) != t_close) {
+		if (t != t_string)
+			return t;
+		if ((l = malloc(sizeof *l)) == 0)
+			return e_memory;
+		l->next = *ls;
+		*ls = l;
+		if (accltype == ALLOWDENY) {
+			if (!strcasecmp(p->tokbuf, c_allow))
+				l->type = ALLOW;
+			else if (!strcasecmp(p->tokbuf, c_deny))
+				l->type = DENY;
+			else
+				return e_keyword;
+		} else {
+			if (!strcasecmp(p->tokbuf, c_apply))
+				l->type = APPLY;
+			else if (!strcasecmp(p->tokbuf, c_no_apply))
+				l->type = NOAPPLY;
+			else
+				return e_keyword;
+		}
+		if ((t = gettoken(p)) != t_string)
+			return t;
+		sl = strchr(p->tokbuf, '/');
+		if (sl == 0)
+			return e_bad_network;
+		*sl++ = 0;
+		sz = strtoul(sl, &e, 0);
+		if (*e || e == sl || sz > 128)
+			return e_inval;
+		if (getaddrinfo(p->tokbuf, 0, &hints, &res))
+			return e_bad_addr;
+		memcpy(&l->addr, res->ai_addr, res->ai_addrlen);
+		if (res->ai_family == AF_INET && sz > 32) {
+			freeaddrinfo(res);
+			return e_inval;
+		}
+		l->prefixlen = sz;
+		freeaddrinfo(res);
+	}
+	return 0;
+}
+
+static const char *config_access(struct configuration *p, struct access **ls)
+{
+	return config_acccl(p, ls, ALLOWDENY);
+}
+
+static const char *config_clients(struct configuration *p, struct access **ls)
+{
+	return config_acccl(p, ls, APPLYNOAPPLY);
+}
+
 static const char *config_script_user(struct configuration *p, struct control *c)
 {
 	const char *t;
@@ -513,16 +593,19 @@ static const char *config_control(struct configuration *p, struct control **as)
 		return e_memory;
 	a->locations = 0;
 	a->alias = 0;
+	a->clients = 0;
 	a->exact_match = 0;
 	a->user_directory = 0;
 	if (b) {
 		a->index_names = b->index_names;
+		a->accesses = b->accesses;
 		a->mimes = b->mimes;
 		a->path_args_ok = b->path_args_ok;
 		a->admin = b->admin;
 		a->realm = b->realm;
 		a->userfile = b->userfile;
 		a->error_401_file = b->error_401_file;
+		a->error_403_file = b->error_403_file;
 		a->error_404_file = b->error_404_file;
 		a->do_crypt = b->do_crypt;
 		a->child_filename = b->child_filename;
@@ -539,12 +622,14 @@ static const char *config_control(struct configuration *p, struct control **as)
 		a->sanitize_path = b->sanitize_path;
 	} else {
 		a->index_names = 0;
+		a->accesses = 0;
 		a->mimes = 0;
 		a->path_args_ok = 0;
 		a->admin = 0;
 		a->realm = 0;
 		a->userfile = 0;
 		a->error_401_file = 0;
+		a->error_403_file = 0;
 		a->error_404_file = 0;
 		a->do_crypt = 0;
 		a->child_filename = 0;
@@ -594,6 +679,10 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_flag(p, &a->path_args_ok);
 		else if (!strcasecmp(p->tokbuf, c_index_names))
 			t = config_list(p, &a->index_names);
+		else if (!strcasecmp(p->tokbuf, c_access))
+			t = config_access(p, &a->accesses);
+		else if (!strcasecmp(p->tokbuf, c_clients))
+			t = config_clients(p, &a->clients);
 		else if (!strcasecmp(p->tokbuf, c_types))
 			t = config_mime(p, &a->mimes, CLASS_FILE);
 		else if (!strcasecmp(p->tokbuf, c_specials))
@@ -608,6 +697,8 @@ static const char *config_control(struct configuration *p, struct control **as)
 			t = config_string(p, &a->userfile);
 		else if (!strcasecmp(p->tokbuf, c_error_401_file))
 			t = config_string(p, &a->error_401_file);
+		else if (!strcasecmp(p->tokbuf, c_error_403_file))
+			t = config_string(p, &a->error_403_file);
 		else if (!strcasecmp(p->tokbuf, c_error_404_file))
 			t = config_string(p, &a->error_404_file);
 		else if (!strcasecmp(p->tokbuf, c_encrypted_user_file))

@@ -265,6 +265,13 @@ static char *exactmatch(char *s, char *t)
 	return !strncmp(s, t, n) && s[n] == '/' && s[n + 1] == 0 ? s + n : 0;
 }
 
+static int evaluate_access(struct sockaddr *addr, struct access *a)
+{
+	while (a && !match_address(addr, (struct sockaddr *) &a->addr, a->prefixlen))
+		a = a->next;
+	return a ? a->type : ALLOW;
+}
+
 static int get_mime(struct request *r, const char *s)
 {
 	struct mime *m;
@@ -819,7 +826,7 @@ struct control *faketoreal(char *x, char *y, struct request *r, int update, int 
 	while (c) {
 		if (c->locations && c->alias) {
 			s = c->exact_match ? exactmatch(x, c->alias) : dirmatch(x, c->alias);
-			if (s) {
+			if (s && (c->clients == 0 || evaluate_access((struct sockaddr *) &r->cn->peer, c->clients) == APPLY)) {
 				if (c->user_directory == 0) {
 					l = expand_hostname(y, c->locations->name, r->host, maxlen - 1);
 					r->location_length = l;
@@ -879,6 +886,13 @@ static void process_path(struct request *r)
 			log_d("check_path failed for %s", r->path);
 		r->error_file = r->c->error_404_file;
 		r->status = 404;
+		return;
+	}
+	if (r->c->accesses && evaluate_access((struct sockaddr *) &r->cn->peer, r->c->accesses) == DENY) {
+		if (debug)
+			log_d("access denied");
+		r->error_file = r->c->error_403_file;
+		r->status = 403;
 		return;
 	}
 	if (r->c->realm && check_realm(r) == -1) {

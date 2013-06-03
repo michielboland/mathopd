@@ -20,7 +20,7 @@ SBINDIR = $(PREFIX)/sbin
 # CPPFLAGS += -D_FILE_OFFSET_BITS=64
 
 OBJS = base64.o cgi.o config.o core.o dump.o imap.o log.o main.o \
-	redirect.o request.o util.o stub.o $(EXTRA_OBJS)
+	redirect.o request.o util.o stub.o addr.o $(EXTRA_OBJS)
 DEPENDS = mathopd.h Makefile
 
 # Uncomment the following if your system does not support the poll() function

@@ -138,6 +138,13 @@ struct pool {
 	size_t size;
 };
 
+struct access {
+	int type;
+	struct sockaddr_storage addr;
+	unsigned prefixlen;
+	struct access *next;
+};
+
 struct mime {
 	int class;
 	char *ext;
@@ -155,13 +162,16 @@ struct control {
 	int path_args_ok;
 	int exact_match;
 	struct simple_list *index_names;
+	struct access *accesses;
 	struct mime *mimes;
 	struct control *next;
 	struct simple_list *locations;
+	struct access *clients;
 	char *admin;
 	char *realm;
 	char *userfile;
 	char *error_401_file;
+	char *error_403_file;
 	char *error_404_file;
 	int do_crypt;
 	char *child_filename;
@@ -306,8 +316,8 @@ struct connection {
 	struct server *s;
 	int fd;
 	int rfd;
-	struct addrport peer;
-	struct addrport sock;
+	struct sockaddr_storage peer;
+	struct sockaddr_storage sock;
 	time_t t;
 	struct pool header_input;
 	struct pool output;
@@ -459,6 +469,11 @@ extern int init_cgi_headers(void);
 extern void pipe_run(struct connection *);
 extern void init_child(struct connection *, int);
 extern int setup_child_pollfds(int, struct connection *);
+
+/* addr */
+
+extern void sockaddr_to_addrport(struct sockaddr *, struct addrport *);
+extern int match_address(struct sockaddr *, struct sockaddr *, unsigned);
 
 #if defined LINUX_SENDFILE || defined FREEBSD_SENDFILE
 
