@@ -866,10 +866,10 @@ static void dump_pollfds(int n, int r)
 void httpd_main(void)
 {
 	int rv, n, t, accepting;
-	time_t hours, last_time;
+	time_t hours, last_time, last_dump_time;
 
 	accepting = 1;
-	last_time = current_time = startuptime = time(0);
+	last_dump_time = last_time = current_time = startuptime = time(0);
 	hours = current_time / 3600;
 	log_d("*** %s starting", server_version);
 	while (gotsigterm == 0) {
@@ -903,8 +903,11 @@ void httpd_main(void)
 		}
 		if (gotsigwinch) {
 			gotsigwinch = 0;
-			log_d("performing internal dump");
-			internal_dump();
+			if (last_dump_time != current_time) {
+				last_dump_time = current_time;
+				log_d("performing internal dump");
+				internal_dump();
+			}
 		}
 		n = 0;
 		if (accepting && find_connection())
