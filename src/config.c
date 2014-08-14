@@ -180,7 +180,6 @@ static const char t_close[] =		"unexpected closing brace";
 static const char t_eof[] =		"unexpected end of file";
 static const char t_open[] =		"unexpected opening brace";
 static const char t_string[] =		"unexpected string";
-static const char t_too_long[] =	"token too long";
 
 static int default_log_column[] = {
 	ML_CTIME,
