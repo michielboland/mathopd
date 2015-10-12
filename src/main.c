@@ -233,7 +233,9 @@ int main(int argc, char *argv[])
 		if (chdir("/") == -1)
 			die("chdir", 0);
 	}
-	setuid(geteuid());
+	if (setuid(geteuid()) == -1) {
+		die("setuid", 0);
+	}
 	if (geteuid() == 0) {
 		if (server_uid == 0)
 			die(0, "No user specified.");
