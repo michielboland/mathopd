@@ -147,7 +147,7 @@ static int add_http_vars(struct request *r, struct cgi_parameters *cp)
 		if (seen[i])
 			continue;
 		name = r->headers[i].rh_name;
-		if (strcasecmp(name, "Authorization") == 0 && r->user && r->user[0])
+		if (strcasecmp(name, "Authorization") == 0 && r->user[0])
 			continue;
 		l = strlen(name) + strlen(r->headers[i].rh_value) + 7;
 		for (j = i + 1; j < n; j++) {
@@ -209,7 +209,7 @@ static int make_cgi_envp(struct request *r, struct cgi_parameters *cp)
 		return -1;
 	if (add("CONTENT_TYPE", r->in_content_type, 0, cp) == -1)
 		return -1;
-	if (r->user && r->user[0]) {
+	if (r->user[0]) {
 		if (add("AUTH_TYPE", "Basic", 0, cp) == -1)
 			return -1;
 		if (add("REMOTE_USER", r->user, 0, cp) == -1)
