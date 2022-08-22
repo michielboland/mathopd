@@ -490,7 +490,7 @@ static void copychunk(struct connection *p)
 {
 	size_t room;
 	size_t bytestocopy;
-	char chunkbuf[16];
+	char chunkbuf[20];
 	size_t chunkheaderlen;
 
 	if (p->pipe_params.nocontent) {
