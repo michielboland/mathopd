@@ -229,9 +229,11 @@ static char *pool_getline(struct pool *p, int fold)
 				p->start = s;
 				return olds;
 			}
+			/* fall through */
 		case '\r':
 		case '\t':
 			s[-1] = ' ';
+			/* fall through */
 		case ' ':
 			if (f == 0) {
 				f = 1;
@@ -801,6 +803,7 @@ static size_t expand_hostname(char *dest, const char *source, const char *host, 
 				n += l;
 				break;
 			}
+			/* fall through */
 		default:
 			*dest++ = c;
 			++n;

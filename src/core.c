@@ -641,6 +641,7 @@ static int scan_request(struct connection *cn)
 				return 0;
 			default:
 				close_connection(cn);
+				/* fall through */
 			case HC_FREE:
 				return -1;
 			}
