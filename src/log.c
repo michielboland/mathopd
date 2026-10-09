@@ -83,7 +83,7 @@ static void tvdiff(const struct timeval *t1, const struct timeval *t2, struct ti
 void log_request(struct request *r)
 {
 	const char *s;
-	char tmp[20];
+	char tmp[42];
 	long cl;
 	int i, l, n;
 	int left;
