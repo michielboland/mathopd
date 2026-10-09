@@ -35,7 +35,7 @@
 
 /* Peg */
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: cgi.c,v 1.115 2003/12/15 15:50:41 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>

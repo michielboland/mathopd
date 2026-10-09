@@ -35,7 +35,7 @@
 
 /* Careful, man, there's a beverage here! */
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: stub.c,v 1.108 2003/12/16 21:44:19 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/wait.h>

@@ -35,7 +35,7 @@
 
 /* Les trois soers aveugles */
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: core.c,v 1.226 2004/01/03 23:53:56 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/wait.h>

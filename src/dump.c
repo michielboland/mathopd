@@ -35,7 +35,7 @@
 
 /* As */
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: dump.c,v 1.58 2003/12/14 22:50:20 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>

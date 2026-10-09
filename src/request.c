@@ -35,7 +35,7 @@
 
 /* Mysterons */
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: request.c,v 1.293 2003/12/23 00:38:39 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>

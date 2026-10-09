@@ -35,7 +35,7 @@
 
 /* I will now proceed to entangle the entire area. */
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: sendfile.c,v 1.3 2003/12/14 19:43:30 boland Exp $";
 
 #if defined LINUX_SENDFILE
 #include <sys/types.h>

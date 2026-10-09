@@ -35,7 +35,7 @@
 
 /* Aja */
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: base64.c,v 1.36 2003/11/16 21:32:09 boland Exp $";
 
 #include <string.h>
 #include <stdio.h>

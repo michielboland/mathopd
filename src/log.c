@@ -35,7 +35,7 @@
 
 /* Piece Of My Luck */
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: log.c,v 1.49 2003/11/30 18:51:44 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>

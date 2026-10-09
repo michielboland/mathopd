@@ -35,7 +35,7 @@
 
 /* Once Around */
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: main.c,v 1.203 2004/02/23 15:00:28 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>

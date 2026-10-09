@@ -35,7 +35,7 @@
 
 /* House of Games */
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: config.c,v 1.171 2003/12/22 20:07:08 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/socket.h>

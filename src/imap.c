@@ -35,7 +35,7 @@
 
 /* Hanc marginis exiguitas non caperet */
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: imap.c,v 1.40 2003/11/30 17:47:23 boland Exp $";
 
 #include <stdio.h>
 #include <string.h>

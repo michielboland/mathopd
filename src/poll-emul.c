@@ -35,7 +35,7 @@
 
 /* Dave. My mind is going. I can feel it. */
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: poll-emul.c,v 1.2 2001/12/05 18:43:58 boland Exp $";
 
 #include <sys/types.h>
 #include <sys/time.h>

@@ -35,7 +35,7 @@
 
 /* De verpletterende werkelijkheid */
 
-static const char rcsid[] = "$Id$";
+static const char rcsid[] = "$Id: redirect.c,v 1.22 2003/11/30 21:36:42 boland Exp $";
 
 #include <sys/types.h>
 #include <fcntl.h>
